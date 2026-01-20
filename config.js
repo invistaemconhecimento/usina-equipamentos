@@ -5,7 +5,7 @@ const JSONBIN_CONFIG = {
     API_KEY: 'sua-chave-api-aqui',
     
     // ID do bin que você criou no JSONBin.io
-    BIN_ID: 69620ca9ae596e708fd204c5,
+    BIN_ID: 696fa19fae596e708fe90a63,
     
     // URL base da API
     BASE_URL: 'https://api.jsonbin.io/v3/b',
