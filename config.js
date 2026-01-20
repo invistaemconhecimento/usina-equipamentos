@@ -1,11 +1,7 @@
 // Configuração do JSONBin.io
-// IMPORTANTE: Substitua essas informações pelas suas credenciais do JSONBin.io
 const JSONBIN_CONFIG = {
-    // Sua chave de API do JSONBin.io
-    API_KEY: '',
-    
     // ID do bin que você criou no JSONBin.io
-    BIN_ID: 696fa19fae596e708fe90a63,
+    BIN_ID: '696fa19fae596e708fe90a63',  // Adicionei aspas aqui!
     
     // URL base da API
     BASE_URL: 'https://api.jsonbin.io/v3/b',
@@ -13,7 +9,7 @@ const JSONBIN_CONFIG = {
     // Cabeçalhos para as requisições
     headers: {
         'Content-Type': 'application/json',
-        'X-Master-Key': $2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i // Substitua pela sua master key
+        'X-Master-Key': '$2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i'  // Adicionei aspas aqui também!
     }
 };
 
