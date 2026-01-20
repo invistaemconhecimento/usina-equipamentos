@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Equipamentos - Usina</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-industry"></i> Gestão de Equipamentos - Usina</h1>
+            <p class="subtitle">Controle de 300 equipamentos | Status operacional e pendências</p>
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-value" id="total-equipamentos">0</span>
+                    <span class="stat-label">Total de Equipamentos</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value apto" id="aptos-operar">0</span>
+                    <span class="stat-label">Aptos a Operar</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value nao-apto" id="nao-aptos">0</span>
+                    <span class="stat-label">Não Aptos</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value pendente" id="total-pendencias">0</span>
+                    <span class="stat-label">Pendências Ativas</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="filters">
+                    <h3><i class="fas fa-filter"></i> Filtros</h3>
+                    <div class="filter-group">
+                        <label for="status-filter">Status Operacional:</label>
+                        <select id="status-filter">
+                            <option value="all">Todos</option>
+                            <option value="apto">Apto a Operar</option>
+                            <option value="nao-apto">Não Apto</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="pendencia-filter">Status de Pendência:</label>
+                        <select id="pendencia-filter">
+                            <option value="all">Todas</option>
+                            <option value="com-pendencia">Com Pendência</option>
+                            <option value="sem-pendencia">Sem Pendência</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="search">Buscar Equipamento:</label>
+                        <input type="text" id="search" placeholder="Nome ou código...">
+                    </div>
+                    <button id="reset-filters" class="btn-secondary">
+                        <i class="fas fa-redo"></i> Limpar Filtros
+                    </button>
+                </div>
+
+                <div class="actions">
+                    <h3><i class="fas fa-tools"></i> Ações</h3>
+                    <button id="add-equipamento" class="btn-primary">
+                        <i class="fas fa-plus-circle"></i> Novo Equipamento
+                    </button>
+                    <button id="add-pendencia" class="btn-secondary" disabled>
+                        <i class="fas fa-exclamation-circle"></i> Nova Pendência
+                    </button>
+                    <button id="export-data" class="btn-secondary">
+                        <i class="fas fa-file-export"></i> Exportar Dados
+                    </button>
+                    <div class="sync-status">
+                        <p><i class="fas fa-database"></i> Status da Conexão:</p>
+                        <div class="status-indicator" id="sync-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Conectando...</span>
+                        </div>
+                        <button id="manual-sync" class="btn-small">
+                            <i class="fas fa-sync"></i> Sincronizar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="content-header">
+                    <h2><i class="fas fa-list"></i> Equipamentos</h2>
+                    <div class="view-controls">
+                        <button id="view-list" class="view-btn active"><i class="fas fa-list"></i></button>
+                        <button id="view-grid" class="view-btn"><i class="fas fa-th-large"></i></button>
+                    </div>
+                </div>
+
+                <div class="equipamentos-container" id="equipamentos-container">
+                    <!-- Lista de equipamentos será carregada aqui -->
+                    <div class="loading">
+                        <i class="fas fa-cog fa-spin"></i>
+                        <p>Carregando equipamentos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar/editar equipamento -->
+        <div id="equipamento-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">Novo Equipamento</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="equipamento-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="equipamento-codigo">Código *</label>
+                                <input type="text" id="equipamento-codigo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="equipamento-nome">Nome *</label>
+                                <input type="text" id="equipamento-nome" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="equipamento-descricao">Descrição</label>
+                            <textarea id="equipamento-descricao" rows="3"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="equipamento-setor">Setor</label>
+                                <select id="equipamento-setor">
+                                    <option value="geracao">Geração</option>
+                                    <option value="transmissao">Transmissão</option>
+                                    <option value="distribuicao">Distribuição</option>
+                                    <option value="manutencao">Manutenção</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="equipamento-status">Status Operacional *</label>
+                                <select id="equipamento-status" required>
+                                    <option value="apto">Apto a Operar</option>
+                                    <option value="nao-apto">Não Apto</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="equipamento-ultima-inspecao">Última Inspeção</label>
+                            <input type="date" id="equipamento-ultima-inspecao">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                            <button type="submit" class="btn-primary">Salvar Equipamento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar/editar pendência -->
+        <div id="pendencia-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="pendencia-modal-title">Nova Pendência</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="pendencia-form">
+                        <input type="hidden" id="pendencia-equipamento-id">
+                        <input type="hidden" id="pendencia-id">
+                        
+                        <div class="form-group">
+                            <label for="pendencia-titulo">Título da Pendência *</label>
+                            <input type="text" id="pendencia-titulo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pendencia-descricao">Descrição Detalhada *</label>
+                            <textarea id="pendencia-descricao" rows="4" required></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pendencia-responsavel">Responsável *</label>
+                                <input type="text" id="pendencia-responsavel" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="pendencia-prioridade">Prioridade</label>
+                                <select id="pendencia-prioridade">
+                                    <option value="baixa">Baixa</option>
+                                    <option value="media" selected>Média</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="critica">Crítica</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pendencia-data">Data da Ocorrência</label>
+                                <input type="date" id="pendencia-data">
+                            </div>
+                            <div class="form-group">
+                                <label for="pendencia-status">Status da Pendência</label>
+                                <select id="pendencia-status">
+                                    <option value="aberta">Aberta</option>
+                                    <option value="em-andamento">Em Andamento</option>
+                                    <option value="resolvida">Resolvida</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                            <button type="submit" class="btn-primary">Salvar Pendência</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para visualizar detalhes do equipamento -->
+        <div id="detalhes-modal" class="modal">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3 id="detalhes-titulo">Detalhes do Equipamento</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="detalhes-header">
+                        <div class="detalhes-info">
+                            <h4 id="detalhes-nome"></h4>
+                            <div class="status-chip" id="detalhes-status"></div>
+                            <p id="detalhes-codigo"></p>
+                            <p id="detalhes-descricao"></p>
+                            <div class="detalhes-metadata">
+                                <p><i class="fas fa-building"></i> <span id="detalhes-setor"></span></p>
+                                <p><i class="fas fa-calendar"></i> Última inspeção: <span id="detalhes-inspecao"></span></p>
+                            </div>
+                        </div>
+                        <div class="detalhes-actions">
+                            <button id="editar-equipamento" class="btn-secondary">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button id="nova-pendencia-detalhes" class="btn-primary">
+                                <i class="fas fa-plus-circle"></i> Nova Pendência
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pendencias-section">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Histórico de Pendências</h4>
+                        <div class="pendencias-container" id="detalhes-pendencias">
+                            <!-- Pendencias serão carregadas aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
