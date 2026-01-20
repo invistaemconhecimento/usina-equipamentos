@@ -2,7 +2,7 @@
 // IMPORTANTE: Substitua essas informações pelas suas credenciais do JSONBin.io
 const JSONBIN_CONFIG = {
     // Sua chave de API do JSONBin.io
-    API_KEY: 'sua-chave-api-aqui',
+    API_KEY: '',
     
     // ID do bin que você criou no JSONBin.io
     BIN_ID: 696fa19fae596e708fe90a63,
