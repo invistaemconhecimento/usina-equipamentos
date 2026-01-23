@@ -709,3 +709,17 @@ header h1 {
     color: #f39c12;
     margin-right: 5px;
 }
+.pendencia-badge.critica {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.pendencia-item.critica {
+    border-left-color: #dc2626;
+    background-color: #fef2f2;
+}
+
+.pendencia-item.critica .pendencia-titulo i {
+    color: #dc2626;
+}
