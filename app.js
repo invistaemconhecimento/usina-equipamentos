@@ -710,6 +710,42 @@ class EquipamentosApp {
             });
         });
     }
+
+    
+atualizarDisplayStatusEquipamento(equipamento = null) {
+    const statusDisplay = document.getElementById('equipamento-status-display');
+    
+    if (statusDisplay) {
+        if (equipamento) {
+            // Verificar pendências críticas
+            const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+            );
+            
+            const status = temPendenciasCriticasAbertas ? 'nao-apto' : 'apto';
+            const statusTexto = status === 'apto' ? 'Apto a Operar' : 'Não Apto';
+            const classeStatus = status === 'apto' ? 'status-chip apto' : 'status-chip nao-apto';
+            
+            statusDisplay.innerHTML = `<span class="${classeStatus}">${statusTexto}</span>`;
+            
+            // Adicionar mensagem informativa se houver pendências críticas
+            if (temPendenciasCriticasAbertas) {
+                const pendenciasCriticas = equipamento.pendencias.filter(p => 
+                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                );
+                
+                statusDisplay.innerHTML += `
+                    <div class="status-info">
+                        <small><i class="fas fa-exclamation-triangle"></i> 
+                        ${pendenciasCriticas.length} pendência(s) crítica(s) aberta(s)</small>
+                    </div>
+                `;
+            }
+        } else {
+            statusDisplay.innerHTML = '<span class="status-chip apto">Apto a Operar</span>';
+        }
+    }
+}
     
     editarPendencia(pendenciaId) {
         if (!this.equipamentoSelecionado) return;
