@@ -146,6 +146,12 @@ class EquipamentosApp {
             if (result.record && result.record.equipamentos) {
                 this.data = result.record;
                 this.equipamentos = this.data.equipamentos;
+                
+                // Atualizar status dos equipamentos baseado nas pendências críticas
+                this.equipamentos.forEach((equipamento, index) => {
+                    this.atualizarStatusEquipamentoPorPendencias(index);
+                });
+                
                 console.log('Dados carregados do JSONBin.io:', this.equipamentos.length, 'equipamentos');
             } else {
                 // Usar dados iniciais se o bin estiver vazio
@@ -296,6 +302,10 @@ class EquipamentosApp {
                 p.status === 'aberta' || p.status === 'em-andamento'
             );
             
+            const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+            );
+            
             let classesCard = 'equipamento-card';
             if (equipamento.status === 'nao-apto') classesCard += ' nao-apto';
             if (temPendenciasAtivas) classesCard += ' com-pendencia';
@@ -313,6 +323,11 @@ class EquipamentosApp {
             const pendenciasAndamento = equipamento.pendencias.filter(p => p.status === 'em-andamento').length;
             const pendenciasResolvidas = equipamento.pendencias.filter(p => p.status === 'resolvida').length;
             
+            // Contar pendências críticas
+            const pendenciasCriticas = equipamento.pendencias.filter(p => 
+                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+            ).length;
+            
             return `
                 <div class="${classesCard}" data-id="${equipamento.id}">
                     <div class="equipamento-header">
@@ -322,6 +337,7 @@ class EquipamentosApp {
                         </div>
                         <div class="status-chip ${equipamento.status}">
                             ${APP_CONFIG.statusEquipamento[equipamento.status]}
+                            ${temPendenciasCriticasAbertas ? ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>` : ''}
                         </div>
                     </div>
                     
@@ -338,6 +354,7 @@ class EquipamentosApp {
                             ${pendenciasAbertas > 0 ? `<span class="pendencia-badge aberta">${pendenciasAbertas} Aberta(s)</span>` : ''}
                             ${pendenciasAndamento > 0 ? `<span class="pendencia-badge em-andamento">${pendenciasAndamento} Em Andamento</span>` : ''}
                             ${pendenciasResolvidas > 0 ? `<span class="pendencia-badge resolvida">${pendenciasResolvidas} Resolvida(s)</span>` : ''}
+                            ${pendenciasCriticas > 0 ? `<span class="pendencia-badge critica">${pendenciasCriticas} Crítica(s)</span>` : ''}
                         </div>
                     ` : ''}
                     
@@ -376,9 +393,14 @@ class EquipamentosApp {
         
         // Contar pendencias ativas (abertas ou em andamento)
         let totalPendenciasAtivas = 0;
+        let totalPendenciasCriticas = 0;
         this.equipamentos.forEach(equipamento => {
             totalPendenciasAtivas += equipamento.pendencias.filter(p => 
                 p.status === 'aberta' || p.status === 'em-andamento'
+            ).length;
+            
+            totalPendenciasCriticas += equipamento.pendencias.filter(p => 
+                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
             ).length;
         });
         
@@ -414,45 +436,45 @@ class EquipamentosApp {
     }
     
     abrirModalEquipamento(equipamentoId = null) {
-    const modal = this.modals.equipamento;
-    const form = document.getElementById('equipamento-form');
-    const titulo = document.getElementById('modal-title');
-    
-    if (equipamentoId) {
-        // Modo edição
-        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
-        if (!equipamento) return;
+        const modal = this.modals.equipamento;
+        const form = document.getElementById('equipamento-form');
+        const titulo = document.getElementById('modal-title');
         
-        titulo.textContent = 'Editar Equipamento';
+        if (equipamentoId) {
+            // Modo edição
+            const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+            if (!equipamento) return;
+            
+            titulo.textContent = 'Editar Equipamento';
+            
+            // Preencher formulário
+            document.getElementById('equipamento-codigo').value = equipamento.codigo;
+            document.getElementById('equipamento-nome').value = equipamento.nome;
+            document.getElementById('equipamento-descricao').value = equipamento.descricao;
+            document.getElementById('equipamento-setor').value = equipamento.setor;
+            document.getElementById('equipamento-ultima-inspecao').value = equipamento.ultimaInspecao || '';
+            
+            // Atualizar display de status
+            this.atualizarDisplayStatusEquipamento(equipamento);
+            
+            // Armazenar ID para referência
+            form.dataset.editId = equipamentoId;
+        } else {
+            // Modo criação
+            titulo.textContent = 'Novo Equipamento';
+            form.reset();
+            
+            // Definir "MOAGEM / MOAGEM" como padrão
+            document.getElementById('equipamento-setor').value = 'moagem-moagem';
+            
+            // Mostrar status inicial como apto
+            this.atualizarDisplayStatusEquipamento();
+            
+            delete form.dataset.editId;
+        }
         
-        // Preencher formulário
-        document.getElementById('equipamento-codigo').value = equipamento.codigo;
-        document.getElementById('equipamento-nome').value = equipamento.nome;
-        document.getElementById('equipamento-descricao').value = equipamento.descricao;
-        document.getElementById('equipamento-setor').value = equipamento.setor;
-        document.getElementById('equipamento-ultima-inspecao').value = equipamento.ultimaInspecao || '';
-        
-        // Atualizar display de status
-        this.atualizarDisplayStatusEquipamento(equipamento);
-        
-        // Armazenar ID para referência
-        form.dataset.editId = equipamentoId;
-    } else {
-        // Modo criação
-        titulo.textContent = 'Novo Equipamento';
-        form.reset();
-        
-        // Definir "MOAGEM / MOAGEM" como padrão
-        document.getElementById('equipamento-setor').value = 'moagem-moagem';
-        
-        // Mostrar status inicial como apto
-        this.atualizarDisplayStatusEquipamento();
-        
-        delete form.dataset.editId;
+        modal.classList.add('active');
     }
-    
-    modal.classList.add('active');
-}
     
     abrirModalPendencia(equipamentoId = null) {
         const modal = this.modals.pendencia;
@@ -486,6 +508,59 @@ class EquipamentosApp {
         modal.classList.add('active');
     }
     
+    atualizarDisplayStatusEquipamento(equipamento = null) {
+        const statusDisplay = document.getElementById('equipamento-status-display');
+        
+        if (statusDisplay) {
+            if (equipamento) {
+                // Verificar pendências críticas
+                const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                );
+                
+                const status = temPendenciasCriticasAbertas ? 'nao-apto' : 'apto';
+                const statusTexto = status === 'apto' ? 'Apto a Operar' : 'Não Apto';
+                const classeStatus = status === 'apto' ? 'status-chip apto' : 'status-chip nao-apto';
+                
+                statusDisplay.innerHTML = `<span class="${classeStatus}">${statusTexto}</span>`;
+                
+                // Adicionar mensagem informativa se houver pendências críticas
+                if (temPendenciasCriticasAbertas) {
+                    const pendenciasCriticas = equipamento.pendencias.filter(p => 
+                        p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                    );
+                    
+                    statusDisplay.innerHTML += `
+                        <div class="status-info">
+                            <small><i class="fas fa-exclamation-triangle"></i> 
+                            ${pendenciasCriticas.length} pendência(s) crítica(s) aberta(s)</small>
+                        </div>
+                    `;
+                }
+            } else {
+                statusDisplay.innerHTML = '<span class="status-chip apto">Apto a Operar</span>';
+            }
+        }
+    }
+    
+    atualizarStatusEquipamentoPorPendencias(equipamentoIndex) {
+        const equipamento = this.equipamentos[equipamentoIndex];
+        
+        // Verificar se há pendências críticas abertas
+        const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+            p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+        );
+        
+        // Atualizar status do equipamento
+        if (temPendenciasCriticasAbertas) {
+            equipamento.status = 'nao-apto';
+        } else {
+            // Se não há pendências críticas abertas, o equipamento pode ser apto
+            // (mantemos o status atual se já for apto, ou mudamos para apto se estava como não apto)
+            equipamento.status = 'apto';
+        }
+    }
+    
     async salvarEquipamento() {
         const form = document.getElementById('equipamento-form');
         const isEdit = form.dataset.editId;
@@ -495,7 +570,7 @@ class EquipamentosApp {
             nome: document.getElementById('equipamento-nome').value.trim(),
             descricao: document.getElementById('equipamento-descricao').value.trim(),
             setor: document.getElementById('equipamento-setor').value,
-            status: document.getElementById('equipamento-status').value,
+            status: 'apto', // Sempre começa como apto
             ultimaInspecao: document.getElementById('equipamento-ultima-inspecao').value || null,
             pendencias: []
         };
@@ -512,10 +587,18 @@ class EquipamentosApp {
             const index = this.equipamentos.findIndex(e => e.id === id);
             
             if (index !== -1) {
-                // Manter o ID e pendencias existentes
+                // Manter o ID, pendencias existentes e status atual
                 equipamento.id = id;
                 equipamento.pendencias = this.equipamentos[index].pendencias;
                 equipamento.dataCriacao = this.equipamentos[index].dataCriacao;
+                
+                // Verificar pendências críticas para determinar status
+                const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                );
+                
+                // Atualizar status baseado nas pendências
+                equipamento.status = temPendenciasCriticasAbertas ? 'nao-apto' : 'apto';
                 
                 this.equipamentos[index] = equipamento;
                 
@@ -589,11 +672,8 @@ class EquipamentosApp {
             this.mostrarMensagem('Pendência registrada com sucesso', 'success');
         }
         
-        // Atualizar status do equipamento se necessário
-        // (Se uma pendência crítica for aberta, o equipamento pode se tornar não apto)
-        if (pendencia.status === 'aberta' && pendencia.prioridade === 'critica') {
-            this.equipamentos[equipamentoIndex].status = 'nao-apto';
-        }
+        // Atualizar status do equipamento baseado nas pendências críticas
+        this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
         
         // Salvar dados
         const salvou = await this.salvarDados();
@@ -622,6 +702,17 @@ class EquipamentosApp {
         statusChip.textContent = APP_CONFIG.statusEquipamento[equipamento.status];
         statusChip.className = `status-chip ${equipamento.status}`;
         
+        // Adicionar ícone de alerta se houver pendências críticas
+        const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+            p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+        );
+        if (temPendenciasCriticasAbertas) {
+            const pendenciasCriticas = equipamento.pendencias.filter(p => 
+                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+            ).length;
+            statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
+        }
+        
         // Data de inspeção
         const dataInspecao = equipamento.ultimaInspecao ? 
             new Date(equipamento.ultimaInspecao).toLocaleDateString('pt-BR') : 
@@ -648,12 +739,18 @@ class EquipamentosApp {
             return;
         }
         
-        // Ordenar pendencias: abertas primeiro, depois por data (mais recente primeiro)
+        // Ordenar pendencias: abertas primeiro, depois por prioridade (crítica primeiro), depois por data (mais recente primeiro)
         const pendenciasOrdenadas = [...pendencias].sort((a, b) => {
             // Primeiro por status (abertas primeiro)
             const statusOrder = { 'aberta': 0, 'em-andamento': 1, 'resolvida': 2, 'cancelada': 3 };
             if (statusOrder[a.status] !== statusOrder[b.status]) {
                 return statusOrder[a.status] - statusOrder[b.status];
+            }
+            
+            // Depois por prioridade (crítica primeiro)
+            const prioridadeOrder = { 'critica': 0, 'alta': 1, 'media': 2, 'baixa': 3 };
+            if (prioridadeOrder[a.prioridade] !== prioridadeOrder[b.prioridade]) {
+                return prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade];
             }
             
             // Depois por data (mais recente primeiro)
@@ -662,12 +759,16 @@ class EquipamentosApp {
         
         container.innerHTML = pendenciasOrdenadas.map(pendencia => {
             const dataFormatada = new Date(pendencia.data).toLocaleDateString('pt-BR');
+            const isCritica = pendencia.prioridade === 'critica';
             
             return `
-                <div class="pendencia-item ${pendencia.status}">
+                <div class="pendencia-item ${pendencia.status} ${isCritica ? 'critica' : ''}">
                     <div class="pendencia-header">
                         <div>
-                            <div class="pendencia-titulo">${pendencia.titulo}</div>
+                            <div class="pendencia-titulo">
+                                ${isCritica ? '<i class="fas fa-exclamation-triangle"></i> ' : ''}
+                                ${pendencia.titulo}
+                            </div>
                             <div class="pendencia-data">
                                 <i class="far fa-calendar"></i> ${dataFormatada} 
                                 | Prioridade: ${APP_CONFIG.prioridades[pendencia.prioridade]}
@@ -710,42 +811,6 @@ class EquipamentosApp {
             });
         });
     }
-
-    
-atualizarDisplayStatusEquipamento(equipamento = null) {
-    const statusDisplay = document.getElementById('equipamento-status-display');
-    
-    if (statusDisplay) {
-        if (equipamento) {
-            // Verificar pendências críticas
-            const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
-                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-            );
-            
-            const status = temPendenciasCriticasAbertas ? 'nao-apto' : 'apto';
-            const statusTexto = status === 'apto' ? 'Apto a Operar' : 'Não Apto';
-            const classeStatus = status === 'apto' ? 'status-chip apto' : 'status-chip nao-apto';
-            
-            statusDisplay.innerHTML = `<span class="${classeStatus}">${statusTexto}</span>`;
-            
-            // Adicionar mensagem informativa se houver pendências críticas
-            if (temPendenciasCriticasAbertas) {
-                const pendenciasCriticas = equipamento.pendencias.filter(p => 
-                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-                );
-                
-                statusDisplay.innerHTML += `
-                    <div class="status-info">
-                        <small><i class="fas fa-exclamation-triangle"></i> 
-                        ${pendenciasCriticas.length} pendência(s) crítica(s) aberta(s)</small>
-                    </div>
-                `;
-            }
-        } else {
-            statusDisplay.innerHTML = '<span class="status-chip apto">Apto a Operar</span>';
-        }
-    }
-}
     
     editarPendencia(pendenciaId) {
         if (!this.equipamentoSelecionado) return;
@@ -793,6 +858,9 @@ atualizarDisplayStatusEquipamento(equipamento = null) {
         
         // Remover pendência
         this.equipamentos[equipamentoIndex].pendencias = this.equipamentos[equipamentoIndex].pendencias.filter(p => p.id !== pendenciaId);
+        
+        // Atualizar status do equipamento baseado nas pendências restantes
+        this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
         
         // Atualizar equipamento selecionado
         this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
