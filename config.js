@@ -21,7 +21,7 @@ const INITIAL_DATA = {
             codigo: "EQP-001",
             nome: "Turbina Principal",
             descricao: "Turbina de alta pressão para geração de energia",
-            setor: "geracao",
+            setor: "moagem-moagem", // Atualizado
             status: "apto",
             ultimaInspecao: "2023-10-15",
             dataCriacao: "2023-01-10",
@@ -42,7 +42,7 @@ const INITIAL_DATA = {
             codigo: "EQP-042",
             nome: "Transformador T-42",
             descricao: "Transformador de potência 500kV",
-            setor: "transmissao",
+            setor: "utilidades-distribuicao-agua", // Atualizado
             status: "nao-apto",
             ultimaInspecao: "2023-09-22",
             dataCriacao: "2022-11-05",
@@ -72,7 +72,7 @@ const INITIAL_DATA = {
             codigo: "EQP-123",
             nome: "Gerador G-12",
             descricao: "Gerador síncrono de 200MW",
-            setor: "geracao",
+            setor: "flotacao-flot-pirita", // Atualizado
             status: "apto",
             ultimaInspecao: "2023-10-18",
             dataCriacao: "2023-03-20",
@@ -89,11 +89,21 @@ const APP_CONFIG = {
     nome: "Gestão de Equipamentos - Usina",
     versao: "1.0.0",
     setores: {
-        "geracao": "Geração",
-        "transmissao": "Transmissão",
-        "distribuicao": "Distribuição",
-        "manutencao": "Manutenção",
-        "outro": "Outro"
+        // Novo: Atualizado com as opções especificadas
+        "filtragem-filtragem-concentrado": "FILTRAGEM / FILTRAGEM DE CONCENTRADO",
+        "filtragem-filtragem-rejeito": "FILTRAGEM / FILTRAGEM DE REJEITO",
+        "flotacao-flot-cleaner-scavenger": "FLOTAÇÃO / FLOT CLEANER-SCAVENGER",
+        "flotacao-flot-pirita": "FLOTAÇÃO / FLOT PIRITA",
+        "flotacao-flot-rougher": "FLOTAÇÃO / FLOT ROUGHER",
+        "moagem-moagem": "MOAGEM / MOAGEM",
+        "reagentes-acido-sulfurico": "REAGENTES / ÁCIDO SULFÚRICO",
+        "reagentes-dtf": "REAGENTES / DTF",
+        "reagentes-espumante": "REAGENTES / ESPUMANTE",
+        "reagentes-floculante": "REAGENTES / FLOCULANTE",
+        "reagentes-leite-de-cal": "REAGENTES / LEITE DE CAL",
+        "reagentes-pax": "REAGENTES / PAX",
+        "torre-resfriamento-torre-resfriamento": "TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO",
+        "utilidades-distribuicao-agua": "UTILIDADES / DISTRIBUIÇÃO DE ÁGUA"
     },
     statusEquipamento: {
         "apto": "Apto a Operar",
@@ -111,7 +121,7 @@ const APP_CONFIG = {
         "alta": "Alta",
         "critica": "Crítica"
     },
-    // NOVO: Adicionar lista de responsáveis
+    // Lista de responsáveis
     responsaveis: [
         "Elétrica",
         "Instrumentação",
