@@ -414,40 +414,45 @@ class EquipamentosApp {
     }
     
     abrirModalEquipamento(equipamentoId = null) {
-        const modal = this.modals.equipamento;
-        const form = document.getElementById('equipamento-form');
-        const titulo = document.getElementById('modal-title');
+    const modal = this.modals.equipamento;
+    const form = document.getElementById('equipamento-form');
+    const titulo = document.getElementById('modal-title');
+    
+    if (equipamentoId) {
+        // Modo edição
+        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+        if (!equipamento) return;
         
-        if (equipamentoId) {
-            // Modo edição
-            const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
-            if (!equipamento) return;
-            
-            titulo.textContent = 'Editar Equipamento';
-            
-            // Preencher formulário
-            document.getElementById('equipamento-codigo').value = equipamento.codigo;
-            document.getElementById('equipamento-nome').value = equipamento.nome;
-            document.getElementById('equipamento-descricao').value = equipamento.descricao;
-            document.getElementById('equipamento-setor').value = equipamento.setor;
-            document.getElementById('equipamento-status').value = equipamento.status;
-            document.getElementById('equipamento-ultima-inspecao').value = equipamento.ultimaInspecao || '';
-            
-            // Armazenar ID para referência
-            form.dataset.editId = equipamentoId;
-        } else {
-            // Modo criação
-            titulo.textContent = 'Novo Equipamento';
-            form.reset();
-            
-            // Definir "MOAGEM / MOAGEM" como padrão
-            document.getElementById('equipamento-setor').value = 'moagem-moagem';
-            
-            delete form.dataset.editId;
-        }
+        titulo.textContent = 'Editar Equipamento';
         
-        modal.classList.add('active');
+        // Preencher formulário
+        document.getElementById('equipamento-codigo').value = equipamento.codigo;
+        document.getElementById('equipamento-nome').value = equipamento.nome;
+        document.getElementById('equipamento-descricao').value = equipamento.descricao;
+        document.getElementById('equipamento-setor').value = equipamento.setor;
+        document.getElementById('equipamento-ultima-inspecao').value = equipamento.ultimaInspecao || '';
+        
+        // Atualizar display de status
+        this.atualizarDisplayStatusEquipamento(equipamento);
+        
+        // Armazenar ID para referência
+        form.dataset.editId = equipamentoId;
+    } else {
+        // Modo criação
+        titulo.textContent = 'Novo Equipamento';
+        form.reset();
+        
+        // Definir "MOAGEM / MOAGEM" como padrão
+        document.getElementById('equipamento-setor').value = 'moagem-moagem';
+        
+        // Mostrar status inicial como apto
+        this.atualizarDisplayStatusEquipamento();
+        
+        delete form.dataset.editId;
     }
+    
+    modal.classList.add('active');
+}
     
     abrirModalPendencia(equipamentoId = null) {
         const modal = this.modals.pendencia;
