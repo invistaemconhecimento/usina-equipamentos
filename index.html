@@ -266,7 +266,71 @@
             </div>
         </div>
     </div>
-
+    
+<!-- Modal para adicionar/editar equipamento -->
+<div id="equipamento-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Novo Equipamento</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="equipamento-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="equipamento-codigo">Código *</label>
+                        <input type="text" id="equipamento-codigo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="equipamento-nome">Nome *</label>
+                        <input type="text" id="equipamento-nome" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="equipamento-descricao">Descrição</label>
+                    <textarea id="equipamento-descricao" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="equipamento-setor">Setor</label>
+                        <select id="equipamento-setor">
+                            <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
+                            <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
+                            <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
+                            <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
+                            <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
+                            <option value="moagem-moagem" selected>MOAGEM / MOAGEM</option>
+                            <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
+                            <option value="reagentes-dtf">REAGENTES / DTF</option>
+                            <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
+                            <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
+                            <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
+                            <option value="reagentes-pax">REAGENTES / PAX</option>
+                            <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                            <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="equipamento-status">Status Operacional *</label>
+                        <select id="equipamento-status" required>
+                            <option value="apto">Apto a Operar</option>
+                            <option value="nao-apto">Não Apto</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="equipamento-ultima-inspecao">Última Inspeção</label>
+                    <input type="date" id="equipamento-ultima-inspecao">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary close-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Equipamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
