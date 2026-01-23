@@ -464,6 +464,9 @@ class EquipamentosApp {
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('pendencia-data').value = hoje;
         
+        // Resetar o dropdown de responsável para vazio
+        document.getElementById('pendencia-responsavel').value = '';
+        
         // Armazenar ID do equipamento
         document.getElementById('pendencia-equipamento-id').value = equipamentoId;
         delete form.dataset.editId;
@@ -536,7 +539,7 @@ class EquipamentosApp {
         const pendencia = {
             titulo: document.getElementById('pendencia-titulo').value.trim(),
             descricao: document.getElementById('pendencia-descricao').value.trim(),
-            responsavel: document.getElementById('pendencia-responsavel').value.trim(),
+            responsavel: document.getElementById('pendencia-responsavel').value,
             prioridade: document.getElementById('pendencia-prioridade').value,
             data: document.getElementById('pendencia-data').value || new Date().toISOString().split('T')[0],
             status: document.getElementById('pendencia-status').value
@@ -711,7 +714,11 @@ class EquipamentosApp {
         // Preencher formulário
         document.getElementById('pendencia-titulo').value = pendencia.titulo;
         document.getElementById('pendencia-descricao').value = pendencia.descricao;
-        document.getElementById('pendencia-responsavel').value = pendencia.responsavel;
+        
+        // Selecionar o responsável no dropdown
+        const responsavelSelect = document.getElementById('pendencia-responsavel');
+        responsavelSelect.value = pendencia.responsavel;
+        
         document.getElementById('pendencia-prioridade').value = pendencia.prioridade;
         document.getElementById('pendencia-data').value = pendencia.data;
         document.getElementById('pendencia-status').value = pendencia.status;
