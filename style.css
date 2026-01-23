@@ -690,3 +690,22 @@ header h1 {
         flex: 1;
     }
 }
+.status-display {
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.status-info {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+.status-info i {
+    color: #f39c12;
+    margin-right: 5px;
+}
