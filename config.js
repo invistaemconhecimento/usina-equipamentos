@@ -21,8 +21,8 @@ const INITIAL_DATA = {
             codigo: "EQP-001",
             nome: "Turbina Principal",
             descricao: "Turbina de alta pressão para geração de energia",
-            setor: "moagem-moagem", // Atualizado
-            status: "apto",
+            setor: "moagem-moagem",
+            status: "apto", // Status será ajustado automaticamente
             ultimaInspecao: "2023-10-15",
             dataCriacao: "2023-01-10",
             pendencias: [
@@ -31,7 +31,7 @@ const INITIAL_DATA = {
                     titulo: "Vibração acima do normal",
                     descricao: "Detectada vibração 15% acima do normal durante operação em carga máxima",
                     responsavel: "Elétrica",
-                    prioridade: "alta",
+                    prioridade: "alta", // Não é crítica, então equipamento fica apto
                     data: "2023-10-10",
                     status: "em-andamento"
                 }
@@ -42,8 +42,8 @@ const INITIAL_DATA = {
             codigo: "EQP-042",
             nome: "Transformador T-42",
             descricao: "Transformador de potência 500kV",
-            setor: "utilidades-distribuicao-agua", // Atualizado
-            status: "nao-apto",
+            setor: "utilidades-distribuicao-agua",
+            status: "nao-apto", // Pendência crítica aberta
             ultimaInspecao: "2023-09-22",
             dataCriacao: "2022-11-05",
             pendencias: [
@@ -52,7 +52,7 @@ const INITIAL_DATA = {
                     titulo: "Vazamento de óleo isolante",
                     descricao: "Identificado vazamento no tanque principal",
                     responsavel: "Instrumentação",
-                    prioridade: "critica",
+                    prioridade: "critica", // CRÍTICA - equipamento não apto
                     data: "2023-10-05",
                     status: "aberta"
                 },
@@ -61,7 +61,7 @@ const INITIAL_DATA = {
                     titulo: "Sistema de refrigeração com ruído",
                     descricao: "Ventiladores apresentando ruído anormal",
                     responsavel: "Mecânica",
-                    prioridade: "media",
+                    prioridade: "media", // Não é crítica
                     data: "2023-09-30",
                     status: "resolvida"
                 }
@@ -72,8 +72,8 @@ const INITIAL_DATA = {
             codigo: "EQP-123",
             nome: "Gerador G-12",
             descricao: "Gerador síncrono de 200MW",
-            setor: "flotacao-flot-pirita", // Atualizado
-            status: "apto",
+            setor: "flotacao-flot-pirita",
+            status: "apto", // Sem pendências críticas
             ultimaInspecao: "2023-10-18",
             dataCriacao: "2023-03-20",
             pendencias: []
