@@ -305,6 +305,9 @@ class EquipamentosApp {
                 new Date(equipamento.ultimaInspecao).toLocaleDateString('pt-BR') : 
                 'Não registrada';
             
+            // Obter nome do setor formatado
+            const setorFormatado = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
+            
             // Contar pendencias por status
             const pendenciasAbertas = equipamento.pendencias.filter(p => p.status === 'aberta').length;
             const pendenciasAndamento = equipamento.pendencias.filter(p => p.status === 'em-andamento').length;
@@ -325,7 +328,7 @@ class EquipamentosApp {
                     <p class="equipamento-descricao">${equipamento.descricao}</p>
                     
                     <div class="equipamento-metadata">
-                        <div><i class="fas fa-building"></i> ${APP_CONFIG.setores[equipamento.setor]}</div>
+                        <div><i class="fas fa-building"></i> ${setorFormatado}</div>
                         <div><i class="fas fa-calendar"></i> ${dataInspecao}</div>
                     </div>
                     
@@ -436,6 +439,10 @@ class EquipamentosApp {
             // Modo criação
             titulo.textContent = 'Novo Equipamento';
             form.reset();
+            
+            // Definir "MOAGEM / MOAGEM" como padrão
+            document.getElementById('equipamento-setor').value = 'moagem-moagem';
+            
             delete form.dataset.editId;
         }
         
@@ -603,7 +610,7 @@ class EquipamentosApp {
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
         document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo}`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
-        document.getElementById('detalhes-setor').textContent = APP_CONFIG.setores[equipamento.setor];
+        document.getElementById('detalhes-setor').textContent = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
         
         // Status
         const statusChip = document.getElementById('detalhes-status');
