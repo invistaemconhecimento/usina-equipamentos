@@ -1,7 +1,7 @@
 // Configuração do JSONBin.io
 const JSONBIN_CONFIG = {
     // ID do bin que você criou no JSONBin.io
-    BIN_ID: '696fa19fae596e708fe90a63',  // Adicionei aspas aqui!
+    BIN_ID: '696fa19fae596e708fe90a63',
     
     // URL base da API
     BASE_URL: 'https://api.jsonbin.io/v3/b',
@@ -9,7 +9,7 @@ const JSONBIN_CONFIG = {
     // Cabeçalhos para as requisições
     headers: {
         'Content-Type': 'application/json',
-        'X-Master-Key': '$2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i'  // Adicionei aspas aqui também!
+        'X-Master-Key': '$2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i'
     }
 };
 
@@ -30,7 +30,7 @@ const INITIAL_DATA = {
                     id: 1,
                     titulo: "Vibração acima do normal",
                     descricao: "Detectada vibração 15% acima do normal durante operação em carga máxima",
-                    responsavel: "Carlos Silva",
+                    responsavel: "Elétrica",
                     prioridade: "alta",
                     data: "2023-10-10",
                     status: "em-andamento"
@@ -51,7 +51,7 @@ const INITIAL_DATA = {
                     id: 2,
                     titulo: "Vazamento de óleo isolante",
                     descricao: "Identificado vazamento no tanque principal",
-                    responsavel: "Ana Santos",
+                    responsavel: "Instrumentação",
                     prioridade: "critica",
                     data: "2023-10-05",
                     status: "aberta"
@@ -60,7 +60,7 @@ const INITIAL_DATA = {
                     id: 3,
                     titulo: "Sistema de refrigeração com ruído",
                     descricao: "Ventiladores apresentando ruído anormal",
-                    responsavel: "Pedro Oliveira",
+                    responsavel: "Mecânica",
                     prioridade: "media",
                     data: "2023-09-30",
                     status: "resolvida"
@@ -110,7 +110,16 @@ const APP_CONFIG = {
         "media": "Média",
         "alta": "Alta",
         "critica": "Crítica"
-    }
+    },
+    // NOVO: Adicionar lista de responsáveis
+    responsaveis: [
+        "Elétrica",
+        "Instrumentação",
+        "Mecânica",
+        "Preventiva_Engenharia",
+        "Automação",
+        "Externo"
+    ]
 };
 
 // Exportar configurações
