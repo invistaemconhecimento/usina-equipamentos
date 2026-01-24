@@ -1,4 +1,4 @@
-// Aplicação de Gestão de Equipamentos
+// Aplicação de Gestão de Equipamentos com Sistema de Login
 class EquipamentosApp {
     constructor() {
         this.data = null;
@@ -16,6 +16,17 @@ class EquipamentosApp {
     }
     
     async init() {
+        // Verificar sessão antes de qualquer coisa
+        if (!this.verificarSessao()) {
+            return;
+        }
+        
+        // Mostrar informações do usuário
+        this.mostrarInformacoesUsuario();
+        
+        // Configurar logout
+        this.configurarLogout();
+        
         // Inicializar modais
         this.initModals();
         
@@ -34,6 +45,67 @@ class EquipamentosApp {
         // Atualizar status da sincronização
         this.atualizarStatusSincronizacao(true);
     }
+    
+    // ================== FUNÇÕES DE LOGIN ==================
+    
+    verificarSessao() {
+        const sessao = localStorage.getItem('gestao_equipamentos_sessao');
+        
+        if (!sessao) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        
+        try {
+            const sessaoData = JSON.parse(sessao);
+            const agora = new Date().getTime();
+            
+            // Verificar expiração
+            if (agora > sessaoData.expira) {
+                localStorage.removeItem('gestao_equipamentos_sessao');
+                localStorage.removeItem('gestao_equipamentos_usuario');
+                window.location.href = 'login.html?expired=true';
+                return false;
+            }
+            
+            // Renovar sessão (extender por mais 8 horas)
+            sessaoData.expira = agora + (8 * 60 * 60 * 1000);
+            localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessaoData));
+            
+            return true;
+        } catch (e) {
+            localStorage.removeItem('gestao_equipamentos_sessao');
+            localStorage.removeItem('gestao_equipamentos_usuario');
+            window.location.href = 'login.html';
+            return false;
+        }
+    }
+    
+    mostrarInformacoesUsuario() {
+        const usuario = localStorage.getItem('gestao_equipamentos_usuario');
+        const userElement = document.getElementById('current-user');
+        
+        if (usuario && userElement) {
+            const usuarioFormatado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+            userElement.textContent = `Usuário: ${usuarioFormatado}`;
+        }
+    }
+    
+    configurarLogout() {
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (confirm('Tem certeza que deseja sair do sistema?')) {
+                    localStorage.removeItem('gestao_equipamentos_sessao');
+                    localStorage.removeItem('gestao_equipamentos_usuario');
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+    }
+    
+    // ================== FUNÇÕES ORIGINAIS ==================
     
     initModals() {
         // Obter referências aos modais
