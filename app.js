@@ -154,213 +154,9 @@ class EquipamentosApp {
             e.preventDefault();
             await this.realizarLogin();
         });
-    }
     
-    adicionarEstilosLogin() {
-        const estilos = document.createElement('style');
-        estilos.textContent = `
-            .login-container {
-                display: flex;
-                min-height: 100vh;
-                background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-                font-family: 'Roboto', sans-serif;
-            }
-            
-            .login-card {
-                background: white;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                width: 400px;
-                margin: auto;
-            }
-            
-            .login-header {
-                text-align: center;
-                margin-bottom: 30px;
-            }
-            
-            .login-header h1 {
-                color: #2c3e50;
-                margin-bottom: 10px;
-                font-size: 24px;
-            }
-            
-            .login-header .subtitle {
-                color: #7f8c8d;
-                font-size: 14px;
-            }
-            
-            .login-form .form-group {
-                margin-bottom: 20px;
-            }
-            
-            .login-form label {
-                display: block;
-                margin-bottom: 5px;
-                color: #2c3e50;
-                font-weight: 500;
-            }
-            
-            .login-form input {
-                width: 100%;
-                padding: 12px;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                font-size: 14px;
-            }
-            
-            .login-form input:focus {
-                outline: none;
-                border-color: #3498db;
-                box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-            }
-            
-            .remember-me {
-                display: flex;
-                align-items: center;
-            }
-            
-            .remember-me input {
-                width: auto;
-                margin-right: 10px;
-            }
-            
-            .btn-login {
-                width: 100%;
-                padding: 12px;
-                background: #3498db;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 16px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: background 0.3s;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-            }
-            
-            .btn-login:hover {
-                background: #2980b9;
-            }
-            
-            .login-footer {
-                margin-top: 20px;
-                text-align: center;
-                color: #7f8c8d;
-                font-size: 12px;
-                border-top: 1px solid #eee;
-                padding-top: 20px;
-            }
-            
-            .demo-credentials {
-                background: #f8f9fa;
-                padding: 10px;
-                border-radius: 5px;
-                margin-top: 10px;
-                font-size: 11px;
-                text-align: left;
-            }
-            
-            .login-message {
-                margin-top: 15px;
-                padding: 10px;
-                border-radius: 5px;
-                display: none;
-            }
-            
-            .login-message.error {
-                background: #fef2f2;
-                color: #dc2626;
-                border: 1px solid #fecaca;
-                display: block;
-            }
-            
-            .login-message.success {
-                background: #f0fdf4;
-                color: #16a34a;
-                border: 1px solid #bbf7d0;
-                display: block;
-            }
-            
-            .login-info {
-                background: rgba(255, 255, 255, 0.1);
-                padding: 40px;
-                width: 400px;
-                color: white;
-                backdrop-filter: blur(10px);
-            }
-            
-            .login-info h3 {
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .roles-info {
-                margin-top: 30px;
-            }
-            
-            .role-item {
-                margin-bottom: 15px;
-                padding: 10px;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 5px;
-            }
-            
-            .role-badge {
-                display: inline-block;
-                padding: 3px 10px;
-                border-radius: 12px;
-                font-size: 12px;
-                font-weight: 500;
-                margin-bottom: 5px;
-            }
-            
-            .role-badge.administrador {
-                background: #dc2626;
-                color: white;
-            }
-            
-            .role-badge.supervisor {
-                background: #f59e0b;
-                color: white;
-            }
-            
-            .role-badge.tecnico {
-                background: #3b82f6;
-                color: white;
-            }
-            
-            .role-badge.visualizador {
-                background: #10b981;
-                color: white;
-            }
-            
-            .role-item p {
-                font-size: 12px;
-                opacity: 0.9;
-                margin: 0;
-            }
-            
-            @media (max-width: 768px) {
-                .login-container {
-                    flex-direction: column;
-                }
-                
-                .login-card, .login-info {
-                    width: 90%;
-                    margin: 20px auto;
-                }
-            }
-        `;
-        
-        document.head.appendChild(estilos);
-    }
+    
+    
     
     async realizarLogin() {
         const username = document.getElementById('login-username').value.trim();
@@ -443,24 +239,30 @@ class EquipamentosApp {
     }
     
     inicializarAplicacao() {
-        // Atualizar interface com informações do usuário
-        this.atualizarInterfaceUsuario();
-        
-        // Inicializar modais
-        this.initModals();
-        
-        // Inicializar eventos
-        this.initEvents();
-        
-        // Renderizar equipamentos
-        this.renderizarEquipamentos();
-        
-        // Atualizar estatísticas
-        this.atualizarEstatisticas();
-        
-        // Atualizar status da sincronização
-        this.atualizarStatusSincronizacao(true);
-    }
+    // Atualizar interface com informações do usuário
+    this.atualizarInterfaceUsuario();
+    
+    // Carregar CSS principal
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'style.css';
+    document.head.appendChild(link);
+    
+    // Inicializar modais
+    this.initModals();
+    
+    // Inicializar eventos
+    this.initEvents();
+    
+    // Renderizar equipamentos
+    this.renderizarEquipamentos();
+    
+    // Atualizar estatísticas
+    this.atualizarEstatisticas();
+    
+    // Atualizar status da sincronização
+    this.atualizarStatusSincronizacao(true);
+}
     
     atualizarInterfaceUsuario() {
         // Recarregar a página com a aplicação completa
