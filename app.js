@@ -19,8 +19,12 @@ class EquipamentosApp {
         this.init();
     }
     
-    async init() {
-        // Primeiro, verificar se há sessão ativa
+async init() {
+    try {
+        // Primeiro, carregar os dados (incluindo usuários)
+        await this.carregarDados(true);
+        
+        // Depois, verificar se há sessão ativa
         await this.verificarSessao();
         
         // Se não houver usuário logado, mostrar tela de login
@@ -31,49 +35,12 @@ class EquipamentosApp {
         
         // Se estiver logado, continuar com a inicialização normal
         this.inicializarAplicacao();
+    } catch (error) {
+        console.error('Erro na inicialização:', error);
+        // Mostrar tela de login mesmo com erro
+        this.mostrarTelaLogin();
     }
-    
-    async verificarSessao() {
-        try {
-            // Verificar se há token salvo no localStorage
-            const token = localStorage.getItem('equipamentos_token');
-            if (!token) {
-                return;
-            }
-            
-            // Carregar dados para verificar sessões
-            await this.carregarDados(true); // true = carregar sem mostrar loading
-            
-            // Encontrar sessão válida
-            const sessaoAtiva = this.data.sessoesAtivas?.find(s => 
-                s.token === token && 
-                new Date(s.validade) > new Date()
-            );
-            
-            if (sessaoAtiva) {
-                // Encontrar usuário
-                const usuario = this.data.usuarios?.find(u => 
-                    u.id === sessaoAtiva.usuarioId && 
-                    u.ativo === true
-                );
-                
-                if (usuario) {
-                    this.usuarioLogado = usuario;
-                    this.sessaoAtiva = sessaoAtiva;
-                    console.log('Usuário logado automaticamente:', usuario.username);
-                } else {
-                    // Limpar token inválido
-                    localStorage.removeItem('equipamentos_token');
-                }
-            } else {
-                // Limpar token expirado
-                localStorage.removeItem('equipamentos_token');
-            }
-        } catch (error) {
-            console.error('Erro ao verificar sessão:', error);
-        }
-    }
-    
+}    
     mostrarTelaLogin() {
         // Limpar conteúdo do container principal
         document.body.innerHTML = `
