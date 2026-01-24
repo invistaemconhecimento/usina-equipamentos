@@ -81,6 +81,102 @@ async init() {
         console.error('Erro ao verificar sessão:', error);
     }
 }
+
+    async realizarLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    const rememberMe = document.getElementById('remember-me').checked;
+    
+    const messageDiv = document.getElementById('login-message');
+    messageDiv.className = 'login-message';
+    
+    if (!username || !password) {
+        messageDiv.textContent = 'Por favor, preencha todos os campos.';
+        messageDiv.classList.add('error');
+        return;
+    }
+    
+    try {
+        // DEBUG: Mostrar usuários disponíveis
+        console.log('Usuários disponíveis:', this.data.usuarios);
+        console.log('Tentando login com:', { username, password });
+        
+        // Encontrar usuário
+        const usuario = this.data.usuarios?.find(u => 
+            u.username.toLowerCase() === username.toLowerCase()
+        );
+        
+        console.log('Usuário encontrado:', usuario);
+        
+        if (!usuario) {
+            messageDiv.textContent = 'Usuário não encontrado.';
+            messageDiv.classList.add('error');
+            return;
+        }
+        
+        // Verificar se usuário está ativo
+        if (!usuario.ativo) {
+            messageDiv.textContent = 'Usuário desativado.';
+            messageDiv.classList.add('error');
+            return;
+        }
+        
+        // Verificar senha (comparação simples)
+        if (usuario.password !== password) {
+            console.log('Senha fornecida:', password);
+            console.log('Senha esperada:', usuario.password);
+            messageDiv.textContent = 'Senha incorreta.';
+            messageDiv.classList.add('error');
+            return;
+        }
+        
+        // Criar sessão
+        const token = this.gerarToken();
+        const validade = new Date();
+        validade.setHours(validade.getHours() + 24); // Sessão de 24 horas
+        
+        const sessao = {
+            id: Date.now(),
+            usuarioId: usuario.id,
+            token: token,
+            dataLogin: new Date().toISOString(),
+            validade: validade.toISOString(),
+            rememberMe: rememberMe
+        };
+        
+        // Adicionar sessão
+        if (!this.data.sessoesAtivas) {
+            this.data.sessoesAtivas = [];
+        }
+        this.data.sessoesAtivas.push(sessao);
+        
+        // Salvar dados
+        await this.salvarDados();
+        
+        // Salvar token no localStorage
+        if (rememberMe) {
+            localStorage.setItem('equipamentos_token', token);
+        }
+        
+        // Atualizar estado da aplicação
+        this.usuarioLogado = usuario;
+        this.sessaoAtiva = sessao;
+        
+        // Mostrar mensagem de sucesso
+        messageDiv.textContent = `Bem-vindo, ${usuario.nome}! Redirecionando...`;
+        messageDiv.classList.add('success');
+        
+        // Redirecionar para a aplicação
+        setTimeout(() => {
+            this.inicializarAplicacao();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Erro no login:', error);
+        messageDiv.textContent = 'Erro ao realizar login. Tente novamente.';
+        messageDiv.classList.add('error');
+    }
+}
     
     mostrarTelaLogin() {
         // Limpar conteúdo do container principal
