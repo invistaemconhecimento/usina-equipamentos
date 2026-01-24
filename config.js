@@ -22,7 +22,7 @@ const INITIAL_DATA = {
             nome: "Turbina Principal",
             descricao: "Turbina de alta pressão para geração de energia",
             setor: "moagem-moagem",
-            status: "apto", // Status será ajustado automaticamente
+            status: "apto",
             ultimaInspecao: "2023-10-15",
             dataCriacao: "2023-01-10",
             pendencias: [
@@ -31,7 +31,7 @@ const INITIAL_DATA = {
                     titulo: "Vibração acima do normal",
                     descricao: "Detectada vibração 15% acima do normal durante operação em carga máxima",
                     responsavel: "Elétrica",
-                    prioridade: "alta", // Não é crítica, então equipamento fica apto
+                    prioridade: "alta",
                     data: "2023-10-10",
                     status: "em-andamento"
                 }
@@ -43,7 +43,7 @@ const INITIAL_DATA = {
             nome: "Transformador T-42",
             descricao: "Transformador de potência 500kV",
             setor: "utilidades-distribuicao-agua",
-            status: "nao-apto", // Pendência crítica aberta
+            status: "nao-apto",
             ultimaInspecao: "2023-09-22",
             dataCriacao: "2022-11-05",
             pendencias: [
@@ -52,7 +52,7 @@ const INITIAL_DATA = {
                     titulo: "Vazamento de óleo isolante",
                     descricao: "Identificado vazamento no tanque principal",
                     responsavel: "Instrumentação",
-                    prioridade: "critica", // CRÍTICA - equipamento não apto
+                    prioridade: "critica",
                     data: "2023-10-05",
                     status: "aberta"
                 },
@@ -61,7 +61,7 @@ const INITIAL_DATA = {
                     titulo: "Sistema de refrigeração com ruído",
                     descricao: "Ventiladores apresentando ruído anormal",
                     responsavel: "Mecânica",
-                    prioridade: "media", // Não é crítica
+                    prioridade: "media",
                     data: "2023-09-30",
                     status: "resolvida"
                 }
@@ -73,7 +73,7 @@ const INITIAL_DATA = {
             nome: "Gerador G-12",
             descricao: "Gerador síncrono de 200MW",
             setor: "flotacao-flot-pirita",
-            status: "apto", // Sem pendências críticas
+            status: "apto",
             ultimaInspecao: "2023-10-18",
             dataCriacao: "2023-03-20",
             pendencias: []
@@ -81,15 +81,123 @@ const INITIAL_DATA = {
     ],
     // Contador para IDs únicos
     nextEquipamentoId: 4,
-    nextPendenciaId: 4
+    nextPendenciaId: 4,
+    
+    // Novo: Sistema de usuários
+    usuarios: [
+        {
+            id: 1,
+            username: "admin",
+            password: "admin123", // Senha em texto simples para exemplo (em produção usar hash)
+            nome: "Administrador Geral",
+            email: "admin@usina.com",
+            role: "administrador", // administrador, supervisor, tecnico, visualizador
+            setor: "todos",
+            ativo: true,
+            dataCriacao: "2023-01-01"
+        },
+        {
+            id: 2,
+            username: "supervisor",
+            password: "sup123",
+            nome: "Supervisor de Manutenção",
+            email: "supervisor@usina.com",
+            role: "supervisor",
+            setor: "todos",
+            ativo: true,
+            dataCriacao: "2023-01-01"
+        },
+        {
+            id: 3,
+            username: "tecnico",
+            password: "tec123",
+            nome: "Técnico Elétrica",
+            email: "tecnico@usina.com",
+            role: "tecnico",
+            setor: "Elétrica",
+            ativo: true,
+            dataCriacao: "2023-01-01"
+        },
+        {
+            id: 4,
+            username: "visualizador",
+            password: "vis123",
+            nome: "Visualizador Geral",
+            email: "visualizador@usina.com",
+            role: "visualizador",
+            setor: "todos",
+            ativo: true,
+            dataCriacao: "2023-01-01"
+        }
+    ],
+    nextUsuarioId: 5,
+    
+    // Sessões ativas (para controle de login)
+    sessoesAtivas: []
 };
 
 // Configurações da aplicação
 const APP_CONFIG = {
     nome: "Gestão de Equipamentos - Usina",
     versao: "1.0.0",
+    
+    // Permissões por role
+    permissoes: {
+        administrador: {
+            verEquipamentos: true,
+            criarEquipamentos: true,
+            editarEquipamentos: true,
+            excluirEquipamentos: true,
+            verPendencias: true,
+            criarPendencias: true,
+            editarPendencias: true,
+            excluirPendencias: true,
+            verTodosSetores: true,
+            gerenciarUsuarios: true,
+            exportarDados: true
+        },
+        supervisor: {
+            verEquipamentos: true,
+            criarEquipamentos: true,
+            editarEquipamentos: true,
+            excluirEquipamentos: false,
+            verPendencias: true,
+            criarPendencias: true,
+            editarPendencias: true,
+            excluirPendencias: false,
+            verTodosSetores: true,
+            gerenciarUsuarios: false,
+            exportarDados: true
+        },
+        tecnico: {
+            verEquipamentos: true,
+            criarEquipamentos: false,
+            editarEquipamentos: false,
+            excluirEquipamentos: false,
+            verPendencias: true,
+            criarPendencias: true,
+            editarPendencias: true,
+            excluirPendencias: false,
+            verTodosSetores: false, // Só vê equipamentos do seu setor
+            gerenciarUsuarios: false,
+            exportarDados: false
+        },
+        visualizador: {
+            verEquipamentos: true,
+            criarEquipamentos: false,
+            editarEquipamentos: false,
+            excluirEquipamentos: false,
+            verPendencias: true,
+            criarPendencias: false,
+            editarPendencias: false,
+            excluirPendencias: false,
+            verTodosSetores: true,
+            gerenciarUsuarios: false,
+            exportarDados: false
+        }
+    },
+    
     setores: {
-        // Novo: Atualizado com as opções especificadas
         "filtragem-filtragem-concentrado": "FILTRAGEM / FILTRAGEM DE CONCENTRADO",
         "filtragem-filtragem-rejeito": "FILTRAGEM / FILTRAGEM DE REJEITO",
         "flotacao-flot-cleaner-scavenger": "FLOTAÇÃO / FLOT CLEANER-SCAVENGER",
@@ -105,22 +213,26 @@ const APP_CONFIG = {
         "torre-resfriamento-torre-resfriamento": "TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO",
         "utilidades-distribuicao-agua": "UTILIDADES / DISTRIBUIÇÃO DE ÁGUA"
     },
+    
     statusEquipamento: {
         "apto": "Apto a Operar",
         "nao-apto": "Não Apto"
     },
+    
     statusPendencia: {
         "aberta": "Aberta",
         "em-andamento": "Em Andamento",
         "resolvida": "Resolvida",
         "cancelada": "Cancelada"
     },
+    
     prioridades: {
         "baixa": "Baixa",
         "media": "Média",
         "alta": "Alta",
         "critica": "Crítica"
     },
+    
     // Lista de responsáveis
     responsaveis: [
         "Elétrica",
@@ -129,7 +241,15 @@ const APP_CONFIG = {
         "Preventiva_Engenharia",
         "Automação",
         "Externo"
-    ]
+    ],
+    
+    // Roles disponíveis
+    roles: {
+        "administrador": "Administrador",
+        "supervisor": "Supervisor",
+        "tecnico": "Técnico",
+        "visualizador": "Visualizador"
+    }
 };
 
 // Exportar configurações
