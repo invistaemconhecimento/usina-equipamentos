@@ -87,7 +87,7 @@ class EquipamentosApp {
         });
         
         document.getElementById('export-data').addEventListener('click', () => {
-            this.exportarDados();
+            this.exportarDadosExcel();
         });
         
         document.getElementById('manual-sync').addEventListener('click', () => {
@@ -899,6 +899,133 @@ class EquipamentosApp {
         this.mostrarMensagem('Dados sincronizados com sucesso', 'success');
     }
     
+    exportarDadosExcel() {
+        try {
+            // Obter a data atual para o nome do arquivo
+            const dataAtual = new Date().toISOString().split('T')[0];
+            
+            // Criar cabeçalhos para a planilha de equipamentos
+            let csvEquipamentos = 'ID,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
+            
+            // Adicionar dados dos equipamentos
+            this.equipamentos.forEach(equipamento => {
+                const totalPendencias = equipamento.pendencias.length;
+                const pendenciasAbertas = equipamento.pendencias.filter(p => p.status === 'aberta').length;
+                const pendenciasAndamento = equipamento.pendencias.filter(p => p.status === 'em-andamento').length;
+                const pendenciasResolvidas = equipamento.pendencias.filter(p => p.status === 'resolvida').length;
+                const pendenciasCriticas = equipamento.pendencias.filter(p => 
+                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                ).length;
+                
+                // Escapar vírgulas e quebras de linha no conteúdo
+                const escapeCSV = (str) => {
+                    if (str === null || str === undefined) return '';
+                    const string = String(str);
+                    if (string.includes(',') || string.includes('"') || string.includes('\n')) {
+                        return `"${string.replace(/"/g, '""')}"`;
+                    }
+                    return string;
+                };
+                
+                csvEquipamentos += [
+                    equipamento.id,
+                    escapeCSV(equipamento.codigo),
+                    escapeCSV(equipamento.nome),
+                    escapeCSV(equipamento.descricao),
+                    escapeCSV(APP_CONFIG.setores[equipamento.setor] || equipamento.setor),
+                    escapeCSV(APP_CONFIG.statusEquipamento[equipamento.status]),
+                    equipamento.ultimaInspecao || '',
+                    equipamento.dataCriacao || '',
+                    totalPendencias,
+                    pendenciasAbertas,
+                    pendenciasAndamento,
+                    pendenciasResolvidas,
+                    pendenciasCriticas
+                ].join(',') + '\n';
+            });
+            
+            // Criar cabeçalhos para a planilha de pendências
+            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status\n';
+            
+            // Adicionar dados das pendências
+            this.equipamentos.forEach(equipamento => {
+                equipamento.pendencias.forEach(pendencia => {
+                    const escapeCSV = (str) => {
+                        if (str === null || str === undefined) return '';
+                        const string = String(str);
+                        if (string.includes(',') || string.includes('"') || string.includes('\n')) {
+                            return `"${string.replace(/"/g, '""')}"`;
+                        }
+                        return string;
+                    };
+                    
+                    csvPendencias += [
+                        equipamento.id,
+                        escapeCSV(equipamento.codigo),
+                        escapeCSV(equipamento.nome),
+                        pendencia.id,
+                        escapeCSV(pendencia.titulo),
+                        escapeCSV(pendencia.descricao),
+                        escapeCSV(pendencia.responsavel),
+                        escapeCSV(APP_CONFIG.prioridades[pendencia.prioridade]),
+                        pendencia.data,
+                        escapeCSV(APP_CONFIG.statusPendencia[pendencia.status])
+                    ].join(',') + '\n';
+                });
+            });
+            
+            // Criar um arquivo ZIP contendo as duas planilhas
+            this.criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual);
+            
+            this.mostrarMensagem('Dados exportados para Excel com sucesso', 'success');
+        } catch (error) {
+            console.error('Erro ao exportar dados para Excel:', error);
+            this.mostrarMensagem('Erro ao exportar dados para Excel', 'error');
+        }
+    }
+    
+    criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual) {
+        // Usar a biblioteca JSZip se disponível, ou criar múltiplos downloads
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            zip.file(`equipamentos_${dataAtual}.csv`, csvEquipamentos);
+            zip.file(`pendencias_${dataAtual}.csv`, csvPendencias);
+            
+            zip.generateAsync({type: "blob"})
+                .then(function(content) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = `gestao_equipamentos_${dataAtual}.zip`;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                });
+        } else {
+            // Fallback: criar dois arquivos CSV separados
+            this.downloadCSV(csvEquipamentos, `equipamentos_${dataAtual}.csv`);
+            setTimeout(() => {
+                this.downloadCSV(csvPendencias, `pendencias_${dataAtual}.csv`);
+            }, 500);
+        }
+    }
+    
+    downloadCSV(csvContent, fileName) {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        if (navigator.msSaveBlob) { // IE 10+
+            navigator.msSaveBlob(blob, fileName);
+        } else {
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+    }
+    
+    // Mantém a função antiga como fallback (opcional)
     exportarDados() {
         const dataStr = JSON.stringify(this.data, null, 2);
         const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
