@@ -42,6 +42,79 @@ async init() {
     }
 }  
 
+async carregarDados(silent = false) {
+    try {
+        if (!silent) {
+            this.mostrarLoading(true);
+        }
+        
+        // Tentar carregar dados do JSONBin.io
+        const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}/latest`, {
+            headers: JSONBIN_CONFIG.headers
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar dados do servidor');
+        }
+        
+        const result = await response.json();
+        
+        if (result.record) {
+            this.data = result.record;
+            
+            // DEBUG
+            console.log('Dados carregados do servidor:', this.data);
+            
+            // Garantir que as estruturas existam
+            if (!this.data.equipamentos) this.data.equipamentos = [];
+            if (!this.data.usuarios) {
+                console.log('Usuários não encontrados nos dados, usando INITIAL_DATA');
+                this.data.usuarios = INITIAL_DATA.usuarios;
+            } else {
+                console.log('Usuários carregados:', this.data.usuarios.length);
+            }
+            if (!this.data.sessoesAtivas) this.data.sessoesAtivas = [];
+            
+            this.equipamentos = this.data.equipamentos;
+            
+            // Filtrar equipamentos baseado nas permissões do usuário
+            this.filtrarEquipamentosPorPermissao();
+            
+            // Atualizar status dos equipamentos baseado nas pendências críticas
+            this.equipamentos.forEach((equipamento, index) => {
+                this.atualizarStatusEquipamentoPorPendencias(index);
+            });
+            
+            console.log('Dados carregados:', this.equipamentos.length, 'equipamentos');
+        } else {
+            // Usar dados iniciais
+            console.log('Usando dados iniciais');
+            this.data = INITIAL_DATA;
+            this.equipamentos = this.data.equipamentos;
+        }
+        
+        if (!silent) {
+            this.atualizarStatusSincronizacao(true);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        
+        // Usar dados iniciais em caso de erro
+        console.log('Usando dados iniciais devido a erro de conexão');
+        this.data = INITIAL_DATA;
+        this.equipamentos = this.data.equipamentos;
+        
+        if (!silent) {
+            this.atualizarStatusSincronizacao(false);
+            this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
+        }
+    } finally {
+        if (!silent) {
+            this.mostrarLoading(false);
+        }
+    }
+}
+    
     async verificarSessao() {
     try {
         // Verificar se há token no localStorage
