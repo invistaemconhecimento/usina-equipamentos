@@ -229,6 +229,105 @@ const APP_CONFIG = {
 };
 
 // Funções auxiliares para a aplicação
+
+// Sistema de Permissões por Nível de Acesso
+const PERMISSOES = {
+    niveis: {
+        "operador": {
+            nome: "Operador",
+            nivel: 1,
+            permissoes: [
+                "visualizar_equipamentos",
+                "ver_detalhes",
+                "criar_pendencias",
+                "editar_pendencias_proprias"
+            ]
+        },
+        "supervisor": {
+            nome: "Supervisor",
+            nivel: 2,
+            permissoes: [
+                "visualizar_equipamentos",
+                "ver_detalhes",
+                "criar_pendencias",
+                "editar_pendencias",
+                "excluir_pendencias",
+                "exportar_dados"
+            ]
+        },
+        "administrador": {
+            nome: "Administrador",
+            nivel: 3,
+            permissoes: [
+                "visualizar_equipamentos",
+                "ver_detalhes",
+                "criar_pendencias",
+                "editar_pendencias",
+                "excluir_pendencias",
+                "criar_equipamentos",
+                "editar_equipamentos",
+                "exportar_dados",
+                "gerenciar_usuarios",
+                "configurar_sistema"
+            ]
+        },
+        "manutencao": {
+            nome: "Técnico de Manutenção",
+            nivel: 2,
+            permissoes: [
+                "visualizar_equipamentos",
+                "ver_detalhes",
+                "criar_pendencias",
+                "editar_pendencias",
+                "exportar_dados"
+            ]
+        },
+        "engenharia": {
+            nome: "Engenharia",
+            nivel: 3,
+            permissoes: [
+                "visualizar_equipamentos",
+                "ver_detalhes",
+                "criar_pendencias",
+                "editar_pendencias",
+                "excluir_pendencias",
+                "criar_equipamentos",
+                "editar_equipamentos",
+                "exportar_dados"
+            ]
+        }
+    },
+    
+    // Verificar se usuário tem permissão
+    verificarPermissao: function(usuario, permissao) {
+        const nivelUsuario = this.niveis[usuario];
+        if (!nivelUsuario) return false;
+        
+        return nivelUsuario.permissoes.includes(permissao);
+    },
+    
+    // Obter nome do nível do usuário
+    getNomeNivel: function(usuario) {
+        const nivel = this.niveis[usuario];
+        return nivel ? nivel.nome : 'Usuário';
+    },
+    
+    // Obter nível numérico
+    getNivelNumerico: function(usuario) {
+        const nivel = this.niveis[usuario];
+        return nivel ? nivel.nivel : 0;
+    }
+};
+
+// Atualizar as credenciais no login.html também!
+const USUARIOS_AUTORIZADOS = {
+    'operador': { senha: 'operador123', nivel: 'operador' },
+    'supervisor': { senha: 'supervisor456', nivel: 'supervisor' },
+    'administrador': { senha: 'admin789', nivel: 'administrador' },
+    'manutencao': { senha: 'manutencao2024', nivel: 'manutencao' },
+    'engenharia': { senha: 'engenharia789', nivel: 'engenharia' }
+};
+
 const APP_UTILS = {
     // Formatar data para exibição
     formatarData: function(dataString) {
