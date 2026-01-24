@@ -1385,3 +1385,36 @@ table tr:hover {
     background: rgba(52, 152, 219, 0.2);
     color: var(--cor-info);
 }
+/* Indicador de Nível */
+.nivel-indicator {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 9999;
+    box-shadow: var(--sombra);
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Cores dos níveis */
+.nivel-operador { background: #3498db; }
+.nivel-supervisor { background: #f39c12; }
+.nivel-manutencao { background: #9b59b6; }
+.nivel-engenharia { background: #2ecc71; }
+.nivel-administrador { background: #e74c3c; }
+
+/* Badge de nível no cabeçalho */
+.user-level-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-left: 8px;
+    text-transform: uppercase;
+}
