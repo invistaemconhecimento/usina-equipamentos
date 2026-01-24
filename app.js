@@ -40,7 +40,48 @@ async init() {
         // Mostrar tela de login mesmo com erro
         this.mostrarTelaLogin();
     }
-}    
+}  
+
+    async verificarSessao() {
+    try {
+        // Verificar se há token no localStorage
+        const token = localStorage.getItem('equipamentos_token');
+        if (!token) {
+            return;
+        }
+        
+        // Verificar se há sessão ativa nos dados
+        if (this.data.sessoesAtivas && this.data.sessoesAtivas.length > 0) {
+            const sessao = this.data.sessoesAtivas.find(s => s.token === token);
+            
+            if (sessao) {
+                // Verificar se a sessão ainda é válida
+                const validade = new Date(sessao.validade);
+                const agora = new Date();
+                
+                if (agora < validade) {
+                    // Encontrar o usuário correspondente
+                    const usuario = this.data.usuarios.find(u => u.id === sessao.usuarioId);
+                    
+                    if (usuario && usuario.ativo) {
+                        this.usuarioLogado = usuario;
+                        this.sessaoAtiva = sessao;
+                        console.log('Sessão restaurada para:', usuario.nome);
+                        return;
+                    }
+                } else {
+                    // Sessão expirada - remover
+                    this.data.sessoesAtivas = this.data.sessoesAtivas.filter(s => s.token !== token);
+                    await this.salvarDados();
+                    localStorage.removeItem('equipamentos_token');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao verificar sessão:', error);
+    }
+}
+    
     mostrarTelaLogin() {
         // Limpar conteúdo do container principal
         document.body.innerHTML = `
