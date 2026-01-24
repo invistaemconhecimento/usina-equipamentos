@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Gestão de Equipamentos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .login-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .login-body {
+            padding: 30px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #c33;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .login-footer {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 13px;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .login-footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 20px;
+            }
+            
+            .login-header, .login-body {
+                padding: 20px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1><i class="fas fa-industry"></i> Gestão de Equipamentos</h1>
+            <p>Sistema de gerenciamento de equipamentos da usina</p>
+        </div>
+        
+        <div class="login-body">
+            <div id="error-message" class="error-message">
+                <i class="fas fa-exclamation-circle"></i> <span id="error-text"></span>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username"><i class="fas fa-user"></i> Usuário</label>
+                    <input type="text" id="username" placeholder="Digite seu usuário" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                    <input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p><i class="fas fa-shield-alt"></i> Acesso restrito a funcionários autorizados</p>
+                <p>Problemas para acessar? <a href="mailto:suporte@empresa.com">Contate o suporte</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração de usuários e senhas
+        const USUARIOS_AUTORIZADOS = {
+            'operador': 'operador123',
+            'supervisor': 'supervisor456',
+            'administrador': 'admin789',
+            'manutencao': 'manutencao2024',
+            'engenharia': 'engenharia789'
+        };
+
+        // Verificar se há sessão expirada
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('expired') === 'true') {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = 'Sua sessão expirou. Por favor, faça login novamente.';
+            errorDiv.classList.add('show');
+        }
+
+        // Limpar sessão residual ao carregar página de login
+        localStorage.removeItem('gestao_equipamentos_sessao');
+        localStorage.removeItem('gestao_equipamentos_usuario');
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            // Limpar mensagem de erro anterior
+            errorDiv.classList.remove('show');
+            
+            // Validação básica
+            if (!username || !password) {
+                errorText.textContent = 'Por favor, preencha todos os campos.';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            // Verificar credenciais
+            if (USUARIOS_AUTORIZADOS[username] && USUARIOS_AUTORIZADOS[username] === password) {
+                // Credenciais corretas - criar sessão
+                const sessionData = {
+                    usuario: username,
+                    timestamp: new Date().getTime(),
+                    expira: new Date().getTime() + (8 * 60 * 60 * 1000) // 8 horas
+                };
+                
+                localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessionData));
+                localStorage.setItem('gestao_equipamentos_usuario', username);
+                
+                // Redirecionar para a aplicação principal
+                window.location.href = 'index.html';
+            } else {
+                // Credenciais incorretas
+                errorText.textContent = 'Usuário ou senha incorretos.';
+                errorDiv.classList.add('show');
+                
+                // Efeito visual de erro
+                const inputs = document.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.style.borderColor = '#c33';
+                    setTimeout(() => {
+                        input.style.borderColor = '';
+                    }, 2000);
+                });
+            }
+        });
+
+        // Foco no campo de usuário ao carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('username').focus();
+        });
+
+        // Tecla Enter para avançar entre campos
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('password').focus();
+            }
+        });
+
+        // Tecla Enter no campo de senha para submeter
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
