@@ -900,6 +900,323 @@ function getUsuariosDisponiveis() {
 }
 
 // ===========================================
+// SISTEMA DE LOGS DE AUDITORIA
+// ===========================================
+
+// Função para registrar logs com mais detalhes
+function registrarLogAuditoria(acao, detalhes, equipamentoId = null, pendenciaId = null) {
+    const usuario = getUsuarioLogado();
+    const nivel = getNivelUsuario();
+    const timestamp = new Date().toISOString();
+    const ip = 'local';
+    const userAgent = navigator.userAgent;
+    
+    const logEntry = {
+        id: gerarIdUnico(),
+        usuario: usuario || 'sistema',
+        nivel: nivel || 'sistema',
+        acao: acao,
+        detalhes: detalhes,
+        equipamentoId: equipamentoId,
+        pendenciaId: pendenciaId,
+        timestamp: timestamp,
+        ip: ip,
+        userAgent: userAgent,
+        dataHoraBR: new Date().toLocaleString('pt-BR')
+    };
+    
+    console.log('LOG DE AUDITORIA:', logEntry);
+    
+    // Salvar no localStorage
+    try {
+        let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs_auditoria') || '[]');
+        logs.unshift(logEntry);
+        
+        // Limitar a 1000 logs
+        if (logs.length > 1000) {
+            logs = logs.slice(0, 1000);
+        }
+        
+        localStorage.setItem('gestao_equipamentos_logs_auditoria', JSON.stringify(logs));
+        
+        // Também salvar no log geral
+        registrarAtividade(acao, detalhes);
+        
+    } catch (e) {
+        console.error('Erro ao salvar log de auditoria:', e);
+    }
+    
+    return logEntry;
+}
+
+// Função para gerar ID único
+function gerarIdUnico() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Função para obter logs de auditoria
+function getLogsAuditoria(filtro = {}) {
+    try {
+        let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs_auditoria') || '[]');
+        
+        // Aplicar filtros
+        if (filtro.usuario) {
+            logs = logs.filter(log => log.usuario === filtro.usuario);
+        }
+        if (filtro.acao) {
+            logs = logs.filter(log => log.acao === filtro.acao);
+        }
+        if (filtro.dataInicio) {
+            const dataInicio = new Date(filtro.dataInicio);
+            logs = logs.filter(log => new Date(log.timestamp) >= dataInicio);
+        }
+        if (filtro.dataFim) {
+            const dataFim = new Date(filtro.dataFim);
+            logs = logs.filter(log => new Date(log.timestamp) <= dataFim);
+        }
+        if (filtro.limite) {
+            logs = logs.slice(0, filtro.limite);
+        }
+        
+        return logs;
+    } catch (e) {
+        console.error('Erro ao obter logs de auditoria:', e);
+        return [];
+    }
+}
+
+// Função para exportar logs
+function exportarLogsAuditoria() {
+    const usuario = getUsuarioLogado();
+    if (!PERMISSOES.verificarPermissao(usuario, 'visualizar_logs')) {
+        alert('Você não tem permissão para exportar logs.');
+        return;
+    }
+    
+    const logs = getLogsAuditoria();
+    if (logs.length === 0) {
+        alert('Nenhum log encontrado para exportar.');
+        return;
+    }
+    
+    // Criar CSV
+    let csv = 'ID,Data/Hora,Usuário,Nível,Ação,Detalhes,ID Equipamento,ID Pendência\n';
+    
+    logs.forEach(log => {
+        const linha = [
+            log.id,
+            `"${log.dataHoraBR || new Date(log.timestamp).toLocaleString('pt-BR')}"`,
+            `"${log.usuario}"`,
+            `"${log.nivel}"`,
+            `"${log.acao}"`,
+            `"${log.detalhes.replace(/"/g, '""')}"`,
+            log.equipamentoId || '',
+            log.pendenciaId || ''
+        ].join(',');
+        csv += linha + '\n';
+    });
+    
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const dataAtual = new Date().toISOString().split('T')[0];
+    
+    link.href = URL.createObjectURL(blob);
+    link.download = `logs_auditoria_${dataAtual}_${usuario}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    registrarLogAuditoria('EXPORTAR_LOGS', `Exportou ${logs.length} logs de auditoria`);
+}
+
+// Função para visualizar logs (interface)
+function visualizarLogsAuditoria() {
+    const usuario = getUsuarioLogado();
+    if (!PERMISSOES.verificarPermissao(usuario, 'visualizar_logs')) {
+        alert('Você não tem permissão para visualizar logs.');
+        return;
+    }
+    
+    const logs = getLogsAuditoria({ limite: 100 });
+    
+    let html = `
+        <div class="logs-header">
+            <h3><i class="fas fa-clipboard-list"></i> Logs de Auditoria</h3>
+            <p>Total de registros: ${logs.length}</p>
+        </div>
+        
+        <div class="logs-filtros">
+            <button onclick="filtrarLogsPorUsuario(this)" class="btn-small">
+                <i class="fas fa-user"></i> Filtrar por usuário
+            </button>
+            <button onclick="filtrarLogsPorAcao(this)" class="btn-small">
+                <i class="fas fa-filter"></i> Filtrar por ação
+            </button>
+            <button onclick="exportarLogsAuditoria()" class="btn-small">
+                <i class="fas fa-download"></i> Exportar CSV
+            </button>
+        </div>
+        
+        <div class="logs-container">
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Usuário</th>
+                        <th>Nível</th>
+                        <th>Ação</th>
+                        <th>Detalhes</th>
+                        <th>IDs</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    logs.forEach(log => {
+        const dataHora = log.dataHoraBR || new Date(log.timestamp).toLocaleString('pt-BR');
+        const ids = [];
+        if (log.equipamentoId) ids.push(`Eqp: ${log.equipamentoId}`);
+        if (log.pendenciaId) ids.push(`Pend: ${log.pendenciaId}`);
+        
+        html += `
+            <tr class="log-item ${log.nivel}">
+                <td>${dataHora}</td>
+                <td><span class="log-usuario">${log.usuario}</span></td>
+                <td><span class="log-nivel ${log.nivel}">${log.nivel}</span></td>
+                <td><span class="log-acao">${log.acao}</span></td>
+                <td class="log-detalhes">${log.detalhes}</td>
+                <td>${ids.join(', ') || '-'}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        
+        <style>
+            .logs-container {
+                max-height: 500px;
+                overflow-y: auto;
+                margin-top: 15px;
+                border: 1px solid var(--cor-borda);
+                border-radius: 5px;
+            }
+            
+            .logs-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            
+            .logs-table th {
+                position: sticky;
+                top: 0;
+                background: var(--cor-fundo-secundario);
+                z-index: 10;
+                padding: 12px;
+                text-align: left;
+                border-bottom: 2px solid var(--cor-borda);
+            }
+            
+            .logs-table td {
+                padding: 10px 12px;
+                border-bottom: 1px solid var(--cor-borda);
+            }
+            
+            .log-item:hover {
+                background: var(--cor-fundo-secundario);
+            }
+            
+            .log-nivel {
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+            
+            .log-nivel.administrador { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+            .log-nivel.operador { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+            .log-nivel.visitante { background: rgba(149, 165, 166, 0.2); color: #95a5a6; }
+            
+            .log-usuario {
+                font-weight: 500;
+            }
+            
+            .log-acao {
+                font-family: monospace;
+                font-size: 12px;
+                color: var(--cor-texto);
+            }
+            
+            .log-detalhes {
+                max-width: 300px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .logs-filtros {
+                display: flex;
+                gap: 10px;
+                margin: 15px 0;
+                flex-wrap: wrap;
+            }
+        </style>
+    `;
+    
+    // Criar modal
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content large" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> Logs de Auditoria do Sistema</h3>
+                <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                ${html}
+                <div class="form-actions">
+                    <button onclick="this.closest('.modal').remove()" class="btn-primary">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.remove();
+        }
+    });
+    
+    registrarLogAuditoria('VISUALIZAR_LOGS', 'Visualizou logs de auditoria');
+}
+
+// Funções auxiliares para filtros
+function filtrarLogsPorUsuario(button) {
+    const usuario = prompt('Digite o nome do usuário para filtrar:');
+    if (usuario) {
+        const logs = getLogsAuditoria({ usuario: usuario });
+        alert(`Encontrados ${logs.length} registros para o usuário "${usuario}"`);
+    }
+}
+
+function filtrarLogsPorAcao(button) {
+    const acao = prompt('Digite o tipo de ação (ex: CRIAR_EQUIPAMENTO, EDITAR_PENDENCIA):');
+    if (acao) {
+        const logs = getLogsAuditoria({ acao: acao });
+        alert(`Encontrados ${logs.length} registros para a ação "${acao}"`);
+    }
+}
+
+
+
+// ===========================================
 // EXPORTAÇÃO PARA USO GLOBAL
 // ===========================================
 
@@ -928,6 +1245,13 @@ if (typeof window !== 'undefined') {
     window.temPermissao = temPermissao;
     window.podeExecutar = podeExecutar;
     window.getUsuariosDisponiveis = getUsuariosDisponiveis;
+
+window.registrarLogAuditoria = registrarLogAuditoria;
+window.getLogsAuditoria = getLogsAuditoria;
+window.exportarLogsAuditoria = exportarLogsAuditoria;
+window.visualizarLogsAuditoria = visualizarLogsAuditoria;
+window.filtrarLogsPorUsuario = filtrarLogsPorUsuario;
+window.filtrarLogsPorAcao = filtrarLogsPorAcao;
 }
 
 // Exportar para módulos (se usando Node.js/CommonJS)
