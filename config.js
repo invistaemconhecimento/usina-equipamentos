@@ -114,102 +114,63 @@ const INITIAL_DATA = {
 };
 
 // Sistema de Permissões por Nível de Acesso
+// Sistema de Permissões por Nível de Acesso
 const PERMISSOES = {
     niveis: {
+        "visitante": {
+            nome: "Visitante",
+            nivel: 1,
+            cor: "#95a5a6",
+            icone: "fa-eye",
+            permissoes: [
+                "visualizar_equipamentos",
+                "ver_detalhes"
+            ],
+            restricoes: [
+                "nao_pode_criar",
+                "nao_pode_editar",
+                "nao_pode_excluir",
+                "nao_pode_exportar",
+                "nao_pode_configurar"
+            ]
+        },
         "operador": {
             nome: "Operador",
-            nivel: 1,
+            nivel: 2,
             cor: "#3498db",
-            icone: "fa-user",
-            permissoes: [
-                "visualizar_equipamentos",
-                "ver_detalhes",
-                "criar_pendencias",
-                "editar_pendencias_proprias"
-            ],
-            restricoes: [
-                "nao_pode_criar_equipamentos",
-                "nao_pode_excluir_pendencias_outros",
-                "nao_pode_exportar_dados"
-            ]
-        },
-        "supervisor": {
-            nome: "Supervisor",
-            nivel: 2,
-            cor: "#f39c12",
-            icone: "fa-user-tie",
-            permissoes: [
-                "visualizar_equipamentos",
-                "ver_detalhes",
-                "criar_pendencias",
-                "editar_pendencias",
-                "excluir_pendencias",
-                "exportar_dados",
-                "gerar_relatorios"
-            ],
-            restricoes: [
-                "nao_pode_criar_equipamentos",
-                "nao_pode_editar_equipamentos",
-                "nao_pode_configurar_sistema"
-            ]
-        },
-        "manutencao": {
-            nome: "Técnico de Manutenção",
-            nivel: 2,
-            cor: "#9b59b6",
-            icone: "fa-tools",
-            permissoes: [
-                "visualizar_equipamentos",
-                "ver_detalhes",
-                "criar_pendencias",
-                "editar_pendencias",
-                "excluir_pendencias",
-                "exportar_dados",
-                "marcar_pendencias_resolvidas"
-            ],
-            restricoes: [
-                "nao_pode_criar_equipamentos",
-                "nao_pode_editar_equipamentos",
-                "nao_pode_configurar_sistema"
-            ]
-        },
-        "engenharia": {
-            nome: "Engenharia",
-            nivel: 3,
-            cor: "#2ecc71",
             icone: "fa-user-cog",
             permissoes: [
                 "visualizar_equipamentos",
                 "ver_detalhes",
-                "criar_pendencias",
-                "editar_pendencias",
-                "excluir_pendencias",
                 "criar_equipamentos",
                 "editar_equipamentos",
-                "exportar_dados",
-                "gerar_relatorios",
-                "configurar_setores"
+                "criar_pendencias",
+                "editar_pendencias",
+                "excluir_pendencias_proprias",
+                "exportar_dados"
             ],
             restricoes: [
-                "nao_pode_gerenciar_usuarios",
-                "nao_pode_configurar_sistema_completo"
+                "nao_pode_excluir_equipamentos",
+                "nao_pode_excluir_pendencias_outros",
+                "nao_pode_configurar_sistema",
+                "nao_pode_gerenciar_usuarios"
             ]
         },
         "administrador": {
             nome: "Administrador",
-            nivel: 4,
+            nivel: 3,
             cor: "#e74c3c",
             icone: "fa-user-shield",
             permissoes: [
                 "visualizar_equipamentos",
                 "ver_detalhes",
+                "criar_equipamentos",
+                "editar_equipamentos",
+                "excluir_equipamentos",
                 "criar_pendencias",
                 "editar_pendencias",
                 "excluir_pendencias",
-                "criar_equipamentos",
-                "editar_equipamentos",
                 "exportar_dados",
-                "gerar_relatorios",
                 "configurar_sistema",
                 "gerenciar_usuarios",
                 "visualizar_logs",
@@ -228,25 +189,19 @@ const PERMISSOES = {
             return false;
         }
         
-        // Permissões básicas que todos têm
-        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes'];
-        if (permissoesBasicas.includes(permissao)) {
-            return true;
-        }
-        
         return nivelUsuario.permissoes.includes(permissao);
     },
     
     // Obter nome do nível do usuário
     getNomeNivel: function(usuario) {
         const nivel = this.niveis[usuario];
-        return nivel ? nivel.nome : 'Usuário';
+        return nivel ? nivel.nome : 'Visitante';
     },
     
     // Obter nível numérico
     getNivelNumerico: function(usuario) {
         const nivel = this.niveis[usuario];
-        return nivel ? nivel.nivel : 0;
+        return nivel ? nivel.nivel : 1;
     },
     
     // Obter cor do nível
@@ -258,12 +213,7 @@ const PERMISSOES = {
     // Obter ícone do nível
     getIconeNivel: function(usuario) {
         const nivel = this.niveis[usuario];
-        return nivel ? nivel.icone : 'fa-user';
-    },
-    
-    // Listar todos os níveis disponíveis
-    getTodosNiveis: function() {
-        return Object.keys(this.niveis);
+        return nivel ? nivel.icone : 'fa-eye';
     },
     
     // Verificar se usuário pode executar ação específica
@@ -294,9 +244,12 @@ const PERMISSOES = {
                 break;
                 
             case 'excluir':
+                if (recurso === 'equipamento') {
+                    return nivel.permissoes.includes('excluir_equipamentos');
+                }
                 if (recurso === 'pendencia') {
                     if (donoRecurso === usuario) {
-                        return true; // Dono sempre pode excluir
+                        return nivel.permissoes.includes('excluir_pendencias_proprias');
                     }
                     return nivel.permissoes.includes('excluir_pendencias');
                 }
@@ -307,10 +260,14 @@ const PERMISSOES = {
                 
             case 'configurar':
                 return nivel.permissoes.includes('configurar_sistema');
+                
+            case 'gerenciar_usuarios':
+                return nivel.permissoes.includes('gerenciar_usuarios');
         }
         
         return false;
-    },
+    }
+};    
     
     // Gerar relatório de permissões
     gerarRelatorioPermissoes: function() {
