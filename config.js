@@ -31,6 +31,8 @@ const INITIAL_DATA = {
             ultimaInspecao: "2023-10-15",
             dataCriacao: "2023-01-10",
             criadoPor: "administrador",
+            editadoPor: null,
+            editadoEm: null,
             pendencias: [
                 {
                     id: 1,
@@ -40,8 +42,10 @@ const INITIAL_DATA = {
                     prioridade: "alta",
                     data: "2023-10-10",
                     status: "em-andamento",
-                    criadoPor: "supervisor",
-                    criadoEm: "2023-10-10T10:30:00"
+                    criadoPor: "administrador",
+                    criadoEm: "2023-10-10T10:30:00",
+                    editadoPor: null,
+                    editadoEm: null
                 }
             ]
         },
@@ -55,6 +59,8 @@ const INITIAL_DATA = {
             ultimaInspecao: "2023-09-22",
             dataCriacao: "2022-11-05",
             criadoPor: "administrador",
+            editadoPor: null,
+            editadoEm: null,
             pendencias: [
                 {
                     id: 2,
@@ -64,8 +70,10 @@ const INITIAL_DATA = {
                     prioridade: "critica",
                     data: "2023-10-05",
                     status: "aberta",
-                    criadoPor: "operador",
-                    criadoEm: "2023-10-05T08:15:00"
+                    criadoPor: "administrador",
+                    criadoEm: "2023-10-05T08:15:00",
+                    editadoPor: null,
+                    editadoEm: null
                 },
                 {
                     id: 3,
@@ -75,9 +83,11 @@ const INITIAL_DATA = {
                     prioridade: "media",
                     data: "2023-09-30",
                     status: "resolvida",
-                    criadoPor: "manutencao",
+                    criadoPor: "administrador",
                     criadoEm: "2023-09-30T14:20:00",
-                    resolvidoPor: "manutencao",
+                    editadoPor: null,
+                    editadoEm: null,
+                    resolvidoPor: "administrador",
                     resolvidoEm: "2023-10-02T09:45:00"
                 }
             ]
@@ -91,7 +101,9 @@ const INITIAL_DATA = {
             status: "apto",
             ultimaInspecao: "2023-10-18",
             dataCriacao: "2023-03-20",
-            criadoPor: "engenharia",
+            criadoPor: "administrador",
+            editadoPor: null,
+            editadoEm: null,
             pendencias: []
         }
     ],
@@ -113,7 +125,6 @@ const INITIAL_DATA = {
     nextLogId: 2
 };
 
-// Sistema de Permissões por Nível de Acesso
 // Sistema de Permissões por Nível de Acesso
 const PERMISSOES = {
     niveis: {
@@ -189,6 +200,12 @@ const PERMISSOES = {
             return false;
         }
         
+        // Permissões básicas que todos têm
+        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes'];
+        if (permissoesBasicas.includes(permissao)) {
+            return true;
+        }
+        
         return nivelUsuario.permissoes.includes(permissao);
     },
     
@@ -214,6 +231,11 @@ const PERMISSOES = {
     getIconeNivel: function(usuario) {
         const nivel = this.niveis[usuario];
         return nivel ? nivel.icone : 'fa-eye';
+    },
+    
+    // Listar todos os níveis disponíveis
+    getTodosNiveis: function() {
+        return Object.keys(this.niveis);
     },
     
     // Verificar se usuário pode executar ação específica
@@ -263,11 +285,13 @@ const PERMISSOES = {
                 
             case 'gerenciar_usuarios':
                 return nivel.permissoes.includes('gerenciar_usuarios');
+                
+            case 'visualizar_logs':
+                return nivel.permissoes.includes('visualizar_logs');
         }
         
         return false;
-    }
-};    
+    },
     
     // Gerar relatório de permissões
     gerarRelatorioPermissoes: function() {
@@ -287,7 +311,7 @@ const PERMISSOES = {
 // Configurações da aplicação
 const APP_CONFIG = {
     nome: "Gestão de Equipamentos - Usina",
-    versao: "2.1.0",
+    versao: "2.2.0",
     
     // Setores da usina
     setores: {
@@ -398,7 +422,9 @@ const APP_CONFIG = {
         ALTERAR_TEMA: "ALTERAR_TEMA",
         CONFIGURAR_SISTEMA: "CONFIGURAR_SISTEMA",
         VISUALIZAR_DETALHES: "VISUALIZAR_DETALHES",
-        FILTRAR_EQUIPAMENTOS: "FILTRAR_EQUIPAMENTOS"
+        FILTRAR_EQUIPAMENTOS: "FILTRAR_EQUIPAMENTOS",
+        EXPORTAR_LOGS: "EXPORTAR_LOGS",
+        VISUALIZAR_LOGS: "VISUALIZAR_LOGS"
     }
 };
 
@@ -516,7 +542,6 @@ const APP_UTILS = {
 };
 
 // Banco de usuários (em produção, isso estaria em um backend seguro)
-// Banco de usuários (em produção, isso estaria em um backend seguro)
 const USUARIOS_AUTORIZADOS = {
     'visitante': { 
         senha: 'visitante123', 
@@ -540,364 +565,6 @@ const USUARIOS_AUTORIZADOS = {
         departamento: 'TI'
     }
 };
-// ===========================================
-// FUNÇÕES DE SISTEMA
-// ===========================================
-
-// Função para logout
-function logout() {
-    const usuario = getUsuarioLogado();
-    const nivel = getNivelUsuario();
-    
-    // Registrar atividade de logout
-    if (usuario) {
-        registrarAtividade('LOGOUT', `Usuário ${usuario} (${PERMISSOES.getNomeNivel(nivel)}) saiu do sistema`);
-    }
-    
-    // Limpar dados da sessão
-    localStorage.removeItem('gestao_equipamentos_sessao');
-    localStorage.removeItem('gestao_equipamentos_usuario');
-    localStorage.removeItem('gestao_equipamentos_nivel');
-    localStorage.removeItem('gestao_equipamentos_ultimo_acesso');
-    
-    // Redirecionar para página de login
-    window.location.href = 'login.html';
-}
-
-// Função para verificar sessão ativa
-function verificarSessaoAtiva() {
-    const sessao = localStorage.getItem('gestao_equipamentos_sessao');
-    
-    if (!sessao) {
-        return false;
-    }
-    
-    try {
-        const sessaoData = JSON.parse(sessao);
-        const agora = new Date().getTime();
-        
-        if (agora > sessaoData.expira) {
-            // Sessão expirada
-            registrarAtividade('SESSAO_EXPIRADA', `Sessão expirou para usuário ${sessaoData.usuario}`);
-            
-            localStorage.removeItem('gestao_equipamentos_sessao');
-            localStorage.removeItem('gestao_equipamentos_usuario');
-            localStorage.removeItem('gestao_equipamentos_nivel');
-            return false;
-        }
-        
-        return true;
-    } catch (e) {
-        console.error('Erro ao verificar sessão:', e);
-        return false;
-    }
-}
-
-// Função para obter informações do usuário logado
-function getUsuarioLogado() {
-    return localStorage.getItem('gestao_equipamentos_usuario');
-}
-
-// Função para obter nível do usuário
-function getNivelUsuario() {
-    return localStorage.getItem('gestao_equipamentos_nivel');
-}
-
-// Função para obter informações completas do usuário
-function getUsuarioInfo() {
-    const usuario = getUsuarioLogado();
-    if (!usuario) return null;
-    
-    return {
-        usuario: usuario,
-        nivel: getNivelUsuario(),
-        nome: USUARIOS_AUTORIZADOS[usuario]?.nome || usuario,
-        email: USUARIOS_AUTORIZADOS[usuario]?.email || '',
-        departamento: USUARIOS_AUTORIZADOS[usuario]?.departamento || '',
-        nivelNome: PERMISSOES.getNomeNivel(getNivelUsuario()),
-        corNivel: PERMISSOES.getCorNivel(getNivelUsuario()),
-        iconeNivel: PERMISSOES.getIconeNivel(getNivelUsuario())
-    };
-}
-
-// Função para registrar atividade (log de auditoria)
-function registrarAtividade(acao, detalhes) {
-    const usuario = getUsuarioLogado();
-    const nivel = getNivelUsuario();
-    const timestamp = new Date().toISOString();
-    
-    // Só registra se a configuração permitir
-    if (!APP_CONFIG.appSettings.manterLogs) return;
-    
-    const logEntry = {
-        usuario: usuario || 'sistema',
-        nivel: nivel || 'sistema',
-        acao: acao,
-        detalhes: detalhes,
-        timestamp: timestamp,
-        ip: 'local',
-        userAgent: navigator.userAgent
-    };
-    
-    // Em ambiente real, enviaria para um servidor de logs
-    console.log('LOG DE ATIVIDADE:', logEntry);
-    
-    // Salvar no localStorage para histórico local
-    try {
-        let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
-        logEntry.id = logs.length > 0 ? Math.max(...logs.map(l => l.id || 0)) + 1 : 1;
-        logs.unshift(logEntry); // Adicionar no início
-        
-        // Limitar número de logs armazenados
-        if (logs.length > APP_CONFIG.appSettings.maxLogs) {
-            logs = logs.slice(0, APP_CONFIG.appSettings.maxLogs);
-        }
-        
-        localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
-        
-        // Em produção, também enviaria para servidor
-        // enviarLogParaServidor(logEntry);
-        
-    } catch (e) {
-        console.error('Erro ao salvar log:', e);
-    }
-}
-
-// Função para obter logs de atividades
-function getLogsAtividades(limite = 50) {
-    try {
-        const logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
-        return logs.slice(0, limite);
-    } catch (e) {
-        console.error('Erro ao obter logs:', e);
-        return [];
-    }
-}
-
-// Função para exportar configurações
-function exportarConfiguracoes() {
-    // Verificar permissão
-    const usuario = getUsuarioLogado();
-    if (!PERMISSOES.verificarPermissao(usuario, 'configurar_sistema')) {
-        alert('Você não tem permissão para exportar configurações do sistema.');
-        return;
-    }
-    
-    const configExport = {
-        appConfig: APP_CONFIG,
-        permissoes: PERMISSOES.gerarRelatorioPermissoes(),
-        jsonBinConfig: {
-            BIN_ID: JSONBIN_CONFIG.BIN_ID,
-            BASE_URL: JSONBIN_CONFIG.BASE_URL
-        },
-        exportDate: new Date().toISOString(),
-        version: APP_CONFIG.versao,
-        exportadoPor: usuario
-    };
-    
-    const dataStr = JSON.stringify(configExport, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', `config_gestao_equipamentos_${new Date().toISOString().split('T')[0]}.json`);
-    linkElement.click();
-    
-    registrarAtividade('EXPORT_CONFIG', 'Configurações exportadas');
-}
-
-// Função para gerar relatório de configuração
-function gerarRelatorioConfiguracao() {
-    const usuario = getUsuarioLogado();
-    const nivel = getNivelUsuario();
-    const usuarioInfo = getUsuarioInfo();
-    
-    const relatorio = `
-SISTEMA DE GESTÃO DE EQUIPAMENTOS - USINA
-==========================================
-
-VERSÃO: ${APP_CONFIG.versao}
-DATA DE GERAÇÃO: ${new Date().toLocaleDateString('pt-BR')}
-HORA: ${new Date().toLocaleTimeString('pt-BR')}
-
-INFORMAÇÕES DO USUÁRIO
-----------------------
-• Usuário: ${usuarioInfo?.nome || 'Não autenticado'}
-• Nível de Acesso: ${usuarioInfo?.nivelNome || 'N/A'}
-• Departamento: ${usuarioInfo?.departamento || 'N/A'}
-• E-mail: ${usuarioInfo?.email || 'N/A'}
-
-CONFIGURAÇÕES DO SISTEMA
--------------------------
-• Total de Setores Configurados: ${Object.keys(APP_CONFIG.setores).length}
-• Status de Equipamentos: ${Object.keys(APP_CONFIG.statusEquipamento).length}
-• Prioridades de Pendência: ${Object.keys(APP_CONFIG.prioridades).length}
-• Responsáveis: ${APP_CONFIG.responsaveis.length}
-
-SETORES CONFIGURADOS
---------------------
-${Object.entries(APP_CONFIG.setores).map(([key, value]) => `• ${value}`).join('\n')}
-
-NÍVEIS DE ACESSO CONFIGURADOS
------------------------------
-${Object.entries(PERMISSOES.niveis).map(([key, nivel]) => 
-    `• ${nivel.nome} (${key}): Nível ${nivel.nivel}, ${nivel.permissoes.length} permissões`
-).join('\n')}
-
-CONFIGURAÇÃO DE ARMAZENAMENTO
------------------------------
-• Servidor: JSONBin.io
-• Bin ID: ${JSONBIN_CONFIG.BIN_ID}
-• Status: ${navigator.onLine ? 'Online' : 'Offline'}
-
-CONFIGURAÇÕES DE APLICAÇÃO
---------------------------
-• Expiração de Sessão: ${APP_CONFIG.appSettings.sessaoExpiracaoHoras} horas
-• Atualização Automática: ${APP_CONFIG.appSettings.atualizacaoAutomaticaMinutos} minutos
-• Notificações: ${APP_CONFIG.appSettings.notificacoesAtivas ? 'Ativas' : 'Inativas'}
-• Logs de Atividade: ${APP_CONFIG.appSettings.manterLogs ? 'Ativos' : 'Inativos'}
-
-ESTATÍSTICAS DE USO
--------------------
-• Último Acesso: ${localStorage.getItem('gestao_equipamentos_ultimo_acesso') ? 
-    APP_UTILS.formatarDataHora(localStorage.getItem('gestao_equipamentos_ultimo_acesso')) : 'N/A'}
-• Total de Logs: ${getLogsAtividades().length}
-• Filtros Salvos: ${localStorage.getItem('gestao_equipamentos_filtros') ? 'Sim' : 'Não'}
-• Tema Preferido: ${localStorage.getItem('gestao_equipamentos_tema') || 'claro'}
-
-`;
-    
-    return relatorio;
-}
-
-// Função para mostrar informações do sistema
-function mostrarInfoSistema() {
-    // Verificar permissão
-    const usuario = getUsuarioLogado();
-    if (!PERMISSOES.verificarPermissao(usuario, 'configurar_sistema')) {
-        alert('Você não tem permissão para visualizar informações do sistema.');
-        return;
-    }
-    
-    const info = gerarRelatorioConfiguracao();
-    
-    // Criar modal para mostrar informações
-    const modal = document.createElement('div');
-    modal.className = 'modal active';
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h3><i class="fas fa-info-circle"></i> Informações do Sistema</h3>
-                <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">${info}</pre>
-                <div class="form-actions">
-                    <button onclick="copiarInformacoesSistema()" class="btn-secondary">
-                        <i class="fas fa-copy"></i> Copiar Informações
-                    </button>
-                    <button onclick="this.closest('.modal').remove()" class="btn-primary">
-                        <i class="fas fa-times"></i> Fechar
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Fechar ao clicar fora
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.remove();
-        }
-    });
-    
-    registrarAtividade('VIEW_SYSTEM_INFO', 'Visualizou informações do sistema');
-}
-
-// Função para copiar informações do sistema
-function copiarInformacoesSistema() {
-    const info = gerarRelatorioConfiguracao();
-    
-    navigator.clipboard.writeText(info).then(() => {
-        alert('Informações copiadas para a área de transferência!');
-        registrarAtividade('COPY_SYSTEM_INFO', 'Copiou informações do sistema');
-    }).catch(err => {
-        console.error('Erro ao copiar:', err);
-        alert('Erro ao copiar informações.');
-    });
-}
-
-// Inicializar configurações padrão
-function inicializarConfiguracoes() {
-    // Configuração de filtros
-    if (!localStorage.getItem('gestao_equipamentos_filtros')) {
-        localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify({
-            status: 'all',
-            pendencia: 'all',
-            setor: 'all',
-            busca: '',
-            viewMode: 'grid'
-        }));
-    }
-    
-    // Configuração de tema
-    if (!localStorage.getItem('gestao_equipamentos_tema')) {
-        localStorage.setItem('gestao_equipamentos_tema', 'claro');
-    }
-    
-    // Inicializar logs se não existirem
-    if (!localStorage.getItem('gestao_equipamentos_logs')) {
-        localStorage.setItem('gestao_equipamentos_logs', JSON.stringify([]));
-    }
-    
-    // Aplicar tema
-    const tema = localStorage.getItem('gestao_equipamentos_tema');
-    document.documentElement.setAttribute('data-tema', tema);
-}
-
-// Função para alternar tema
-function alternarTema() {
-    const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-    const novoTema = temaAtual === 'claro' ? 'escuro' : 'claro';
-    
-    localStorage.setItem('gestao_equipamentos_tema', novoTema);
-    document.documentElement.setAttribute('data-tema', novoTema);
-    
-    registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
-    
-    return novoTema;
-}
-
-// Função para verificar permissão do usuário atual
-function temPermissao(permissao) {
-    const usuario = getUsuarioLogado();
-    return PERMISSOES.verificarPermissao(usuario, permissao);
-}
-
-// Função para verificar se pode executar ação
-function podeExecutar(acao, recurso, donoRecurso = null) {
-    const usuario = getUsuarioLogado();
-    return PERMISSOES.podeExecutarAcao(usuario, acao, recurso, donoRecurso);
-}
-
-// Função para obter usuários disponíveis (apenas admin)
-function getUsuariosDisponiveis() {
-    const usuario = getUsuarioLogado();
-    if (!PERMISSOES.verificarPermissao(usuario, 'gerenciar_usuarios')) {
-        return [];
-    }
-    
-    return Object.entries(USUARIOS_AUTORIZADOS).map(([username, info]) => ({
-        username,
-        nome: info.nome,
-        email: info.email,
-        departamento: info.departamento,
-        nivel: info.nivel,
-        nivelNome: PERMISSOES.getNomeNivel(info.nivel)
-    }));
-}
 
 // ===========================================
 // SISTEMA DE LOGS DE AUDITORIA
@@ -1214,7 +881,369 @@ function filtrarLogsPorAcao(button) {
     }
 }
 
+// ===========================================
+// FUNÇÕES DE SISTEMA
+// ===========================================
 
+// Função para logout
+function logout() {
+    const usuario = getUsuarioLogado();
+    const nivel = getNivelUsuario();
+    
+    // Registrar atividade de logout
+    if (usuario) {
+        registrarAtividade('LOGOUT', `Usuário ${usuario} (${PERMISSOES.getNomeNivel(nivel)}) saiu do sistema`);
+    }
+    
+    // Limpar dados da sessão
+    localStorage.removeItem('gestao_equipamentos_sessao');
+    localStorage.removeItem('gestao_equipamentos_usuario');
+    localStorage.removeItem('gestao_equipamentos_nivel');
+    localStorage.removeItem('gestao_equipamentos_ultimo_acesso');
+    
+    // Redirecionar para página de login
+    window.location.href = 'login.html';
+}
+
+// Função para verificar sessão ativa
+function verificarSessaoAtiva() {
+    const sessao = localStorage.getItem('gestao_equipamentos_sessao');
+    
+    if (!sessao) {
+        return false;
+    }
+    
+    try {
+        const sessaoData = JSON.parse(sessao);
+        const agora = new Date().getTime();
+        
+        if (agora > sessaoData.expira) {
+            // Sessão expirada
+            registrarAtividade('SESSAO_EXPIRADA', `Sessão expirou para usuário ${sessaoData.usuario}`);
+            
+            localStorage.removeItem('gestao_equipamentos_sessao');
+            localStorage.removeItem('gestao_equipamentos_usuario');
+            localStorage.removeItem('gestao_equipamentos_nivel');
+            return false;
+        }
+        
+        return true;
+    } catch (e) {
+        console.error('Erro ao verificar sessão:', e);
+        return false;
+    }
+}
+
+// Função para obter informações do usuário logado
+function getUsuarioLogado() {
+    return localStorage.getItem('gestao_equipamentos_usuario');
+}
+
+// Função para obter nível do usuário
+function getNivelUsuario() {
+    return localStorage.getItem('gestao_equipamentos_nivel');
+}
+
+// Função para obter informações completas do usuário
+function getUsuarioInfo() {
+    const usuario = getUsuarioLogado();
+    if (!usuario) return null;
+    
+    return {
+        usuario: usuario,
+        nivel: getNivelUsuario(),
+        nome: USUARIOS_AUTORIZADOS[usuario]?.nome || usuario,
+        email: USUARIOS_AUTORIZADOS[usuario]?.email || '',
+        departamento: USUARIOS_AUTORIZADOS[usuario]?.departamento || '',
+        nivelNome: PERMISSOES.getNomeNivel(getNivelUsuario()),
+        corNivel: PERMISSOES.getCorNivel(getNivelUsuario()),
+        iconeNivel: PERMISSOES.getIconeNivel(getNivelUsuario())
+    };
+}
+
+// Função para registrar atividade (log de auditoria)
+function registrarAtividade(acao, detalhes) {
+    const usuario = getUsuarioLogado();
+    const nivel = getNivelUsuario();
+    const timestamp = new Date().toISOString();
+    
+    // Só registra se a configuração permitir
+    if (!APP_CONFIG.appSettings.manterLogs) return;
+    
+    const logEntry = {
+        usuario: usuario || 'sistema',
+        nivel: nivel || 'sistema',
+        acao: acao,
+        detalhes: detalhes,
+        timestamp: timestamp,
+        ip: 'local',
+        userAgent: navigator.userAgent
+    };
+    
+    // Em ambiente real, enviaria para um servidor de logs
+    console.log('LOG DE ATIVIDADE:', logEntry);
+    
+    // Salvar no localStorage para histórico local
+    try {
+        let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
+        logEntry.id = logs.length > 0 ? Math.max(...logs.map(l => l.id || 0)) + 1 : 1;
+        logs.unshift(logEntry); // Adicionar no início
+        
+        // Limitar número de logs armazenados
+        if (logs.length > APP_CONFIG.appSettings.maxLogs) {
+            logs = logs.slice(0, APP_CONFIG.appSettings.maxLogs);
+        }
+        
+        localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
+        
+        // Em produção, também enviaria para servidor
+        // enviarLogParaServidor(logEntry);
+        
+    } catch (e) {
+        console.error('Erro ao salvar log:', e);
+    }
+}
+
+// Função para obter logs de atividades
+function getLogsAtividades(limite = 50) {
+    try {
+        const logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
+        return logs.slice(0, limite);
+    } catch (e) {
+        console.error('Erro ao obter logs:', e);
+        return [];
+    }
+}
+
+// Função para exportar configurações
+function exportarConfiguracoes() {
+    // Verificar permissão
+    const usuario = getUsuarioLogado();
+    if (!PERMISSOES.verificarPermissao(usuario, 'configurar_sistema')) {
+        alert('Você não tem permissão para exportar configurações do sistema.');
+        return;
+    }
+    
+    const configExport = {
+        appConfig: APP_CONFIG,
+        permissoes: PERMISSOES.gerarRelatorioPermissoes(),
+        jsonBinConfig: {
+            BIN_ID: JSONBIN_CONFIG.BIN_ID,
+            BASE_URL: JSONBIN_CONFIG.BASE_URL
+        },
+        exportDate: new Date().toISOString(),
+        version: APP_CONFIG.versao,
+        exportadoPor: usuario
+    };
+    
+    const dataStr = JSON.stringify(configExport, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', `config_gestao_equipamentos_${new Date().toISOString().split('T')[0]}.json`);
+    linkElement.click();
+    
+    registrarAtividade('EXPORT_CONFIG', 'Configurações exportadas');
+}
+
+// Função para gerar relatório de configuração
+function gerarRelatorioConfiguracao() {
+    const usuario = getUsuarioLogado();
+    const nivel = getNivelUsuario();
+    const usuarioInfo = getUsuarioInfo();
+    
+    const relatorio = `
+SISTEMA DE GESTÃO DE EQUIPAMENTOS - USINA
+==========================================
+
+VERSÃO: ${APP_CONFIG.versao}
+DATA DE GERAÇÃO: ${new Date().toLocaleDateString('pt-BR')}
+HORA: ${new Date().toLocaleTimeString('pt-BR')}
+
+INFORMAÇÕES DO USUÁRIO
+----------------------
+• Usuário: ${usuarioInfo?.nome || 'Não autenticado'}
+• Nível de Acesso: ${usuarioInfo?.nivelNome || 'N/A'}
+• Departamento: ${usuarioInfo?.departamento || 'N/A'}
+• E-mail: ${usuarioInfo?.email || 'N/A'}
+
+CONFIGURAÇÕES DO SISTEMA
+-------------------------
+• Total de Setores Configurados: ${Object.keys(APP_CONFIG.setores).length}
+• Status de Equipamentos: ${Object.keys(APP_CONFIG.statusEquipamento).length}
+• Prioridades de Pendência: ${Object.keys(APP_CONFIG.prioridades).length}
+• Responsáveis: ${APP_CONFIG.responsaveis.length}
+
+SETORES CONFIGURADOS
+--------------------
+${Object.entries(APP_CONFIG.setores).map(([key, value]) => `• ${value}`).join('\n')}
+
+NÍVEIS DE ACESSO CONFIGURADOS
+-----------------------------
+${Object.entries(PERMISSOES.niveis).map(([key, nivel]) => 
+    `• ${nivel.nome} (${key}): Nível ${nivel.nivel}, ${nivel.permissoes.length} permissões`
+).join('\n')}
+
+CONFIGURAÇÃO DE ARMAZENAMENTO
+-----------------------------
+• Servidor: JSONBin.io
+• Bin ID: ${JSONBIN_CONFIG.BIN_ID}
+• Status: ${navigator.onLine ? 'Online' : 'Offline'}
+
+CONFIGURAÇÕES DE APLICAÇÃO
+--------------------------
+• Expiração de Sessão: ${APP_CONFIG.appSettings.sessaoExpiracaoHoras} horas
+• Atualização Automática: ${APP_CONFIG.appSettings.atualizacaoAutomaticaMinutos} minutos
+• Notificações: ${APP_CONFIG.appSettings.notificacoesAtivas ? 'Ativas' : 'Inativas'}
+• Logs de Atividade: ${APP_CONFIG.appSettings.manterLogs ? 'Ativos' : 'Inativos'}
+
+ESTATÍSTICAS DE USO
+-------------------
+• Último Acesso: ${localStorage.getItem('gestao_equipamentos_ultimo_acesso') ? 
+    APP_UTILS.formatarDataHora(localStorage.getItem('gestao_equipamentos_ultimo_acesso')) : 'N/A'}
+• Total de Logs: ${getLogsAtividades().length}
+• Filtros Salvos: ${localStorage.getItem('gestao_equipamentos_filtros') ? 'Sim' : 'Não'}
+• Tema Preferido: ${localStorage.getItem('gestao_equipamentos_tema') || 'claro'}
+
+`;
+    
+    return relatorio;
+}
+
+// Função para mostrar informações do sistema
+function mostrarInfoSistema() {
+    // Verificar permissão
+    const usuario = getUsuarioLogado();
+    if (!PERMISSOES.verificarPermissao(usuario, 'configurar_sistema')) {
+        alert('Você não tem permissão para visualizar informações do sistema.');
+        return;
+    }
+    
+    const info = gerarRelatorioConfiguracao();
+    
+    // Criar modal para mostrar informações
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> Informações do Sistema</h3>
+                <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">${info}</pre>
+                <div class="form-actions">
+                    <button onclick="copiarInformacoesSistema()" class="btn-secondary">
+                        <i class="fas fa-copy"></i> Copiar Informações
+                    </button>
+                    <button onclick="this.closest('.modal').remove()" class="btn-primary">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Fechar ao clicar fora
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.remove();
+        }
+    });
+    
+    registrarAtividade('VIEW_SYSTEM_INFO', 'Visualizou informações do sistema');
+}
+
+// Função para copiar informações do sistema
+function copiarInformacoesSistema() {
+    const info = gerarRelatorioConfiguracao();
+    
+    navigator.clipboard.writeText(info).then(() => {
+        alert('Informações copiadas para a área de transferência!');
+        registrarAtividade('COPY_SYSTEM_INFO', 'Copiou informações do sistema');
+    }).catch(err => {
+        console.error('Erro ao copiar:', err);
+        alert('Erro ao copiar informações.');
+    });
+}
+
+// Inicializar configurações padrão
+function inicializarConfiguracoes() {
+    // Configuração de filtros
+    if (!localStorage.getItem('gestao_equipamentos_filtros')) {
+        localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify({
+            status: 'all',
+            pendencia: 'all',
+            setor: 'all',
+            busca: '',
+            viewMode: 'grid'
+        }));
+    }
+    
+    // Configuração de tema
+    if (!localStorage.getItem('gestao_equipamentos_tema')) {
+        localStorage.setItem('gestao_equipamentos_tema', 'claro');
+    }
+    
+    // Inicializar logs se não existirem
+    if (!localStorage.getItem('gestao_equipamentos_logs')) {
+        localStorage.setItem('gestao_equipamentos_logs', JSON.stringify([]));
+    }
+    
+    // Inicializar logs de auditoria se não existirem
+    if (!localStorage.getItem('gestao_equipamentos_logs_auditoria')) {
+        localStorage.setItem('gestao_equipamentos_logs_auditoria', JSON.stringify([]));
+    }
+    
+    // Aplicar tema
+    const tema = localStorage.getItem('gestao_equipamentos_tema');
+    document.documentElement.setAttribute('data-tema', tema);
+}
+
+// Função para alternar tema
+function alternarTema() {
+    const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
+    const novoTema = temaAtual === 'claro' ? 'escuro' : 'claro';
+    
+    localStorage.setItem('gestao_equipamentos_tema', novoTema);
+    document.documentElement.setAttribute('data-tema', novoTema);
+    
+    registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
+    
+    return novoTema;
+}
+
+// Função para verificar permissão do usuário atual
+function temPermissao(permissao) {
+    const usuario = getUsuarioLogado();
+    return PERMISSOES.verificarPermissao(usuario, permissao);
+}
+
+// Função para verificar se pode executar ação
+function podeExecutar(acao, recurso, donoRecurso = null) {
+    const usuario = getUsuarioLogado();
+    return PERMISSOES.podeExecutarAcao(usuario, acao, recurso, donoRecurso);
+}
+
+// Função para obter usuários disponíveis (apenas admin)
+function getUsuariosDisponiveis() {
+    const usuario = getUsuarioLogado();
+    if (!PERMISSOES.verificarPermissao(usuario, 'gerenciar_usuarios')) {
+        return [];
+    }
+    
+    return Object.entries(USUARIOS_AUTORIZADOS).map(([username, info]) => ({
+        username,
+        nome: info.nome,
+        email: info.email,
+        departamento: info.departamento,
+        nivel: info.nivel,
+        nivelNome: PERMISSOES.getNomeNivel(info.nivel)
+    }));
+}
 
 // ===========================================
 // EXPORTAÇÃO PARA USO GLOBAL
@@ -1245,13 +1274,14 @@ if (typeof window !== 'undefined') {
     window.temPermissao = temPermissao;
     window.podeExecutar = podeExecutar;
     window.getUsuariosDisponiveis = getUsuariosDisponiveis;
-
-window.registrarLogAuditoria = registrarLogAuditoria;
-window.getLogsAuditoria = getLogsAuditoria;
-window.exportarLogsAuditoria = exportarLogsAuditoria;
-window.visualizarLogsAuditoria = visualizarLogsAuditoria;
-window.filtrarLogsPorUsuario = filtrarLogsPorUsuario;
-window.filtrarLogsPorAcao = filtrarLogsPorAcao;
+    
+    // Sistema de logs de auditoria
+    window.registrarLogAuditoria = registrarLogAuditoria;
+    window.getLogsAuditoria = getLogsAuditoria;
+    window.exportarLogsAuditoria = exportarLogsAuditoria;
+    window.visualizarLogsAuditoria = visualizarLogsAuditoria;
+    window.filtrarLogsPorUsuario = filtrarLogsPorUsuario;
+    window.filtrarLogsPorAcao = filtrarLogsPorAcao;
 }
 
 // Exportar para módulos (se usando Node.js/CommonJS)
@@ -1279,7 +1309,12 @@ if (typeof module !== 'undefined' && module.exports) {
         alternarTema,
         temPermissao,
         podeExecutar,
-        getUsuariosDisponiveis
+        getUsuariosDisponiveis,
+        // Sistema de logs de auditoria
+        registrarLogAuditoria,
+        getLogsAuditoria,
+        exportarLogsAuditoria,
+        visualizarLogsAuditoria
     };
 }
 
