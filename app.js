@@ -107,6 +107,14 @@ class EquipamentosApp {
             window.registrarAtividade('LOGIN', `Usuário ${this.usuarioAtual} (${this.getNomeNivel()}) acessou o sistema`);
         }
         
+        // Registrar log de auditoria
+        if (window.registrarLogAuditoria) {
+            window.registrarLogAuditoria(
+                'LOGIN', 
+                `Usuário ${this.usuarioAtual} (${this.getNomeNivel()}) acessou o sistema`
+            );
+        }
+        
         // Atualizar último acesso
         localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
     }
@@ -137,7 +145,7 @@ class EquipamentosApp {
     
     getNomeNivel() {
         if (!this.nivelUsuario || !window.PERMISSOES) {
-            return 'Usuário';
+            return 'Visitante';
         }
         
         return window.PERMISSOES.getNomeNivel(this.nivelUsuario);
@@ -153,7 +161,7 @@ class EquipamentosApp {
     
     getIconeNivel() {
         if (!this.nivelUsuario || !window.PERMISSOES) {
-            return 'fa-user';
+            return 'fa-eye';
         }
         
         return window.PERMISSOES.getIconeNivel(this.nivelUsuario);
@@ -222,36 +230,71 @@ class EquipamentosApp {
     }
     
     configurarInterfacePorPermissao() {
-        // Botão "Novo Equipamento" - Apenas admin/engenharia
+        const nivel = this.nivelUsuario;
+        
+        // Botões por nível
         const addEquipamentoBtn = document.getElementById('add-equipamento');
-        if (addEquipamentoBtn) {
-            const podeCriar = this.verificarPermissao('criar_equipamentos');
-            addEquipamentoBtn.style.display = podeCriar ? 'flex' : 'none';
-            addEquipamentoBtn.title = podeCriar ? 'Adicionar novo equipamento' : 'Sem permissão para criar equipamentos';
-        }
-        
-        // Botão "Exportar Dados" - Apenas supervisor+
         const exportDataBtn = document.getElementById('export-data');
-        if (exportDataBtn) {
-            const podeExportar = this.verificarPermissao('exportar_dados');
-            exportDataBtn.style.display = podeExportar ? 'flex' : 'none';
-            exportDataBtn.title = podeExportar ? 'Exportar dados para Excel' : 'Sem permissão para exportar dados';
-        }
-        
-        // Botões de sistema - Apenas admin
+        const viewLogsBtn = document.getElementById('view-logs');
         const systemInfoBtn = document.getElementById('system-info');
         const exportConfigBtn = document.getElementById('export-config');
+        const addPendenciaBtn = document.getElementById('add-pendencia');
         
-        if (systemInfoBtn) {
-            const podeConfigurar = this.verificarPermissao('configurar_sistema');
-            systemInfoBtn.style.display = podeConfigurar ? 'flex' : 'none';
-            systemInfoBtn.title = podeConfigurar ? 'Informações do sistema' : 'Sem permissão para configurar sistema';
+        // Visitante - apenas visualização
+        if (nivel === 'visitante') {
+            if (addEquipamentoBtn) addEquipamentoBtn.style.display = 'none';
+            if (exportDataBtn) exportDataBtn.style.display = 'none';
+            if (viewLogsBtn) viewLogsBtn.style.display = 'none';
+            if (systemInfoBtn) systemInfoBtn.style.display = 'none';
+            if (exportConfigBtn) exportConfigBtn.style.display = 'none';
+            if (addPendenciaBtn) addPendenciaBtn.style.display = 'none';
         }
         
-        if (exportConfigBtn) {
-            const podeConfigurar = this.verificarPermissao('configurar_sistema');
-            exportConfigBtn.style.display = podeConfigurar ? 'flex' : 'none';
-            exportConfigBtn.title = podeConfigurar ? 'Exportar configurações' : 'Sem permissão para exportar configurações';
+        // Operador - pode criar, editar, excluir, exportar
+        if (nivel === 'operador') {
+            if (addEquipamentoBtn) {
+                addEquipamentoBtn.style.display = 'flex';
+                addEquipamentoBtn.title = 'Adicionar novo equipamento';
+            }
+            if (exportDataBtn) {
+                exportDataBtn.style.display = 'flex';
+                exportDataBtn.title = 'Exportar dados para Excel';
+            }
+            if (viewLogsBtn) viewLogsBtn.style.display = 'none'; // Operador não vê logs
+            if (systemInfoBtn) systemInfoBtn.style.display = 'none';
+            if (exportConfigBtn) exportConfigBtn.style.display = 'none';
+            if (addPendenciaBtn) {
+                addPendenciaBtn.style.display = 'flex';
+                addPendenciaBtn.title = 'Adicionar nova pendência';
+            }
+        }
+        
+        // Administrador - tudo
+        if (nivel === 'administrador') {
+            if (addEquipamentoBtn) {
+                addEquipamentoBtn.style.display = 'flex';
+                addEquipamentoBtn.title = 'Adicionar novo equipamento';
+            }
+            if (exportDataBtn) {
+                exportDataBtn.style.display = 'flex';
+                exportDataBtn.title = 'Exportar dados para Excel';
+            }
+            if (viewLogsBtn) {
+                viewLogsBtn.style.display = 'flex';
+                viewLogsBtn.title = 'Visualizar logs de auditoria';
+            }
+            if (systemInfoBtn) {
+                systemInfoBtn.style.display = 'flex';
+                systemInfoBtn.title = 'Informações do sistema';
+            }
+            if (exportConfigBtn) {
+                exportConfigBtn.style.display = 'flex';
+                exportConfigBtn.title = 'Exportar configurações';
+            }
+            if (addPendenciaBtn) {
+                addPendenciaBtn.style.display = 'flex';
+                addPendenciaBtn.title = 'Adicionar nova pendência';
+            }
         }
         
         // Adicionar badge de nível no cabeçalho
@@ -315,25 +358,65 @@ class EquipamentosApp {
         document.getElementById('status-filter').addEventListener('change', (e) => {
             this.filtros.status = e.target.value;
             this.renderizarEquipamentos();
+            
+            // Registrar log de filtro
+            if (window.registrarLogAuditoria) {
+                window.registrarLogAuditoria(
+                    'FILTRAR_EQUIPAMENTOS',
+                    `Filtrou equipamentos por status: ${e.target.value}`
+                );
+            }
         });
         
         document.getElementById('pendencia-filter').addEventListener('change', (e) => {
             this.filtros.pendencia = e.target.value;
             this.renderizarEquipamentos();
+            
+            // Registrar log de filtro
+            if (window.registrarLogAuditoria) {
+                window.registrarLogAuditoria(
+                    'FILTRAR_EQUIPAMENTOS',
+                    `Filtrou equipamentos por pendência: ${e.target.value}`
+                );
+            }
         });
         
         document.getElementById('setor-filter').addEventListener('change', (e) => {
             this.filtros.setor = e.target.value;
             this.renderizarEquipamentos();
+            
+            // Registrar log de filtro
+            if (window.registrarLogAuditoria) {
+                window.registrarLogAuditoria(
+                    'FILTRAR_EQUIPAMENTOS',
+                    `Filtrou equipamentos por setor: ${e.target.value}`
+                );
+            }
         });
         
         document.getElementById('search').addEventListener('input', (e) => {
             this.filtros.busca = e.target.value.toLowerCase();
             this.renderizarEquipamentos();
+            
+            // Registrar log de busca (após um delay para evitar muitos logs)
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                if (window.registrarLogAuditoria && e.target.value) {
+                    window.registrarLogAuditoria(
+                        'FILTRAR_EQUIPAMENTOS',
+                        `Buscou equipamentos por: "${e.target.value}"`
+                    );
+                }
+            }, 1000);
         });
         
         document.getElementById('reset-filters').addEventListener('click', () => {
             this.resetarFiltros();
+            
+            // Registrar log
+            if (window.registrarLogAuditoria) {
+                window.registrarLogAuditoria('FILTRAR_EQUIPAMENTOS', 'Resetou todos os filtros');
+            }
         });
         
         // Botões de ação (com verificação de permissão)
@@ -417,6 +500,35 @@ class EquipamentosApp {
         document.getElementById('export-config').addEventListener('click', () => {
             if (window.exportarConfiguracoes) {
                 window.exportarConfiguracoes();
+            }
+        });
+        
+        // Botão para visualizar logs
+        const viewLogsBtn = document.getElementById('view-logs');
+        if (viewLogsBtn) {
+            viewLogsBtn.addEventListener('click', () => {
+                if (this.verificarPermissao('visualizar_logs')) {
+                    if (window.visualizarLogsAuditoria) {
+                        window.visualizarLogsAuditoria();
+                    } else {
+                        this.mostrarMensagem('Função de logs não disponível', 'error');
+                    }
+                } else {
+                    this.mostrarMensagem('Você não tem permissão para visualizar logs', 'error');
+                }
+            });
+        }
+        
+        // Botão para excluir equipamento (será adicionado dinamicamente)
+        this.setupExcluirEquipamentoEvent();
+    }
+    
+    setupExcluirEquipamentoEvent() {
+        // Este evento será configurado dinamicamente quando o botão for criado
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-excluir-equipamento')) {
+                const equipamentoId = parseInt(e.target.dataset.id);
+                this.excluirEquipamento(equipamentoId);
             }
         });
     }
@@ -644,6 +756,11 @@ class EquipamentosApp {
             
             // Verificar permissões para ações
             const podeCriarPendencia = this.verificarPermissao('criar_pendencias');
+            const podeExcluirEquipamento = this.verificarPermissao('excluir_equipamentos');
+            
+            // Informações de criação/edição
+            const criadoPor = equipamento.criadoPor ? `<div class="criado-por"><small><i class="fas fa-user-plus"></i> Criado por: ${equipamento.criadoPor}</small></div>` : '';
+            const editadoPor = equipamento.editadoPor ? `<div class="editado-por"><small><i class="fas fa-user-edit"></i> Editado por: ${equipamento.editadoPor}</small></div>` : '';
             
             return `
                 <div class="${classesCard}" data-id="${equipamento.id}">
@@ -665,6 +782,9 @@ class EquipamentosApp {
                         <div><i class="fas fa-calendar"></i> ${dataInspecao}</div>
                     </div>
                     
+                    ${criadoPor}
+                    ${editadoPor}
+                    
                     ${equipamento.pendencias.length > 0 ? `
                         <div class="equipamento-pendencias">
                             <strong>Pendências:</strong>
@@ -683,10 +803,44 @@ class EquipamentosApp {
                                 ${!podeCriarPendencia ? 'disabled title="Sem permissão para criar pendências"' : ''}>
                             <i class="fas fa-plus-circle"></i> Pendência
                         </button>
+                        ${podeExcluirEquipamento ? `
+                            <button class="action-btn danger btn-excluir-equipamento" data-id="${equipamento.id}" 
+                                    title="Excluir equipamento">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             `;
         }).join('');
+        
+        // Adicionar estilos para botão de excluir
+        const style = document.createElement('style');
+        style.textContent = `
+            .action-btn.danger {
+                background-color: var(--cor-erro);
+                color: white;
+                border: 1px solid var(--cor-erro);
+            }
+            
+            .action-btn.danger:hover {
+                background-color: #c0392b;
+            }
+            
+            .criado-por, .editado-por {
+                margin-top: 8px;
+                font-size: 12px;
+                color: var(--cor-texto-secundario);
+            }
+            
+            .criado-por i, .editado-por i {
+                margin-right: 5px;
+            }
+        `;
+        if (!document.querySelector('#estilos-dinamicos-equipamentos')) {
+            style.id = 'estilos-dinamicos-equipamentos';
+            document.head.appendChild(style);
+        }
         
         // Adicionar eventos
         container.querySelectorAll('.btn-detalhes').forEach(btn => {
@@ -702,6 +856,13 @@ class EquipamentosApp {
                 
                 const id = parseInt(e.target.closest('.btn-pendencia').dataset.id);
                 this.abrirModalPendencia(id);
+            });
+        });
+        
+        container.querySelectorAll('.btn-excluir-equipamento').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.target.closest('.btn-excluir-equipamento').dataset.id);
+                this.excluirEquipamento(id);
             });
         });
     }
@@ -891,12 +1052,19 @@ class EquipamentosApp {
             return;
         }
         
+        let acaoLog = '';
+        let detalhesLog = '';
+        
         if (isEdit) {
             // Atualizar equipamento existente
             const id = parseInt(isEdit);
             const index = this.equipamentos.findIndex(e => e.id === id);
             
             if (index !== -1) {
+                // Registrar quem editou
+                equipamento.editadoPor = this.usuarioAtual;
+                equipamento.editadoEm = new Date().toISOString();
+                
                 // Manter dados existentes
                 equipamento.id = id;
                 equipamento.pendencias = this.equipamentos[index].pendencias;
@@ -911,10 +1079,9 @@ class EquipamentosApp {
                 
                 this.equipamentos[index] = equipamento;
                 
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    window.registrarAtividade('EDITAR_EQUIPAMENTO', `Editou equipamento: ${equipamento.codigo} - ${equipamento.nome}`);
-                }
+                // Registrar log
+                acaoLog = 'EDITAR_EQUIPAMENTO';
+                detalhesLog = `Editou equipamento: ${equipamento.codigo} - ${equipamento.nome}`;
                 
                 this.mostrarMensagem('Equipamento atualizado com sucesso', 'success');
             }
@@ -926,10 +1093,9 @@ class EquipamentosApp {
             
             this.equipamentos.push(equipamento);
             
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.codigo} - ${equipamento.nome}`);
-            }
+            // Registrar log
+            acaoLog = 'CRIAR_EQUIPAMENTO';
+            detalhesLog = `Criou equipamento: ${equipamento.codigo} - ${equipamento.nome}`;
             
             this.mostrarMensagem('Equipamento criado com sucesso', 'success');
         }
@@ -937,11 +1103,54 @@ class EquipamentosApp {
         // Salvar dados
         const salvou = await this.salvarDados();
         
+        // Registrar log de auditoria
+        if (acaoLog && window.registrarLogAuditoria) {
+            window.registrarLogAuditoria(acaoLog, detalhesLog, equipamento.id);
+        }
+        
         // Fechar modal e atualizar
         this.fecharModal(this.modals.equipamento);
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
         this.atualizarEstadoBotaoPendencia();
+    }
+    
+    async excluirEquipamento(id) {
+        const equipamento = this.equipamentos.find(e => e.id === id);
+        if (!equipamento) return;
+        
+        // Verificar permissão
+        const podeExcluir = this.verificarPermissao('excluir_equipamentos');
+        if (!podeExcluir) {
+            this.mostrarMensagem('Você não tem permissão para excluir equipamentos', 'error');
+            return;
+        }
+        
+        if (!confirm(`Tem certeza que deseja excluir o equipamento "${equipamento.nome}" (${equipamento.codigo})? Esta ação não pode ser desfeita.`)) {
+            return;
+        }
+        
+        // Remover equipamento
+        const index = this.equipamentos.findIndex(e => e.id === id);
+        this.equipamentos.splice(index, 1);
+        
+        // Registrar log de auditoria
+        if (window.registrarLogAuditoria) {
+            window.registrarLogAuditoria(
+                'EXCLUIR_EQUIPAMENTO',
+                `Excluiu equipamento: ${equipamento.codigo} - ${equipamento.nome}`,
+                id
+            );
+        }
+        
+        // Salvar dados
+        await this.salvarDados();
+        
+        // Atualizar interface
+        this.renderizarEquipamentos();
+        this.atualizarEstatisticas();
+        
+        this.mostrarMensagem('Equipamento excluído com sucesso', 'success');
     }
     
     async salvarPendencia() {
@@ -971,22 +1180,28 @@ class EquipamentosApp {
             return;
         }
         
+        let acaoLog = '';
+        let detalhesLog = '';
+        
         if (isEdit) {
             // Atualizar pendência existente
             const pendenciaId = parseInt(isEdit);
             const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
             
             if (pendenciaIndex !== -1) {
+                // Registrar quem editou
+                pendencia.editadoPor = this.usuarioAtual;
+                pendencia.editadoEm = new Date().toISOString();
+                
                 pendencia.id = pendenciaId;
                 pendencia.criadoPor = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex].criadoPor || this.usuarioAtual;
                 pendencia.criadoEm = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex].criadoEm;
                 
                 this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
                 
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    window.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].codigo}`);
-                }
+                // Registrar log
+                acaoLog = 'EDITAR_PENDENCIA';
+                detalhesLog = `Editou pendência: "${pendencia.titulo}" no equipamento ${this.equipamentos[equipamentoIndex].codigo}`;
                 
                 this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
             }
@@ -998,10 +1213,9 @@ class EquipamentosApp {
             
             this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
             
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].codigo}`);
-            }
+            // Registrar log
+            acaoLog = 'CRIAR_PENDENCIA';
+            detalhesLog = `Criou pendência: "${pendencia.titulo}" no equipamento ${this.equipamentos[equipamentoIndex].codigo}`;
             
             this.mostrarMensagem('Pendência registrada com sucesso', 'success');
         }
@@ -1011,6 +1225,16 @@ class EquipamentosApp {
         
         // Salvar dados
         const salvou = await this.salvarDados();
+        
+        // Registrar log de auditoria
+        if (acaoLog && window.registrarLogAuditoria) {
+            window.registrarLogAuditoria(
+                acaoLog, 
+                detalhesLog, 
+                equipamentoId,
+                pendencia.id
+            );
+        }
         
         // Fechar modal e atualizar
         this.fecharModal(this.modals.pendencia);
@@ -1031,6 +1255,10 @@ class EquipamentosApp {
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         document.getElementById('detalhes-setor').textContent = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
         document.getElementById('detalhes-criacao').textContent = this.formatarData(equipamento.dataCriacao);
+        
+        // Informações de criação/edição
+        const criadoPor = equipamento.criadoPor ? `<p><i class="fas fa-user-plus"></i> Criado por: ${equipamento.criadoPor} em ${this.formatarData(equipamento.dataCriacao)}</p>` : '';
+        const editadoPor = equipamento.editadoPor ? `<p><i class="fas fa-user-edit"></i> Editado por: ${equipamento.editadoPor} em ${this.formatarData(equipamento.editadoEm)}</p>` : '';
         
         // Status
         const statusChip = document.getElementById('detalhes-status');
@@ -1053,6 +1281,18 @@ class EquipamentosApp {
             this.formatarData(equipamento.ultimaInspecao) : 
             'Não registrada';
         document.getElementById('detalhes-inspecao').textContent = dataInspecao;
+        
+        // Atualizar informações de criação/edição
+        document.getElementById('detalhes-criacao').innerHTML = criadoPor + editadoPor;
+        
+        // Registrar log de visualização
+        if (window.registrarLogAuditoria) {
+            window.registrarLogAuditoria(
+                'VISUALIZAR_DETALHES',
+                `Visualizou detalhes do equipamento: ${equipamento.codigo} - ${equipamento.nome}`,
+                equipamento.id
+            );
+        }
         
         // Renderizar pendencias
         this.renderizarPendenciasDetalhes(equipamento.pendencias);
@@ -1120,6 +1360,10 @@ class EquipamentosApp {
             const podeEditar = this.podeExecutar('editar', 'pendencia', pendencia.criadoPor);
             const podeExcluir = this.podeExecutar('excluir', 'pendencia', pendencia.criadoPor);
             
+            // Informações de criação/edição
+            const criadoPor = pendencia.criadoPor ? `<small style="color: var(--cor-texto-secundario);">Criada por: ${pendencia.criadoPor}</small>` : '';
+            const editadoPor = pendencia.editadoPor ? `<small style="color: var(--cor-texto-secundario); margin-left: 8px;">Editada por: ${pendencia.editadoPor}</small>` : '';
+            
             return `
                 <div class="pendencia-item ${pendencia.status} ${isCritica ? 'critica' : ''}">
                     <div class="pendencia-header">
@@ -1127,7 +1371,8 @@ class EquipamentosApp {
                             <div class="pendencia-titulo">
                                 ${isCritica ? '<i class="fas fa-exclamation-triangle"></i> ' : ''}
                                 ${pendencia.titulo}
-                                ${pendencia.criadoPor ? `<small style="color: var(--cor-texto-secundario); margin-left: 8px;">Criada por: ${pendencia.criadoPor}</small>` : ''}
+                                ${criadoPor}
+                                ${editadoPor}
                             </div>
                             <div class="pendencia-data">
                                 <i class="far fa-calendar"></i> ${dataFormatada} 
@@ -1242,9 +1487,14 @@ class EquipamentosApp {
         // Atualizar equipamento selecionado
         this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
         
-        // Registrar atividade
-        if (window.registrarAtividade) {
-            window.registrarAtividade('EXCLUIR_PENDENCIA', `Excluiu pendência: ${pendencia.titulo} do equipamento ${this.equipamentoSelecionado.codigo}`);
+        // Registrar log de auditoria
+        if (window.registrarLogAuditoria) {
+            window.registrarLogAuditoria(
+                'EXCLUIR_PENDENCIA',
+                `Excluiu pendência: "${pendencia.titulo}" do equipamento ${this.equipamentoSelecionado.codigo}`,
+                this.equipamentoSelecionado.id,
+                pendenciaId
+            );
         }
         
         // Salvar dados
@@ -1309,7 +1559,7 @@ class EquipamentosApp {
             const usuario = this.usuarioAtual || 'sistema';
             
             // Criar cabeçalhos
-            let csvEquipamentos = 'ID,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
+            let csvEquipamentos = 'ID,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Editado Por,Data Edição,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
             
             // Adicionar dados dos equipamentos
             this.equipamentos.forEach(equipamento => {
@@ -1340,6 +1590,8 @@ class EquipamentosApp {
                     equipamento.ultimaInspecao || '',
                     equipamento.dataCriacao || '',
                     equipamento.criadoPor || '',
+                    equipamento.editadoPor || '',
+                    equipamento.editadoEm || '',
                     totalPendencias,
                     pendenciasAbertas,
                     pendenciasAndamento,
@@ -1349,7 +1601,7 @@ class EquipamentosApp {
             });
             
             // Criar arquivo de pendências
-            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em\n';
+            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Data Criação,Editado Por,Data Edição\n';
             
             this.equipamentos.forEach(equipamento => {
                 equipamento.pendencias.forEach(pendencia => {
@@ -1374,7 +1626,9 @@ class EquipamentosApp {
                         pendencia.data,
                         escapeCSV(APP_CONFIG.statusPendencia[pendencia.status]),
                         pendencia.criadoPor || '',
-                        pendencia.criadoEm || ''
+                        pendencia.criadoEm || '',
+                        pendencia.editadoPor || '',
+                        pendencia.editadoEm || ''
                     ].join(',') + '\n';
                 });
             });
@@ -1382,9 +1636,12 @@ class EquipamentosApp {
             // Criar arquivo ZIP ou CSV
             this.criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual, usuario);
             
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('EXPORTAR_DADOS', `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + eqp.pendencias.length, 0)}`);
+            // Registrar log de auditoria
+            if (window.registrarLogAuditoria) {
+                window.registrarLogAuditoria(
+                    'EXPORTAR_DADOS',
+                    `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + eqp.pendencias.length, 0)}`
+                );
             }
             
             this.mostrarMensagem('Dados exportados para Excel com sucesso', 'success');
