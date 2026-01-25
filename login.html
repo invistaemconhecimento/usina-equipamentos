@@ -543,48 +543,33 @@
         // ===========================================
 
         // Banco de usuários autorizados com níveis de acesso
-        const USUARIOS_AUTORIZADOS = {
-            'operador': { 
-                senha: 'operador123', 
-                nivel: 'operador',
-                nome: 'Operador',
-                icone: 'fa-user',
-                cor: '#3498db',
-                descricao: 'Visualiza equipamentos e cria pendências'
-            },
-            'supervisor': { 
-                senha: 'supervisor456', 
-                nivel: 'supervisor',
-                nome: 'Supervisor',
-                icone: 'fa-user-tie',
-                cor: '#f39c12',
-                descricao: 'Gerencia pendências e exporta relatórios'
-            },
-            'administrador': { 
-                senha: 'admin789', 
-                nivel: 'administrador',
-                nome: 'Administrador',
-                icone: 'fa-user-shield',
-                cor: '#e74c3c',
-                descricao: 'Acesso total ao sistema'
-            },
-            'manutencao': { 
-                senha: 'manutencao2024', 
-                nivel: 'manutencao',
-                nome: 'Manutenção',
-                icone: 'fa-tools',
-                cor: '#9b59b6',
-                descricao: 'Gerencia pendências técnicas'
-            },
-            'engenharia': { 
-                senha: 'engenharia789', 
-                nivel: 'engenharia',
-                nome: 'Engenharia',
-                icone: 'fa-user-cog',
-                cor: '#2ecc71',
-                descricao: 'Gerencia equipamentos e configurações'
-            }
-        };
+        // Banco de usuários autorizados com níveis de acesso
+const USUARIOS_AUTORIZADOS = {
+    'visitante': { 
+        senha: 'visitante123', 
+        nivel: 'visitante',
+        nome: 'Visitante',
+        icone: 'fa-eye',
+        cor: '#95a5a6',
+        descricao: 'Somente visualização de equipamentos'
+    },
+    'operador': { 
+        senha: 'operador456', 
+        nivel: 'operador',
+        nome: 'Operador',
+        icone: 'fa-user-cog',
+        cor: '#3498db',
+        descricao: 'Cria, edita, exclui e exporta dados'
+    },
+    'administrador': { 
+        senha: 'admin789', 
+        nivel: 'administrador',
+        nome: 'Administrador',
+        icone: 'fa-user-shield',
+        cor: '#e74c3c',
+        descricao: 'Acesso total ao sistema'
+    }
+};
 
         // Configurações do sistema
         const SISTEMA_CONFIG = {
