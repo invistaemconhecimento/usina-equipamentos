@@ -472,7 +472,7 @@
     <div class="login-container">
         <!-- Cabeçalho -->
         <div class="login-header">
-            <div class="version-badge">v2.1.0</div>
+            <div class="version-badge">v2.2.0</div>
             <h1><i class="fas fa-industry"></i> Gestão de Equipamentos</h1>
             <p>Sistema de gerenciamento de equipamentos industriais</p>
         </div>
@@ -543,38 +543,37 @@
         // ===========================================
 
         // Banco de usuários autorizados com níveis de acesso
-        // Banco de usuários autorizados com níveis de acesso
-const USUARIOS_AUTORIZADOS = {
-    'visitante': { 
-        senha: 'visitante123', 
-        nivel: 'visitante',
-        nome: 'Visitante',
-        icone: 'fa-eye',
-        cor: '#95a5a6',
-        descricao: 'Somente visualização de equipamentos'
-    },
-    'operador': { 
-        senha: 'operador456', 
-        nivel: 'operador',
-        nome: 'Operador',
-        icone: 'fa-user-cog',
-        cor: '#3498db',
-        descricao: 'Cria, edita, exclui e exporta dados'
-    },
-    'administrador': { 
-        senha: 'admin789', 
-        nivel: 'administrador',
-        nome: 'Administrador',
-        icone: 'fa-user-shield',
-        cor: '#e74c3c',
-        descricao: 'Acesso total ao sistema'
-    }
-};
+        const USUARIOS_AUTORIZADOS = {
+            'visitante': { 
+                senha: 'visitante123', 
+                nivel: 'visitante',
+                nome: 'Visitante',
+                icone: 'fa-eye',
+                cor: '#95a5a6',
+                descricao: 'Somente visualização de equipamentos'
+            },
+            'operador': { 
+                senha: 'operador456', 
+                nivel: 'operador',
+                nome: 'Operador',
+                icone: 'fa-user-cog',
+                cor: '#3498db',
+                descricao: 'Cria, edita, exclui e exporta dados'
+            },
+            'administrador': { 
+                senha: 'admin789', 
+                nivel: 'administrador',
+                nome: 'Administrador',
+                icone: 'fa-user-shield',
+                cor: '#e74c3c',
+                descricao: 'Acesso total ao sistema'
+            }
+        };
 
         // Configurações do sistema
         const SISTEMA_CONFIG = {
             nome: 'Gestão de Equipamentos',
-            versao: '2.1.0',
+            versao: '2.2.0',
             empresa: 'Usina Industrial',
             tempoSessao: 8, // horas
         };
