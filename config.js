@@ -556,44 +556,30 @@ const APP_UTILS = {
 };
 
 // Banco de usuários (em produção, isso estaria em um backend seguro)
+// Banco de usuários (em produção, isso estaria em um backend seguro)
 const USUARIOS_AUTORIZADOS = {
-    'operador': { 
-        senha: 'operador123', 
-        nivel: 'operador',
-        nome: 'João Silva',
-        email: 'joao.silva@empresa.com',
-        departamento: 'Operações'
+    'visitante': { 
+        senha: 'visitante123', 
+        nivel: 'visitante',
+        nome: 'Visitante',
+        email: 'visitante@empresa.com',
+        departamento: 'Visitante'
     },
-    'supervisor': { 
-        senha: 'supervisor456', 
-        nivel: 'supervisor',
-        nome: 'Maria Santos',
-        email: 'maria.santos@empresa.com',
-        departamento: 'Supervisão'
+    'operador': { 
+        senha: 'operador456', 
+        nivel: 'operador',
+        nome: 'Operador',
+        email: 'operador@empresa.com',
+        departamento: 'Operações'
     },
     'administrador': { 
         senha: 'admin789', 
         nivel: 'administrador',
-        nome: 'Carlos Oliveira',
-        email: 'carlos.oliveira@empresa.com',
+        nome: 'Administrador',
+        email: 'admin@empresa.com',
         departamento: 'TI'
-    },
-    'manutencao': { 
-        senha: 'manutencao2024', 
-        nivel: 'manutencao',
-        nome: 'Pedro Costa',
-        email: 'pedro.costa@empresa.com',
-        departamento: 'Manutenção'
-    },
-    'engenharia': { 
-        senha: 'engenharia789', 
-        nivel: 'engenharia',
-        nome: 'Ana Rodrigues',
-        email: 'ana.rodrigues@empresa.com',
-        departamento: 'Engenharia'
     }
 };
-
 // ===========================================
 // FUNÇÕES DE SISTEMA
 // ===========================================
