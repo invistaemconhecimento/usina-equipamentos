@@ -1,10 +1,10 @@
 // ===========================================
-// CONFIGURAÇÃO DO SISTEMA DE GESTÃO DE EQUIPAMENTOS
+// CONFIGURAÇÃO COMPLETA DO SISTEMA DE GESTÃO DE EQUIPAMENTOS
 // ===========================================
 
 // Configuração do JSONBin.io
 const JSONBIN_CONFIG = {
-    // ID do bin que você criou no JSONBin.io
+    // ID do bin principal (mesmo para equipamentos e usuários)
     BIN_ID: '696fa19fae596e708fe90a63',
     
     // URL base da API
@@ -15,11 +15,20 @@ const JSONBIN_CONFIG = {
         'Content-Type': 'application/json',
         'X-Master-Key': '$2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i',
         'X-Bin-Versioning': 'false'
+    },
+    
+    // Configurações de sincronização
+    syncConfig: {
+        retryAttempts: 3,
+        retryDelay: 2000,
+        timeout: 10000,
+        syncInterval: 300000 // 5 minutos
     }
 };
 
-// Estrutura inicial dos dados
+// Estrutura inicial dos dados COMPLETA com usuários integrados
 const INITIAL_DATA = {
+    // Seção de equipamentos
     equipamentos: [
         {
             id: 1,
@@ -107,22 +116,94 @@ const INITIAL_DATA = {
             pendencias: []
         }
     ],
-    // Contador para IDs únicos
+    
+    // Contadores para IDs únicos
     nextEquipamentoId: 4,
     nextPendenciaId: 4,
     
-    // Logs de auditoria
+    // SEÇÃO DE USUÁRIOS SINCRONIZADOS
+    usuarios: {
+        'visitante': { 
+            senha: 'visitante123', 
+            nivel: 'visitante',
+            nome: 'Visitante',
+            email: 'visitante@empresa.com',
+            departamento: 'Visitante',
+            dataCriacao: '2023-01-01',
+            criadoPor: 'sistema',
+            ativo: true,
+            ultimoAcesso: null,
+            dataAtualizacao: '2023-01-01',
+            atualizadoPor: 'sistema'
+        },
+        'operador': { 
+            senha: 'operador456', 
+            nivel: 'operador',
+            nome: 'Operador',
+            email: 'operador@empresa.com',
+            departamento: 'Operações',
+            dataCriacao: '2023-01-01',
+            criadoPor: 'sistema',
+            ativo: true,
+            ultimoAcesso: null,
+            dataAtualizacao: '2023-01-01',
+            atualizadoPor: 'sistema'
+        },
+        'administrador': { 
+            senha: 'admin789', 
+            nivel: 'administrador',
+            nome: 'Administrador',
+            email: 'admin@empresa.com',
+            departamento: 'TI',
+            dataCriacao: '2023-01-01',
+            criadoPor: 'sistema',
+            ativo: true,
+            ultimoAcesso: null,
+            dataAtualizacao: '2023-01-01',
+            atualizadoPor: 'sistema'
+        }
+    },
+    
+    // Metadados do sistema
+    metadata: {
+        dataCriacao: '2023-01-01',
+        ultimaAtualizacao: new Date().toISOString(),
+        versao: '2.2.0',
+        totalEquipamentos: 3,
+        totalUsuarios: 3,
+        criadoPor: 'sistema'
+    },
+    
+    // Logs de auditoria inicial
     logs: [
         {
             id: 1,
-            usuario: "administrador",
+            usuario: "sistema",
+            nivel: "sistema",
             acao: "CRIAR_SISTEMA",
             detalhes: "Sistema inicializado com dados de exemplo",
             timestamp: "2023-01-01T00:00:00",
-            ip: "local"
+            ip: "local",
+            equipamentoId: null,
+            pendenciaId: null,
+            usuarioAlvo: null,
+            dataHoraBR: "01/01/2023, 00:00:00"
+        },
+        {
+            id: 2,
+            usuario: "administrador",
+            nivel: "administrador",
+            acao: "LOGIN",
+            detalhes: "Primeiro login do administrador",
+            timestamp: new Date().toISOString(),
+            ip: "local",
+            equipamentoId: null,
+            pendenciaId: null,
+            usuarioAlvo: null,
+            dataHoraBR: new Date().toLocaleString('pt-BR')
         }
     ],
-    nextLogId: 2
+    nextLogId: 3
 };
 
 // Sistema de Permissões por Nível de Acesso
@@ -133,16 +214,19 @@ const PERMISSOES = {
             nivel: 1,
             cor: "#95a5a6",
             icone: "fa-eye",
+            descricao: "Somente visualização de equipamentos",
             permissoes: [
                 "visualizar_equipamentos",
-                "ver_detalhes"
+                "ver_detalhes",
+                "filtrar_equipamentos"
             ],
             restricoes: [
                 "nao_pode_criar",
                 "nao_pode_editar",
                 "nao_pode_excluir",
                 "nao_pode_exportar",
-                "nao_pode_configurar"
+                "nao_pode_configurar",
+                "nao_pode_gerenciar_usuarios"
             ]
         },
         "operador": {
@@ -150,6 +234,7 @@ const PERMISSOES = {
             nivel: 2,
             cor: "#3498db",
             icone: "fa-user-cog",
+            descricao: "Cria, edita, exclui e exporta dados",
             permissoes: [
                 "visualizar_equipamentos",
                 "ver_detalhes",
@@ -158,13 +243,15 @@ const PERMISSOES = {
                 "criar_pendencias",
                 "editar_pendencias",
                 "excluir_pendencias_proprias",
-                "exportar_dados"
+                "exportar_dados",
+                "filtrar_equipamentos"
             ],
             restricoes: [
                 "nao_pode_excluir_equipamentos",
                 "nao_pode_excluir_pendencias_outros",
                 "nao_pode_configurar_sistema",
-                "nao_pode_gerenciar_usuarios"
+                "nao_pode_gerenciar_usuarios",
+                "nao_pode_visualizar_logs"
             ]
         },
         "administrador": {
@@ -172,6 +259,7 @@ const PERMISSOES = {
             nivel: 3,
             cor: "#e74c3c",
             icone: "fa-user-shield",
+            descricao: "Acesso total ao sistema",
             permissoes: [
                 "visualizar_equipamentos",
                 "ver_detalhes",
@@ -186,7 +274,9 @@ const PERMISSOES = {
                 "gerenciar_usuarios",
                 "visualizar_logs",
                 "backup_dados",
-                "restaurar_dados"
+                "restaurar_dados",
+                "filtrar_equipamentos",
+                "sincronizar_dados"
             ],
             restricoes: []
         }
@@ -201,7 +291,7 @@ const PERMISSOES = {
         }
         
         // Permissões básicas que todos têm
-        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes'];
+        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes', 'filtrar_equipamentos'];
         if (permissoesBasicas.includes(permissao)) {
             return true;
         }
@@ -233,9 +323,20 @@ const PERMISSOES = {
         return nivel ? nivel.icone : 'fa-eye';
     },
     
+    // Obter descrição do nível
+    getDescricaoNivel: function(usuario) {
+        const nivel = this.niveis[usuario];
+        return nivel ? nivel.descricao : 'Nível de acesso desconhecido';
+    },
+    
     // Listar todos os níveis disponíveis
     getTodosNiveis: function() {
         return Object.keys(this.niveis);
+    },
+    
+    // Obter informações completas de um nível
+    getInfoNivel: function(nivel) {
+        return this.niveis[nivel] || null;
     },
     
     // Verificar se usuário pode executar ação específica
@@ -303,100 +404,288 @@ const PERMISSOES = {
                 
             case 'restaurar_dados':
                 return nivel.permissoes.includes('restaurar_dados');
+                
+            case 'sincronizar':
+                return nivel.permissoes.includes('sincronizar_dados');
         }
         
         return false;
     },
     
+    // Verificar restrições do usuário
+    temRestricao: function(usuario, restricao) {
+        const nivel = this.niveis[usuario];
+        if (!nivel) return false;
+        
+        return nivel.restricoes.includes(restricao);
+    },
+    
     // Gerar relatório de permissões
     gerarRelatorioPermissoes: function() {
-        let relatorio = "=== RELATÓRIO DE PERMISSÕES ===\n\n";
+        let relatorio = "=== RELATÓRIO DE PERMISSÕES DO SISTEMA ===\n\n";
         
         Object.entries(this.niveis).forEach(([key, nivel]) => {
-            relatorio += `${nivel.nome} (${key}):\n`;
-            relatorio += `Nível: ${nivel.nivel}\n`;
-            relatorio += `Permissões: ${nivel.permissoes.length}\n`;
-            relatorio += `Restrições: ${nivel.restricoes.length}\n\n`;
+            relatorio += `NÍVEL: ${nivel.nome} (${key})\n`;
+            relatorio += `Nível numérico: ${nivel.nivel}\n`;
+            relatorio += `Descrição: ${nivel.descricao}\n`;
+            relatorio += `Cor: ${nivel.cor}\n`;
+            relatorio += `Ícone: ${nivel.icone}\n`;
+            relatorio += `Permissões (${nivel.permissoes.length}):\n`;
+            
+            nivel.permissoes.forEach(permissao => {
+                relatorio += `  - ${permissao}\n`;
+            });
+            
+            if (nivel.restricoes.length > 0) {
+                relatorio += `Restrições (${nivel.restricoes.length}):\n`;
+                nivel.restricoes.forEach(restricao => {
+                    relatorio += `  - ${restricao}\n`;
+                });
+            }
+            
+            relatorio += "\n" + "=".repeat(50) + "\n\n";
         });
         
         return relatorio;
+    },
+    
+    // Verificar se um usuário tem permissão para visualizar determinado conteúdo
+    podeVisualizarConteudo: function(usuario, tipoConteudo) {
+        const nivel = this.niveis[usuario];
+        if (!nivel) return false;
+        
+        const mapConteudoPermissao = {
+            'equipamentos': 'visualizar_equipamentos',
+            'detalhes': 'ver_detalhes',
+            'logs': 'visualizar_logs',
+            'usuarios': 'gerenciar_usuarios',
+            'configuracoes': 'configurar_sistema',
+            'exportacoes': 'exportar_dados'
+        };
+        
+        const permissaoRequerida = mapConteudoPermissao[tipoConteudo];
+        if (!permissaoRequerida) return true; // Se não está mapeado, permite
+        
+        return this.verificarPermissao(usuario, permissaoRequerida);
     }
 };
 
 // Configurações da aplicação
 const APP_CONFIG = {
-    nome: "Gestão de Equipamentos - Usina",
+    nome: "Gestão de Equipamentos - Usina Industrial",
     versao: "2.2.0",
+    empresa: "Usina Industrial Ltda.",
+    desenvolvedor: "Equipe de TI",
+    ano: "2024",
     
     // Setores da usina
     setores: {
         // MOAGEM
-        "moagem-moagem": "MOAGEM / MOAGEM",
+        "moagem-moagem": {
+            nome: "MOAGEM / MOAGEM",
+            cor: "#1abc9c",
+            icone: "fas fa-cogs"
+        },
         
         // FLOTAÇÃO
-        "flotacao-flot-rougher": "FLOTAÇÃO / FLOT ROUGHER",
-        "flotacao-flot-cleaner-scavenger": "FLOTAÇÃO / FLOT CLEANER-SCAVENGER",
-        "flotacao-flot-pirita": "FLOTAÇÃO / FLOT PIRITA",
+        "flotacao-flot-rougher": {
+            nome: "FLOTAÇÃO / FLOT ROUGHER",
+            cor: "#3498db",
+            icone: "fas fa-water"
+        },
+        "flotacao-flot-cleaner-scavenger": {
+            nome: "FLOTAÇÃO / FLOT CLEANER-SCAVENGER",
+            cor: "#2980b9",
+            icone: "fas fa-filter"
+        },
+        "flotacao-flot-pirita": {
+            nome: "FLOTAÇÃO / FLOT PIRITA",
+            cor: "#1f618d",
+            icone: "fas fa-gem"
+        },
         
         // FILTRAGEM
-        "filtragem-filtragem-concentrado": "FILTRAGEM / FILTRAGEM DE CONCENTRADO",
-        "filtragem-filtragem-rejeito": "FILTRAGEM / FILTRAGEM DE REJEITO",
+        "filtragem-filtragem-concentrado": {
+            nome: "FILTRAGEM / FILTRAGEM DE CONCENTRADO",
+            cor: "#9b59b6",
+            icone: "fas fa-filter"
+        },
+        "filtragem-filtragem-rejeito": {
+            nome: "FILTRAGEM / FILTRAGEM DE REJEITO",
+            cor: "#8e44ad",
+            icone: "fas fa-trash-alt"
+        },
         
         // REAGENTES
-        "reagentes-pax": "REAGENTES / PAX",
-        "reagentes-dtf": "REAGENTES / DTF",
-        "reagentes-espumante": "REAGENTES / ESPUMANTE",
-        "reagentes-leite-de-cal": "REAGENTES / LEITE DE CAL",
-        "reagentes-acido-sulfurico": "REAGENTES / ÁCIDO SULFÚRICO",
-        "reagentes-floculante": "REAGENTES / FLOCULANTE",
+        "reagentes-pax": {
+            nome: "REAGENTES / PAX",
+            cor: "#e74c3c",
+            icone: "fas fa-flask"
+        },
+        "reagentes-dtf": {
+            nome: "REAGENTES / DTF",
+            cor: "#c0392b",
+            icone: "fas fa-vial"
+        },
+        "reagentes-espumante": {
+            nome: "REAGENTES / ESPUMANTE",
+            cor: "#d35400",
+            icone: "fas fa-bubbles"
+        },
+        "reagentes-leite-de-cal": {
+            nome: "REAGENTES / LEITE DE CAL",
+            cor: "#e67e22",
+            icone: "fas fa-prescription-bottle"
+        },
+        "reagentes-acido-sulfurico": {
+            nome: "REAGENTES / ÁCIDO SULFÚRICO",
+            cor: "#f39c12",
+            icone: "fas fa-exclamation-triangle"
+        },
+        "reagentes-floculante": {
+            nome: "REAGENTES / FLOCULANTE",
+            cor: "#f1c40f",
+            icone: "fas fa-snowflake"
+        },
         
         // UTILIDADES
-        "utilidades-distribuicao-agua": "UTILIDADES / DISTRIBUIÇÃO DE ÁGUA",
+        "utilidades-distribuicao-agua": {
+            nome: "UTILIDADES / DISTRIBUIÇÃO DE ÁGUA",
+            cor: "#27ae60",
+            icone: "fas fa-tint"
+        },
         
         // TORRE DE RESFRIAMENTO
-        "torre-resfriamento-torre-resfriamento": "TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO"
+        "torre-resfriamento-torre-resfriamento": {
+            nome: "TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO",
+            cor: "#16a085",
+            icone: "fas fa-temperature-low"
+        }
     },
     
     // Status dos equipamentos
     statusEquipamento: {
-        "apto": "Apto a Operar",
-        "nao-apto": "Não Apto"
+        "apto": {
+            nome: "Apto a Operar",
+            cor: "#2ecc71",
+            icone: "fas fa-check-circle",
+            descricao: "Equipamento em condições operacionais"
+        },
+        "nao-apto": {
+            nome: "Não Apto",
+            cor: "#e74c3c",
+            icone: "fas fa-times-circle",
+            descricao: "Equipamento com pendências críticas"
+        }
     },
     
     // Status das pendências
     statusPendencia: {
-        "aberta": "Aberta",
-        "em-andamento": "Em Andamento",
-        "resolvida": "Resolvida",
-        "cancelada": "Cancelada"
+        "aberta": {
+            nome: "Aberta",
+            cor: "#f39c12",
+            icone: "fas fa-clock",
+            descricao: "Pendência registrada, aguardando ação"
+        },
+        "em-andamento": {
+            nome: "Em Andamento",
+            cor: "#3498db",
+            icone: "fas fa-tools",
+            descricao: "Pendência sendo resolvida"
+        },
+        "resolvida": {
+            nome: "Resolvida",
+            cor: "#27ae60",
+            icone: "fas fa-check",
+            descricao: "Pendência resolvida com sucesso"
+        },
+        "cancelada": {
+            nome: "Cancelada",
+            cor: "#95a5a6",
+            icone: "fas fa-ban",
+            descricao: "Pendência cancelada"
+        }
     },
     
     // Prioridades das pendências
     prioridades: {
-        "baixa": "Baixa",
-        "media": "Média",
-        "alta": "Alta",
-        "critica": "Crítica"
+        "baixa": {
+            nome: "Baixa",
+            cor: "#27ae60",
+            icone: "fas fa-arrow-down",
+            descricao: "Baixo impacto na operação"
+        },
+        "media": {
+            nome: "Média",
+            cor: "#f39c12",
+            icone: "fas fa-equals",
+            descricao: "Impacto moderado na operação"
+        },
+        "alta": {
+            nome: "Alta",
+            cor: "#e74c3c",
+            icone: "fas fa-arrow-up",
+            descricao: "Alto impacto na operação"
+        },
+        "critica": {
+            nome: "Crítica",
+            cor: "#c0392b",
+            icone: "fas fa-exclamation-triangle",
+            descricao: "Impacto crítico, pode parar operação"
+        }
     },
     
     // Responsáveis pelas pendências
-    responsaveis: [
-        "Elétrica",
-        "Instrumentação",
-        "Mecânica",
-        "Preventiva_Engenharia",
-        "Automação",
-        "Externo"
-    ],
+    responsaveis: {
+        "Elétrica": {
+            icone: "fas fa-bolt",
+            cor: "#f1c40f",
+            contato: "elétrica@usina.com"
+        },
+        "Instrumentação": {
+            icone: "fas fa-tachometer-alt",
+            cor: "#9b59b6",
+            contato: "instrumentacao@usina.com"
+        },
+        "Mecânica": {
+            icone: "fas fa-cogs",
+            cor: "#34495e",
+            contato: "mecanica@usina.com"
+        },
+        "Preventiva_Engenharia": {
+            icone: "fas fa-clipboard-check",
+            cor: "#27ae60",
+            contato: "preventiva@usina.com"
+        },
+        "Automação": {
+            icone: "fas fa-robot",
+            cor: "#3498db",
+            contato: "automacao@usina.com"
+        },
+        "Externo": {
+            icone: "fas fa-hard-hat",
+            cor: "#e67e22",
+            contato: "fornecedor@externo.com"
+        }
+    },
     
     // Configurações de cores
-    coresStatus: {
-        "apto": "#2ecc71",
-        "nao-apto": "#e74c3c",
-        "aberta": "#f39c12",
-        "em-andamento": "#3498db",
-        "resolvida": "#27ae60",
-        "cancelada": "#95a5a6"
+    coresSistema: {
+        primaria: "#3498db",
+        secundaria: "#2ecc71",
+        terciaria: "#9b59b6",
+        destaque: "#e74c3c",
+        sucesso: "#27ae60",
+        alerta: "#f39c12",
+        erro: "#e74c3c",
+        informacao: "#3498db",
+        texto: "#2c3e50",
+        textoSecundario: "#7f8c8d",
+        fundo: "#ecf0f1",
+        fundoSecundario: "#f8f9fa",
+        borda: "#dfe6e9",
+        card: "#ffffff",
+        sombra: "0 2px 10px rgba(0,0,0,0.1)"
     },
     
     // Configurações da aplicação
@@ -426,88 +715,289 @@ const APP_CONFIG = {
         permitirCriarUsuarios: true,
         permitirRedefinirSenha: true,
         senhaMinimaCaracteres: 6,
-        expiracaoSenhaDias: 90
+        expiracaoSenhaDias: 90,
+        
+        // Configurações de sincronização
+        sincronizacaoAutomatica: true,
+        sincronizacaoForcadaIntervalo: 30, // minutos
+        usarCacheOffline: true,
+        
+        // Configurações de exportação
+        formatoExportacaoPadrao: 'csv',
+        incluirMetadadosExportacao: true,
+        
+        // Configurações de segurança
+        bloqueioTentativasLogin: 5,
+        tempoBloqueioLogin: 15, // minutos
+        registrarIPLogin: false,
+        
+        // Configurações de interface
+        temaPadrao: 'claro',
+        animacoesAtivas: true,
+        compactarCards: false,
+        mostrarEstatisticas: true
     },
     
     // Tipos de ações registradas nos logs
     tiposAcao: {
-        LOGIN: "LOGIN",
-        LOGOUT: "LOGOUT",
-        CRIAR_EQUIPAMENTO: "CRIAR_EQUIPAMENTO",
-        EDITAR_EQUIPAMENTO: "EDITAR_EQUIPAMENTO",
-        EXCLUIR_EQUIPAMENTO: "EXCLUIR_EQUIPAMENTO",
-        CRIAR_PENDENCIA: "CRIAR_PENDENCIA",
-        EDITAR_PENDENCIA: "EDITAR_PENDENCIA",
-        EXCLUIR_PENDENCIA: "EXCLUIR_PENDENCIA",
-        EXPORTAR_DADOS: "EXPORTAR_DADOS",
-        ALTERAR_TEMA: "ALTERAR_TEMA",
-        CONFIGURAR_SISTEMA: "CONFIGURAR_SISTEMA",
-        VISUALIZAR_DETALHES: "VISUALIZAR_DETALHES",
-        FILTRAR_EQUIPAMENTOS: "FILTRAR_EQUIPAMENTOS",
-        EXPORTAR_LOGS: "EXPORTAR_LOGS",
-        VISUALIZAR_LOGS: "VISUALIZAR_LOGS",
-        // Novas ações para gerenciamento de usuários
-        CRIAR_USUARIO: "CRIAR_USUARIO",
-        EDITAR_USUARIO: "EDITAR_USUARIO",
-        EXCLUIR_USUARIO: "EXCLUIR_USUARIO",
-        REDEFINIR_SENHA: "REDEFINIR_SENHA",
-        ATIVAR_USUARIO: "ATIVAR_USUARIO",
-        DESATIVAR_USUARIO: "DESATIVAR_USUARIO"
+        LOGIN: {
+            codigo: "LOGIN",
+            nome: "Login no sistema",
+            nivel: "info"
+        },
+        LOGOUT: {
+            codigo: "LOGOUT",
+            nome: "Logout do sistema",
+            nivel: "info"
+        },
+        CRIAR_EQUIPAMENTO: {
+            codigo: "CRIAR_EQUIPAMENTO",
+            nome: "Criar equipamento",
+            nivel: "success"
+        },
+        EDITAR_EQUIPAMENTO: {
+            codigo: "EDITAR_EQUIPAMENTO",
+            nome: "Editar equipamento",
+            nivel: "warning"
+        },
+        EXCLUIR_EQUIPAMENTO: {
+            codigo: "EXCLUIR_EQUIPAMENTO",
+            nome: "Excluir equipamento",
+            nivel: "error"
+        },
+        CRIAR_PENDENCIA: {
+            codigo: "CRIAR_PENDENCIA",
+            nome: "Criar pendência",
+            nivel: "info"
+        },
+        EDITAR_PENDENCIA: {
+            codigo: "EDITAR_PENDENCIA",
+            nome: "Editar pendência",
+            nivel: "warning"
+        },
+        EXCLUIR_PENDENCIA: {
+            codigo: "EXCLUIR_PENDENCIA",
+            nome: "Excluir pendência",
+            nivel: "error"
+        },
+        EXPORTAR_DADOS: {
+            codigo: "EXPORTAR_DADOS",
+            nome: "Exportar dados",
+            nivel: "info"
+        },
+        ALTERAR_TEMA: {
+            codigo: "ALTERAR_TEMA",
+            nome: "Alterar tema",
+            nivel: "info"
+        },
+        CONFIGURAR_SISTEMA: {
+            codigo: "CONFIGURAR_SISTEMA",
+            nome: "Configurar sistema",
+            nivel: "warning"
+        },
+        VISUALIZAR_DETALHES: {
+            codigo: "VISUALIZAR_DETALHES",
+            nome: "Visualizar detalhes",
+            nivel: "info"
+        },
+        FILTRAR_EQUIPAMENTOS: {
+            codigo: "FILTRAR_EQUIPAMENTOS",
+            nome: "Filtrar equipamentos",
+            nivel: "info"
+        },
+        EXPORTAR_LOGS: {
+            codigo: "EXPORTAR_LOGS",
+            nome: "Exportar logs",
+            nivel: "info"
+        },
+        VISUALIZAR_LOGS: {
+            codigo: "VISUALIZAR_LOGS",
+            nome: "Visualizar logs",
+            nivel: "info"
+        },
+        SINCRONIZAR_DADOS: {
+            codigo: "SINCRONIZAR_DADOS",
+            nome: "Sincronizar dados",
+            nivel: "info"
+        },
+        // Ações para gerenciamento de usuários
+        CRIAR_USUARIO: {
+            codigo: "CRIAR_USUARIO",
+            nome: "Criar usuário",
+            nivel: "success"
+        },
+        EDITAR_USUARIO: {
+            codigo: "EDITAR_USUARIO",
+            nome: "Editar usuário",
+            nivel: "warning"
+        },
+        EXCLUIR_USUARIO: {
+            codigo: "EXCLUIR_USUARIO",
+            nome: "Excluir usuário",
+            nivel: "error"
+        },
+        REDEFINIR_SENHA: {
+            codigo: "REDEFINIR_SENHA",
+            nome: "Redefinir senha",
+            nivel: "warning"
+        },
+        ATIVAR_USUARIO: {
+            codigo: "ATIVAR_USUARIO",
+            nome: "Ativar usuário",
+            nivel: "success"
+        },
+        DESATIVAR_USUARIO: {
+            codigo: "DESATIVAR_USUARIO",
+            nome: "Desativar usuário",
+            nivel: "error"
+        },
+        SESSAO_EXPIRADA: {
+            codigo: "SESSAO_EXPIRADA",
+            nome: "Sessão expirada",
+            nivel: "warning"
+        },
+        ERRO_SISTEMA: {
+            codigo: "ERRO_SISTEMA",
+            nome: "Erro de sistema",
+            nivel: "error"
+        }
+    },
+    
+    // Mapeamento de códigos de ação para ícones
+    iconesAcao: {
+        "LOGIN": "fas fa-sign-in-alt",
+        "LOGOUT": "fas fa-sign-out-alt",
+        "CRIAR": "fas fa-plus-circle",
+        "EDITAR": "fas fa-edit",
+        "EXCLUIR": "fas fa-trash",
+        "EXPORTAR": "fas fa-download",
+        "VISUALIZAR": "fas fa-eye",
+        "FILTRAR": "fas fa-filter",
+        "CONFIGURAR": "fas fa-cog",
+        "SINCRONIZAR": "fas fa-sync",
+        "BACKUP": "fas fa-database",
+        "RESTAURAR": "fas fa-history"
     }
 };
 
 // Funções utilitárias para a aplicação
 const APP_UTILS = {
     // Formatar data para exibição
-    formatarData: function(dataString) {
+    formatarData: function(dataString, incluirHora = false) {
         if (!dataString) return 'Não informada';
         
         try {
             const data = new Date(dataString);
             if (isNaN(data.getTime())) return dataString;
             
-            return data.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
+            if (incluirHora) {
+                return data.toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } else {
+                return data.toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
         } catch (e) {
             console.warn('Erro ao formatar data:', dataString, e);
             return dataString;
         }
     },
     
-    // Formatar data e hora
+    // Formatar data e hora completa
     formatarDataHora: function(dataString) {
-        if (!dataString) return 'Não informada';
-        
-        try {
-            const data = new Date(dataString);
-            if (isNaN(data.getTime())) return dataString;
-            
-            return data.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (e) {
-            console.warn('Erro ao formatar data/hora:', dataString, e);
-            return dataString;
-        }
+        return this.formatarData(dataString, true);
     },
     
-    // Obter cor do status
-    getCorStatus: function(status) {
-        return APP_CONFIG.coresStatus[status] || '#95a5a6';
+    // Obter informações completas de um status
+    getInfoStatus: function(status, tipo = 'equipamento') {
+        if (tipo === 'equipamento') {
+            return APP_CONFIG.statusEquipamento[status] || { 
+                nome: status, 
+                cor: '#95a5a6', 
+                icone: 'fas fa-question-circle' 
+            };
+        } else if (tipo === 'pendencia') {
+            return APP_CONFIG.statusPendencia[status] || { 
+                nome: status, 
+                cor: '#95a5a6', 
+                icone: 'fas fa-question-circle' 
+            };
+        }
+        return null;
+    },
+    
+    // Obter informações completas de uma prioridade
+    getInfoPrioridade: function(prioridade) {
+        return APP_CONFIG.prioridades[prioridade] || { 
+            nome: prioridade, 
+            cor: '#95a5a6', 
+            icone: 'fas fa-question-circle' 
+        };
+    },
+    
+    // Obter informações completas de um setor
+    getInfoSetor: function(setorId) {
+        return APP_CONFIG.setores[setorId] || { 
+            nome: setorId, 
+            cor: '#95a5a6', 
+            icone: 'fas fa-building' 
+        };
+    },
+    
+    // Obter informações completas de um responsável
+    getInfoResponsavel: function(responsavel) {
+        return APP_CONFIG.responsaveis[responsavel] || { 
+            icone: 'fas fa-user', 
+            cor: '#95a5a6', 
+            contato: 'Não informado' 
+        };
+    },
+    
+    // Obter informações completas de uma ação
+    getInfoAcao: function(codigoAcao) {
+        return APP_CONFIG.tiposAcao[codigoAcao] || { 
+            codigo: codigoAcao, 
+            nome: codigoAcao, 
+            nivel: 'info' 
+        };
+    },
+    
+    // Obter ícone de uma ação
+    getIconeAcao: function(codigoAcao) {
+        // Tentar mapeamento específico primeiro
+        if (codigoAcao.includes('CRIAR')) return 'fas fa-plus-circle';
+        if (codigoAcao.includes('EDITAR')) return 'fas fa-edit';
+        if (codigoAcao.includes('EXCLUIR')) return 'fas fa-trash';
+        if (codigoAcao.includes('EXPORTAR')) return 'fas fa-download';
+        if (codigoAcao.includes('VISUALIZAR')) return 'fas fa-eye';
+        if (codigoAcao.includes('LOGIN')) return 'fas fa-sign-in-alt';
+        if (codigoAcao.includes('LOGOUT')) return 'fas fa-sign-out-alt';
+        
+        // Fallback para mapeamento geral
+        return APP_CONFIG.iconesAcao[codigoAcao] || 'fas fa-history';
     },
     
     // Gerar código único para equipamentos
-    gerarCodigoEquipamento: function(prefixo = "EQP") {
-        const timestamp = Date.now().toString(36);
-        const random = Math.random().toString(36).substr(2, 5);
-        return `${prefixo}-${timestamp.toUpperCase()}-${random.toUpperCase()}`;
+    gerarCodigoEquipamento: function(prefixo = "EQP", setor = null) {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+        
+        let setorPrefix = '';
+        if (setor) {
+            // Pegar primeira letra de cada parte do setor
+            const partes = setor.split('-');
+            setorPrefix = partes.map(p => p.charAt(0).toUpperCase()).join('');
+        }
+        
+        return `${prefixo}-${setorPrefix}${timestamp.slice(-6)}-${random}`;
     },
     
     // Validar e-mail
@@ -516,14 +1006,97 @@ const APP_UTILS = {
         return re.test(email);
     },
     
-    // Formatar número de telefone
-    formatarTelefone: function(telefone) {
-        const cleaned = ('' + telefone).replace(/\D/g, '');
-        const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
-        if (match) {
-            return `(${match[1]}) ${match[2]}-${match[3]}`;
+    // Validar força da senha
+    validarForcaSenha: function(senha) {
+        let pontos = 0;
+        let feedback = [];
+        
+        // Comprimento mínimo
+        if (senha.length >= 8) pontos++;
+        if (senha.length >= 12) pontos++;
+        
+        // Caracteres especiais
+        if (/[A-Z]/.test(senha)) {
+            pontos++;
+            feedback.push('Contém letra maiúscula');
         }
-        return telefone;
+        if (/[a-z]/.test(senha)) {
+            pontos++;
+            feedback.push('Contém letra minúscula');
+        }
+        if (/[0-9]/.test(senha)) {
+            pontos++;
+            feedback.push('Contém número');
+        }
+        if (/[^A-Za-z0-9]/.test(senha)) {
+            pontos++;
+            feedback.push('Contém caractere especial');
+        }
+        
+        // Classificar força
+        let forca = 'fraca';
+        if (pontos <= 2) forca = 'fraca';
+        else if (pontos <= 4) forca = 'média';
+        else forca = 'forte';
+        
+        return { 
+            forca: forca, 
+            pontos: pontos,
+            feedback: feedback
+        };
+    },
+    
+    // Gerar senha aleatória
+    gerarSenhaAleatoria: function(tamanho = 12) {
+        const maiusculas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const minusculas = 'abcdefghijklmnopqrstuvwxyz';
+        const numeros = '0123456789';
+        const especiais = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+        const todos = maiusculas + minusculas + numeros + especiais;
+        
+        let senha = '';
+        
+        // Garantir pelo menos um de cada tipo
+        senha += maiusculas.charAt(Math.floor(Math.random() * maiusculas.length));
+        senha += minusculas.charAt(Math.floor(Math.random() * minusculas.length));
+        senha += numeros.charAt(Math.floor(Math.random() * numeros.length));
+        senha += especiais.charAt(Math.floor(Math.random() * especiais.length));
+        
+        // Completar com caracteres aleatórios
+        for (let i = 4; i < tamanho; i++) {
+            senha += todos.charAt(Math.floor(Math.random() * todos.length));
+        }
+        
+        // Embaralhar a senha
+        senha = senha.split('').sort(() => Math.random() - 0.5).join('');
+        
+        return senha;
+    },
+    
+    // Calcular diferença entre datas em dias
+    diferencaDias: function(data1, data2 = new Date()) {
+        try {
+            const d1 = new Date(data1);
+            const d2 = new Date(data2);
+            
+            const diffTime = Math.abs(d2 - d1);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        } catch (e) {
+            return null;
+        }
+    },
+    
+    // Validar data (não pode ser futura)
+    validarDataNaoFutura: function(dataString) {
+        try {
+            const data = new Date(dataString);
+            const hoje = new Date();
+            hoje.setHours(23, 59, 59, 999); // Fim do dia de hoje
+            
+            return data <= hoje;
+        } catch (e) {
+            return false;
+        }
     },
     
     // Sanitizar entrada de dados
@@ -542,64 +1115,61 @@ const APP_UTILS = {
             .replace(/'/g, '&#39;');
     },
     
-    // Validar data (não pode ser futura)
-    validarDataNaoFutura: function(dataString) {
-        try {
-            const data = new Date(dataString);
-            const hoje = new Date();
-            hoje.setHours(23, 59, 59, 999); // Fim do dia de hoje
-            
-            return data <= hoje;
-        } catch (e) {
-            return false;
+    // Formatar número de telefone
+    formatarTelefone: function(telefone) {
+        const cleaned = ('' + telefone).replace(/\D/g, '');
+        const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
+        if (match) {
+            return `(${match[1]}) ${match[2]}-${match[3]}`;
         }
+        return telefone;
     },
     
-    // Calcular diferença entre datas em dias
-    diferencaDias: function(data1, data2 = new Date()) {
-        try {
-            const d1 = new Date(data1);
-            const d2 = new Date(data2);
-            
-            const diffTime = Math.abs(d2 - d1);
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        } catch (e) {
-            return null;
-        }
+    // Calcular idade do equipamento (em dias)
+    calcularIdadeEquipamento: function(dataCriacao) {
+        return this.diferencaDias(dataCriacao) || 0;
     },
     
-    // Gerar senha aleatória
-    gerarSenhaAleatoria: function(tamanho = 10) {
-        const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-        let senha = '';
-        for (let i = 0; i < tamanho; i++) {
-            senha += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-        }
-        return senha;
+    // Formatar bytes para tamanho legível
+    formatarBytes: function(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     },
     
-    // Validar força da senha
-    validarForcaSenha: function(senha) {
-        let forca = 0;
+    // Gerar cor baseada em string (para avatares, etc.)
+    gerarCorDeString: function(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
         
-        // Comprimento mínimo
-        if (senha.length >= 8) forca++;
-        if (senha.length >= 12) forca++;
+        const h = hash % 360;
+        return `hsl(${h}, 70%, 60%)`;
+    },
+    
+    // Obter iniciais de um nome
+    obterIniciais: function(nome) {
+        if (!nome) return '?';
         
-        // Caracteres especiais
-        if (/[A-Z]/.test(senha)) forca++; // Letra maiúscula
-        if (/[a-z]/.test(senha)) forca++; // Letra minúscula
-        if (/[0-9]/.test(senha)) forca++; // Número
-        if (/[^A-Za-z0-9]/.test(senha)) forca++; // Caractere especial
-        
-        // Classificar força
-        if (forca <= 2) return { forca: 'fraca', pontos: forca };
-        if (forca <= 4) return { forca: 'média', pontos: forca };
-        return { forca: 'forte', pontos: forca };
+        const partes = nome.split(' ');
+        if (partes.length >= 2) {
+            return (partes[0][0] + partes[1][0]).toUpperCase();
+        } else if (partes.length === 1 && partes[0].length >= 2) {
+            return partes[0].substring(0, 2).toUpperCase();
+        } else {
+            return nome.substring(0, 2).toUpperCase();
+        }
     }
 };
 
-// Banco de usuários (em produção, isso estaria em um backend seguro)
+// Banco de usuários autorizados (para compatibilidade com versões antigas)
 const USUARIOS_AUTORIZADOS = {
     'visitante': { 
         senha: 'visitante123', 
@@ -639,31 +1209,38 @@ const USUARIOS_AUTORIZADOS = {
 
 // Função para registrar logs com mais detalhes
 function registrarLogAuditoria(acao, detalhes, equipamentoId = null, pendenciaId = null, usuarioAlvo = null) {
-    const usuario = getUsuarioLogado();
-    const nivel = getNivelUsuario();
-    const timestamp = new Date().toISOString();
-    const ip = 'local';
-    const userAgent = navigator.userAgent;
-    
-    const logEntry = {
-        id: gerarIdUnico(),
-        usuario: usuario || 'sistema',
-        nivel: nivel || 'sistema',
-        acao: acao,
-        detalhes: detalhes,
-        equipamentoId: equipamentoId,
-        pendenciaId: pendenciaId,
-        usuarioAlvo: usuarioAlvo,
-        timestamp: timestamp,
-        ip: ip,
-        userAgent: userAgent,
-        dataHoraBR: new Date().toLocaleString('pt-BR')
-    };
-    
-    console.log('LOG DE AUDITORIA:', logEntry);
-    
-    // Salvar no localStorage
     try {
+        const usuario = getUsuarioLogado();
+        const nivel = getNivelUsuario();
+        const timestamp = new Date().toISOString();
+        const ip = 'local';
+        const userAgent = navigator.userAgent;
+        
+        const infoAcao = APP_UTILS.getInfoAcao(acao);
+        const iconeAcao = APP_UTILS.getIconeAcao(acao);
+        
+        const logEntry = {
+            id: gerarIdUnico(),
+            usuario: usuario || 'sistema',
+            nivel: nivel || 'sistema',
+            acao: acao,
+            nomeAcao: infoAcao.nome || acao,
+            nivelAcao: infoAcao.nivel || 'info',
+            iconeAcao: iconeAcao,
+            detalhes: detalhes,
+            equipamentoId: equipamentoId,
+            pendenciaId: pendenciaId,
+            usuarioAlvo: usuarioAlvo,
+            timestamp: timestamp,
+            ip: ip,
+            userAgent: userAgent,
+            dataHoraBR: new Date().toLocaleString('pt-BR'),
+            online: navigator.onLine
+        };
+        
+        console.log('LOG DE AUDITORIA:', logEntry);
+        
+        // Salvar no localStorage
         let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs_auditoria') || '[]');
         logs.unshift(logEntry);
         
@@ -674,19 +1251,25 @@ function registrarLogAuditoria(acao, detalhes, equipamentoId = null, pendenciaId
         
         localStorage.setItem('gestao_equipamentos_logs_auditoria', JSON.stringify(logs));
         
-        // Também salvar no log geral
+        // Também salvar no log geral de atividades
         registrarAtividade(acao, detalhes);
+        
+        // Se estiver online, tentar salvar no JSONBin em background
+        if (navigator.onLine) {
+            setTimeout(() => salvarLogsNoJSONBin(), 0);
+        }
+        
+        return logEntry;
         
     } catch (e) {
         console.error('Erro ao salvar log de auditoria:', e);
+        return null;
     }
-    
-    return logEntry;
 }
 
 // Função para gerar ID único
 function gerarIdUnico() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
 // Função para obter logs de auditoria
@@ -701,6 +1284,9 @@ function getLogsAuditoria(filtro = {}) {
         if (filtro.acao) {
             logs = logs.filter(log => log.acao === filtro.acao);
         }
+        if (filtro.nivelAcao) {
+            logs = logs.filter(log => log.nivelAcao === filtro.nivelAcao);
+        }
         if (filtro.dataInicio) {
             const dataInicio = new Date(filtro.dataInicio);
             logs = logs.filter(log => new Date(log.timestamp) >= dataInicio);
@@ -708,6 +1294,9 @@ function getLogsAuditoria(filtro = {}) {
         if (filtro.dataFim) {
             const dataFim = new Date(filtro.dataFim);
             logs = logs.filter(log => new Date(log.timestamp) <= dataFim);
+        }
+        if (filtro.equipamentoId) {
+            logs = logs.filter(log => log.equipamentoId === filtro.equipamentoId);
         }
         if (filtro.limite) {
             logs = logs.slice(0, filtro.limite);
@@ -735,7 +1324,7 @@ function exportarLogsAuditoria() {
     }
     
     // Criar CSV
-    let csv = 'ID,Data/Hora,Usuário,Nível,Ação,Detalhes,ID Equipamento,ID Pendência,Usuário Alvo\n';
+    let csv = 'ID,Data/Hora,Usuário,Nível,Ação,Detalhes,ID Equipamento,ID Pendência,Usuário Alvo,Nível Ação,Online\n';
     
     logs.forEach(log => {
         const linha = [
@@ -743,11 +1332,13 @@ function exportarLogsAuditoria() {
             `"${log.dataHoraBR || new Date(log.timestamp).toLocaleString('pt-BR')}"`,
             `"${log.usuario}"`,
             `"${log.nivel}"`,
-            `"${log.acao}"`,
+            `"${log.nomeAcao || log.acao}"`,
             `"${log.detalhes.replace(/"/g, '""')}"`,
             log.equipamentoId || '',
             log.pendenciaId || '',
-            log.usuarioAlvo || ''
+            log.usuarioAlvo || '',
+            log.nivelAcao || 'info',
+            log.online ? 'Sim' : 'Não'
         ].join(',');
         csv += linha + '\n';
     });
@@ -779,15 +1370,32 @@ function visualizarLogsAuditoria() {
         <div class="logs-header">
             <h3><i class="fas fa-clipboard-list"></i> Logs de Auditoria</h3>
             <p>Total de registros: ${logs.length}</p>
+            <div class="logs-stats">
+                <span class="stat-badge info"><i class="fas fa-info-circle"></i> ${logs.filter(l => l.nivelAcao === 'info').length}</span>
+                <span class="stat-badge success"><i class="fas fa-check-circle"></i> ${logs.filter(l => l.nivelAcao === 'success').length}</span>
+                <span class="stat-badge warning"><i class="fas fa-exclamation-triangle"></i> ${logs.filter(l => l.nivelAcao === 'warning').length}</span>
+                <span class="stat-badge error"><i class="fas fa-times-circle"></i> ${logs.filter(l => l.nivelAcao === 'error').length}</span>
+            </div>
         </div>
         
         <div class="logs-filtros">
-            <button onclick="filtrarLogsPorUsuario(this)" class="btn-small">
-                <i class="fas fa-user"></i> Filtrar por usuário
-            </button>
-            <button onclick="filtrarLogsPorAcao(this)" class="btn-small">
-                <i class="fas fa-filter"></i> Filtrar por ação
-            </button>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search-logs" placeholder="Buscar nos logs...">
+            </div>
+            <select id="filter-log-nivel">
+                <option value="all">Todos os níveis</option>
+                <option value="info">Informação</option>
+                <option value="success">Sucesso</option>
+                <option value="warning">Aviso</option>
+                <option value="error">Erro</option>
+            </select>
+            <select id="filter-log-usuario">
+                <option value="all">Todos os usuários</option>
+                ${Array.from(new Set(logs.map(l => l.usuario))).map(u => 
+                    `<option value="${u}">${u}</option>`
+                ).join('')}
+            </select>
             <button onclick="exportarLogsAuditoria()" class="btn-small">
                 <i class="fas fa-download"></i> Exportar CSV
             </button>
@@ -799,31 +1407,46 @@ function visualizarLogsAuditoria() {
                     <tr>
                         <th>Data/Hora</th>
                         <th>Usuário</th>
-                        <th>Nível</th>
                         <th>Ação</th>
                         <th>Detalhes</th>
-                        <th>IDs</th>
-                        <th>Usuário Alvo</th>
+                        <th>Nível</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="logs-list">
     `;
     
     logs.forEach(log => {
         const dataHora = log.dataHoraBR || new Date(log.timestamp).toLocaleString('pt-BR');
-        const ids = [];
-        if (log.equipamentoId) ids.push(`Eqp: ${log.equipamentoId}`);
-        if (log.pendenciaId) ids.push(`Pend: ${log.pendenciaId}`);
         
         html += `
-            <tr class="log-item ${log.nivel}">
-                <td>${dataHora}</td>
-                <td><span class="log-usuario">${log.usuario}</span></td>
-                <td><span class="log-nivel ${log.nivel}">${log.nivel}</span></td>
-                <td><span class="log-acao">${log.acao}</span></td>
-                <td class="log-detalhes">${log.detalhes}</td>
-                <td>${ids.join(', ') || '-'}</td>
-                <td>${log.usuarioAlvo || '-'}</td>
+            <tr class="log-item ${log.nivelAcao}" data-usuario="${log.usuario}" data-nivel="${log.nivelAcao}">
+                <td>
+                    <div class="log-time">${dataHora}</div>
+                    ${log.online === false ? '<small class="offline-badge">Offline</small>' : ''}
+                </td>
+                <td>
+                    <div class="log-usuario">
+                        <span class="log-usuario-nome">${log.usuario}</span>
+                        <small class="log-usuario-nivel ${log.nivel}">${log.nivel}</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="log-acao">
+                        <i class="${log.iconeAcao || 'fas fa-history'}"></i>
+                        ${log.nomeAcao || log.acao}
+                    </div>
+                </td>
+                <td class="log-detalhes">
+                    <div>${log.detalhes}</div>
+                    ${log.equipamentoId ? `<small>Equipamento ID: ${log.equipamentoId}</small>` : ''}
+                    ${log.pendenciaId ? `<small>Pendência ID: ${log.pendenciaId}</small>` : ''}
+                    ${log.usuarioAlvo ? `<small>Usuário alvo: ${log.usuarioAlvo}</small>` : ''}
+                </td>
+                <td>
+                    <span class="log-nivel ${log.nivelAcao}">
+                        <i class="fas fa-circle"></i> ${log.nivelAcao}
+                    </span>
+                </td>
             </tr>
         `;
     });
@@ -866,42 +1489,191 @@ function visualizarLogsAuditoria() {
                 background: var(--cor-fundo-secundario);
             }
             
+            .log-item.info {
+                border-left: 4px solid #3498db;
+            }
+            
+            .log-item.success {
+                border-left: 4px solid #27ae60;
+            }
+            
+            .log-item.warning {
+                border-left: 4px solid #f39c12;
+            }
+            
+            .log-item.error {
+                border-left: 4px solid #e74c3c;
+            }
+            
             .log-nivel {
-                padding: 3px 8px;
-                border-radius: 4px;
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 12px;
                 font-size: 11px;
                 font-weight: bold;
                 text-transform: uppercase;
             }
             
-            .log-nivel.administrador { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
-            .log-nivel.operador { background: rgba(52, 152, 219, 0.2); color: #3498db; }
-            .log-nivel.visitante { background: rgba(149, 165, 166, 0.2); color: #95a5a6; }
+            .log-nivel.info {
+                background: rgba(52, 152, 219, 0.1);
+                color: #3498db;
+            }
+            
+            .log-nivel.success {
+                background: rgba(46, 204, 113, 0.1);
+                color: #27ae60;
+            }
+            
+            .log-nivel.warning {
+                background: rgba(243, 156, 18, 0.1);
+                color: #f39c12;
+            }
+            
+            .log-nivel.error {
+                background: rgba(231, 76, 60, 0.1);
+                color: #e74c3c;
+            }
             
             .log-usuario {
-                font-weight: 500;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .log-usuario-nivel {
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 8px;
+                background: rgba(149, 165, 166, 0.1);
+                color: var(--cor-texto-secundario);
+                margin-top: 2px;
+                display: inline-block;
+                width: fit-content;
+            }
+            
+            .log-usuario-nivel.administrador {
+                background: rgba(231, 76, 60, 0.1);
+                color: #e74c3c;
+            }
+            
+            .log-usuario-nivel.operador {
+                background: rgba(52, 152, 219, 0.1);
+                color: #3498db;
+            }
+            
+            .log-usuario-nivel.visitante {
+                background: rgba(149, 165, 166, 0.1);
+                color: #95a5a6;
             }
             
             .log-acao {
-                font-family: monospace;
-                font-size: 12px;
-                color: var(--cor-texto);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 500;
             }
             
             .log-detalhes {
                 max-width: 300px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
             }
             
-            .logs-filtros {
+            .log-detalhes small {
+                display: block;
+                margin-top: 4px;
+                color: var(--cor-texto-secundario);
+                font-size: 11px;
+            }
+            
+            .offline-badge {
+                background: #f39c12;
+                color: white;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                margin-top: 4px;
+                display: inline-block;
+            }
+            
+            .logs-stats {
                 display: flex;
                 gap: 10px;
-                margin: 15px 0;
-                flex-wrap: wrap;
+                margin-top: 10px;
+            }
+            
+            .stat-badge {
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            
+            .stat-badge.info {
+                background: rgba(52, 152, 219, 0.1);
+                color: #3498db;
+            }
+            
+            .stat-badge.success {
+                background: rgba(46, 204, 113, 0.1);
+                color: #27ae60;
+            }
+            
+            .stat-badge.warning {
+                background: rgba(243, 156, 18, 0.1);
+                color: #f39c12;
+            }
+            
+            .stat-badge.error {
+                background: rgba(231, 76, 60, 0.1);
+                color: #e74c3c;
             }
         </style>
+        
+        <script>
+            // Filtros dinâmicos
+            document.getElementById('search-logs').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('.log-item');
+                
+                rows.forEach(row => {
+                    const detalhes = row.querySelector('.log-detalhes').textContent.toLowerCase();
+                    const usuario = row.querySelector('.log-usuario-nome').textContent.toLowerCase();
+                    const acao = row.querySelector('.log-acao').textContent.toLowerCase();
+                    
+                    if (detalhes.includes(searchTerm) || usuario.includes(searchTerm) || acao.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+            
+            document.getElementById('filter-log-nivel').addEventListener('change', function(e) {
+                const nivel = e.target.value;
+                const rows = document.querySelectorAll('.log-item');
+                
+                rows.forEach(row => {
+                    const rowNivel = row.dataset.nivel;
+                    if (nivel === 'all' || rowNivel === nivel) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+            
+            document.getElementById('filter-log-usuario').addEventListener('change', function(e) {
+                const usuario = e.target.value;
+                const rows = document.querySelectorAll('.log-item');
+                
+                rows.forEach(row => {
+                    const rowUsuario = row.dataset.usuario;
+                    if (usuario === 'all' || rowUsuario === usuario) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        </script>
     `;
     
     // Criar modal
@@ -935,20 +1707,33 @@ function visualizarLogsAuditoria() {
     registrarLogAuditoria('VISUALIZAR_LOGS', 'Visualizou logs de auditoria');
 }
 
-// Funções auxiliares para filtros
-function filtrarLogsPorUsuario(button) {
-    const usuario = prompt('Digite o nome do usuário para filtrar:');
-    if (usuario) {
-        const logs = getLogsAuditoria({ usuario: usuario });
-        alert(`Encontrados ${logs.length} registros para o usuário "${usuario}"`);
-    }
-}
-
-function filtrarLogsPorAcao(button) {
-    const acao = prompt('Digite o tipo de ação (ex: CRIAR_EQUIPAMENTO, EDITAR_PENDENCIA):');
-    if (acao) {
-        const logs = getLogsAuditoria({ acao: acao });
-        alert(`Encontrados ${logs.length} registros para a ação "${acao}"`);
+// Função para salvar logs no JSONBin (em background)
+async function salvarLogsNoJSONBin() {
+    try {
+        const logs = getLogsAuditoria();
+        const usuario = getUsuarioLogado() || 'sistema';
+        
+        const logsData = {
+            logs: logs.slice(0, 100), // Enviar apenas os 100 mais recentes
+            metadata: {
+                atualizadoEm: new Date().toISOString(),
+                atualizadoPor: usuario,
+                totalLogs: logs.length,
+                origem: 'auditoria'
+            }
+        };
+        
+        // Usar um bin separado para logs se necessário
+        const logsBinId = JSONBIN_CONFIG.BIN_ID + '_logs';
+        
+        await fetch(`${JSONBIN_CONFIG.BASE_URL}/${logsBinId}`, {
+            method: 'PUT',
+            headers: JSONBIN_CONFIG.headers,
+            body: JSON.stringify(logsData)
+        });
+        
+    } catch (error) {
+        console.warn('Não foi possível salvar logs no JSONBin:', error);
     }
 }
 
@@ -973,7 +1758,7 @@ function logout() {
     localStorage.removeItem('gestao_equipamentos_ultimo_acesso');
     
     // Redirecionar para página de login
-    window.location.href = 'login.html';
+    window.location.href = 'login.html?logout=true';
 }
 
 // Função para verificar sessão ativa
@@ -1020,7 +1805,11 @@ function getUsuarioInfo() {
     const usuario = getUsuarioLogado();
     if (!usuario) return null;
     
-    // Primeiro verificar no localStorage (usuários gerenciados)
+    // Obter nível e permissões
+    const nivel = getNivelUsuario();
+    const nivelInfo = PERMISSOES.getInfoNivel(nivel);
+    
+    // Tentar obter informações adicionais do localStorage
     let usuarioData = null;
     try {
         const usuariosSalvos = localStorage.getItem('gestao_equipamentos_usuarios');
@@ -1032,29 +1821,30 @@ function getUsuarioInfo() {
         console.error('Erro ao carregar dados do usuário:', e);
     }
     
-    // Se não encontrar no localStorage, usar os dados padrão
+    // Se não encontrar, usar dados padrão
     if (!usuarioData) {
-        usuarioData = USUARIOS_AUTORIZADOS[usuario];
+        usuarioData = USUARIOS_AUTORIZADOS[usuario] || {};
     }
-    
-    if (!usuarioData) return null;
     
     return {
         usuario: usuario,
-        nivel: getNivelUsuario(),
+        nivel: nivel,
+        nivelNome: PERMISSOES.getNomeNivel(nivel),
+        nivelInfo: nivelInfo,
+        corNivel: PERMISSOES.getCorNivel(nivel),
+        iconeNivel: PERMISSOES.getIconeNivel(nivel),
         nome: usuarioData.nome || usuario,
         email: usuarioData.email || '',
         departamento: usuarioData.departamento || '',
-        nivelNome: PERMISSOES.getNomeNivel(getNivelUsuario()),
-        corNivel: PERMISSOES.getCorNivel(getNivelUsuario()),
-        iconeNivel: PERMISSOES.getIconeNivel(getNivelUsuario()),
         dataCriacao: usuarioData.dataCriacao || '',
         criadoPor: usuarioData.criadoPor || 'sistema',
-        ativo: usuarioData.ativo !== false
+        ativo: usuarioData.ativo !== false,
+        ultimoAcesso: usuarioData.ultimoAcesso || null,
+        dataAtualizacao: usuarioData.dataAtualizacao || usuarioData.dataCriacao || ''
     };
 }
 
-// Função para registrar atividade (log de auditoria)
+// Função para registrar atividade (log de auditoria simplificado)
 function registrarAtividade(acao, detalhes) {
     const usuario = getUsuarioLogado();
     const nivel = getNivelUsuario();
@@ -1070,7 +1860,8 @@ function registrarAtividade(acao, detalhes) {
         detalhes: detalhes,
         timestamp: timestamp,
         ip: 'local',
-        userAgent: navigator.userAgent
+        userAgent: navigator.userAgent,
+        online: navigator.onLine
     };
     
     // Em ambiente real, enviaria para um servidor de logs
@@ -1119,11 +1910,19 @@ function exportarConfiguracoes() {
         permissoes: PERMISSOES.gerarRelatorioPermissoes(),
         jsonBinConfig: {
             BIN_ID: JSONBIN_CONFIG.BIN_ID,
-            BASE_URL: JSONBIN_CONFIG.BASE_URL
+            BASE_URL: JSONBIN_CONFIG.BASE_URL,
+            syncConfig: JSONBIN_CONFIG.syncConfig
         },
+        usuarioAtual: getUsuarioInfo(),
         exportDate: new Date().toISOString(),
         version: APP_CONFIG.versao,
-        exportadoPor: usuario
+        exportadoPor: usuario,
+        sistema: {
+            userAgent: navigator.userAgent,
+            online: navigator.onLine,
+            platform: navigator.platform,
+            language: navigator.language
+        }
     };
     
     const dataStr = JSON.stringify(configExport, null, 2);
@@ -1144,58 +1943,79 @@ function gerarRelatorioConfiguracao() {
     const usuarioInfo = getUsuarioInfo();
     
     const relatorio = `
-SISTEMA DE GESTÃO DE EQUIPAMENTOS - USINA
-==========================================
+SISTEMA DE GESTÃO DE EQUIPAMENTOS - USINA INDUSTRIAL
+====================================================
 
 VERSÃO: ${APP_CONFIG.versao}
 DATA DE GERAÇÃO: ${new Date().toLocaleDateString('pt-BR')}
 HORA: ${new Date().toLocaleTimeString('pt-BR')}
+EMPRESA: ${APP_CONFIG.empresa}
 
 INFORMAÇÕES DO USUÁRIO
 ----------------------
 • Usuário: ${usuarioInfo?.nome || 'Não autenticado'}
+• Nome de usuário: ${usuario || 'N/A'}
 • Nível de Acesso: ${usuarioInfo?.nivelNome || 'N/A'}
 • Departamento: ${usuarioInfo?.departamento || 'N/A'}
 • E-mail: ${usuarioInfo?.email || 'N/A'}
+• Criado por: ${usuarioInfo?.criadoPor || 'N/A'}
+• Data criação: ${APP_UTILS.formatarData(usuarioInfo?.dataCriacao) || 'N/A'}
 
 CONFIGURAÇÕES DO SISTEMA
 -------------------------
 • Total de Setores Configurados: ${Object.keys(APP_CONFIG.setores).length}
 • Status de Equipamentos: ${Object.keys(APP_CONFIG.statusEquipamento).length}
+• Status de Pendências: ${Object.keys(APP_CONFIG.statusPendencia).length}
 • Prioridades de Pendência: ${Object.keys(APP_CONFIG.prioridades).length}
-• Responsáveis: ${APP_CONFIG.responsaveis.length}
+• Responsáveis: ${Object.keys(APP_CONFIG.responsaveis).length}
 
 SETORES CONFIGURADOS
 --------------------
-${Object.entries(APP_CONFIG.setores).map(([key, value]) => `• ${value}`).join('\n')}
+${Object.entries(APP_CONFIG.setores).map(([key, value]) => 
+    `• ${value.nome} (${key})`
+).join('\n')}
 
 NÍVEIS DE ACESSO CONFIGURADOS
 -----------------------------
 ${Object.entries(PERMISSOES.niveis).map(([key, nivel]) => 
-    `• ${nivel.nome} (${key}): Nível ${nivel.nivel}, ${nivel.permissoes.length} permissões`
+    `• ${nivel.nome} (${key}): Nível ${nivel.nivel}, ${nivel.permissoes.length} permissões, ${nivel.restricoes.length} restrições`
 ).join('\n')}
 
 CONFIGURAÇÃO DE ARMAZENAMENTO
 -----------------------------
 • Servidor: JSONBin.io
 • Bin ID: ${JSONBIN_CONFIG.BIN_ID}
+• URL Base: ${JSONBIN_CONFIG.BASE_URL}
 • Status: ${navigator.onLine ? 'Online' : 'Offline'}
 
 CONFIGURAÇÕES DE APLICAÇÃO
 --------------------------
 • Expiração de Sessão: ${APP_CONFIG.appSettings.sessaoExpiracaoHoras} horas
 • Atualização Automática: ${APP_CONFIG.appSettings.atualizacaoAutomaticaMinutos} minutos
+• Sincronização Automática: ${APP_CONFIG.appSettings.sincronizacaoAutomatica ? 'Ativa' : 'Inativa'}
 • Notificações: ${APP_CONFIG.appSettings.notificacoesAtivas ? 'Ativas' : 'Inativas'}
 • Logs de Atividade: ${APP_CONFIG.appSettings.manterLogs ? 'Ativos' : 'Inativos'}
 • Criação de Usuários: ${APP_CONFIG.appSettings.permitirCriarUsuarios ? 'Permitida' : 'Restrita'}
+• Tema Padrão: ${APP_CONFIG.appSettings.temaPadrao}
 
 ESTATÍSTICAS DE USO
 -------------------
 • Último Acesso: ${localStorage.getItem('gestao_equipamentos_ultimo_acesso') ? 
     APP_UTILS.formatarDataHora(localStorage.getItem('gestao_equipamentos_ultimo_acesso')) : 'N/A'}
-• Total de Logs: ${getLogsAtividades().length}
+• Total de Logs de Atividade: ${getLogsAtividades().length}
+• Total de Logs de Auditoria: ${getLogsAuditoria().length}
 • Filtros Salvos: ${localStorage.getItem('gestao_equipamentos_filtros') ? 'Sim' : 'Não'}
 • Tema Preferido: ${localStorage.getItem('gestao_equipamentos_tema') || 'claro'}
+• Usuários no Cache: ${localStorage.getItem('gestao_equipamentos_usuarios') ? 
+    Object.keys(JSON.parse(localStorage.getItem('gestao_equipamentos_usuarios'))).length : 0}
+
+INFORMAÇÕES DO NAVEGADOR
+------------------------
+• User Agent: ${navigator.userAgent}
+• Plataforma: ${navigator.platform}
+• Idioma: ${navigator.language}
+• Online: ${navigator.onLine ? 'Sim' : 'Não'}
+• Cookies Habilitados: ${navigator.cookieEnabled ? 'Sim' : 'Não'}
 
 `;
     
@@ -1228,6 +2048,9 @@ function mostrarInfoSistema() {
                     <button onclick="copiarInformacoesSistema()" class="btn-secondary">
                         <i class="fas fa-copy"></i> Copiar Informações
                     </button>
+                    <button onclick="exportarConfiguracoes()" class="btn-secondary">
+                        <i class="fas fa-download"></i> Exportar Configurações
+                    </button>
                     <button onclick="this.closest('.modal').remove()" class="btn-primary">
                         <i class="fas fa-times"></i> Fechar
                     </button>
@@ -1257,12 +2080,22 @@ function copiarInformacoesSistema() {
         registrarAtividade('COPY_SYSTEM_INFO', 'Copiou informações do sistema');
     }).catch(err => {
         console.error('Erro ao copiar:', err);
-        alert('Erro ao copiar informações.');
+        
+        // Fallback para área de transferência antiga
+        const textArea = document.createElement('textarea');
+        textArea.value = info;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Informações copiadas para a área de transferência!');
     });
 }
 
 // Inicializar configurações padrão
 function inicializarConfiguracoes() {
+    console.log('Inicializando configurações do sistema...');
+    
     // Configuração de filtros
     if (!localStorage.getItem('gestao_equipamentos_filtros')) {
         localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify({
@@ -1276,7 +2109,7 @@ function inicializarConfiguracoes() {
     
     // Configuração de tema
     if (!localStorage.getItem('gestao_equipamentos_tema')) {
-        localStorage.setItem('gestao_equipamentos_tema', 'claro');
+        localStorage.setItem('gestao_equipamentos_tema', APP_CONFIG.appSettings.temaPadrao);
     }
     
     // Inicializar logs se não existirem
@@ -1297,6 +2130,8 @@ function inicializarConfiguracoes() {
     // Aplicar tema
     const tema = localStorage.getItem('gestao_equipamentos_tema');
     document.documentElement.setAttribute('data-tema', tema);
+    
+    console.log('Configurações inicializadas com sucesso');
 }
 
 // Função para alternar tema
@@ -1307,7 +2142,8 @@ function alternarTema() {
     localStorage.setItem('gestao_equipamentos_tema', novoTema);
     document.documentElement.setAttribute('data-tema', novoTema);
     
-    registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
+    // Registrar log
+    registrarLogAuditoria('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
     
     return novoTema;
 }
@@ -1344,7 +2180,10 @@ function getUsuariosDisponiveis() {
                 nivelNome: PERMISSOES.getNomeNivel(info.nivel),
                 dataCriacao: info.dataCriacao,
                 criadoPor: info.criadoPor,
-                ativo: info.ativo !== false
+                ativo: info.ativo !== false,
+                ultimoAcesso: info.ultimoAcesso,
+                dataAtualizacao: info.dataAtualizacao,
+                atualizadoPor: info.atualizadoPor
             }));
         }
     } catch (e) {
@@ -1362,11 +2201,78 @@ function getUsuariosDisponiveis() {
     }));
 }
 
+// Função para obter estatísticas do sistema
+function getEstatisticasSistema() {
+    try {
+        // Tentar carregar dados do JSONBin via localStorage
+        const dadosSalvos = localStorage.getItem('gestao_equipamentos_dados');
+        let totalEquipamentos = 0;
+        let totalPendencias = 0;
+        let totalUsuarios = 0;
+        
+        if (dadosSalvos) {
+            const dados = JSON.parse(dadosSalvos);
+            totalEquipamentos = dados.equipamentos?.length || 0;
+            totalUsuarios = Object.keys(dados.usuarios || {}).length || 0;
+            
+            // Calcular total de pendências
+            if (dados.equipamentos) {
+                dados.equipamentos.forEach(equipamento => {
+                    totalPendencias += equipamento.pendencias?.length || 0;
+                });
+            }
+        }
+        
+        // Estatísticas de logs
+        const logsAtividades = getLogsAtividades(1000).length;
+        const logsAuditoria = getLogsAuditoria().length;
+        
+        // Informações de armazenamento
+        const tamanhoLocalStorage = JSON.stringify(localStorage).length;
+        const tamanhoFormatado = APP_UTILS.formatarBytes(tamanhoLocalStorage);
+        
+        // Tempo de atividade
+        const primeiroLog = getLogsAtividades(1)[0];
+        const diasAtividade = primeiroLog ? 
+            APP_UTILS.diferencaDias(primeiroLog.timestamp) || 0 : 0;
+        
+        return {
+            equipamentos: totalEquipamentos,
+            pendencias: totalPendencias,
+            usuarios: totalUsuarios,
+            logsAtividades: logsAtividades,
+            logsAuditoria: logsAuditoria,
+            armazenamento: tamanhoFormatado,
+            diasAtividade: diasAtividade,
+            online: navigator.onLine,
+            versao: APP_CONFIG.versao,
+            dataGeracao: new Date().toISOString()
+        };
+        
+    } catch (error) {
+        console.error('Erro ao obter estatísticas:', error);
+        return {
+            equipamentos: 0,
+            pendencias: 0,
+            usuarios: 0,
+            logsAtividades: 0,
+            logsAuditoria: 0,
+            armazenamento: '0 Bytes',
+            diasAtividade: 0,
+            online: navigator.onLine,
+            versao: APP_CONFIG.versao,
+            dataGeracao: new Date().toISOString(),
+            erro: error.message
+        };
+    }
+}
+
 // ===========================================
 // EXPORTAÇÃO PARA USO GLOBAL
 // ===========================================
 
 if (typeof window !== 'undefined') {
+    // Configurações principais
     window.APP_CONFIG = APP_CONFIG;
     window.JSONBIN_CONFIG = JSONBIN_CONFIG;
     window.INITIAL_DATA = INITIAL_DATA;
@@ -1391,14 +2297,16 @@ if (typeof window !== 'undefined') {
     window.temPermissao = temPermissao;
     window.podeExecutar = podeExecutar;
     window.getUsuariosDisponiveis = getUsuariosDisponiveis;
+    window.getEstatisticasSistema = getEstatisticasSistema;
     
     // Sistema de logs de auditoria
     window.registrarLogAuditoria = registrarLogAuditoria;
     window.getLogsAuditoria = getLogsAuditoria;
     window.exportarLogsAuditoria = exportarLogsAuditoria;
     window.visualizarLogsAuditoria = visualizarLogsAuditoria;
-    window.filtrarLogsPorUsuario = filtrarLogsPorUsuario;
-    window.filtrarLogsPorAcao = filtrarLogsPorAcao;
+    
+    // Funções utilitárias adicionais
+    window.gerarIdUnico = gerarIdUnico;
 }
 
 // Exportar para módulos (se usando Node.js/CommonJS)
@@ -1427,11 +2335,14 @@ if (typeof module !== 'undefined' && module.exports) {
         temPermissao,
         podeExecutar,
         getUsuariosDisponiveis,
+        getEstatisticasSistema,
         // Sistema de logs de auditoria
         registrarLogAuditoria,
         getLogsAuditoria,
         exportarLogsAuditoria,
-        visualizarLogsAuditoria
+        visualizarLogsAuditoria,
+        // Funções utilitárias
+        gerarIdUnico
     };
 }
 
@@ -1446,5 +2357,13 @@ if (typeof window !== 'undefined' && document.readyState === 'loading') {
 setTimeout(() => {
     if (typeof window !== 'undefined') {
         registrarAtividade('SISTEMA_INICIADO', 'Sistema de gestão de equipamentos carregado');
+        console.log(`
+        ===========================================
+        SISTEMA DE GESTÃO DE EQUIPAMENTOS
+        Versão: ${APP_CONFIG.versao}
+        Desenvolvido por: ${APP_CONFIG.desenvolvedor}
+        Ano: ${APP_CONFIG.ano}
+        ===========================================
+        `);
     }
 }, 1000);
