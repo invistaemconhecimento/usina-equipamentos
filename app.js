@@ -1724,6 +1724,11 @@ class EquipamentosApp {
         }
     }
     
+   // ===========================================
+// ADICIONE ESTE CÓDIGO NO FINAL DO app.js
+// (Após o trecho incompleto da função verDetalhesEquipamento)
+// ===========================================
+
     verDetalhesEquipamento(id) {
         const equipamento = this.equipamentos.find(e => e.id === id);
         if (!equipamento) return;
@@ -1736,4 +1741,320 @@ class EquipamentosApp {
         document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo}`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         
-        const setor
+        const setorInfo = APP_CONFIG.setores[equipamento.setor] || { nome: equipamento.setor };
+        document.getElementById('detalhes-setor').textContent = setorInfo.nome;
+        
+        document.getElementById('detalhes-inspecao').textContent = equipamento.ultimaInspecao ? 
+            this.formatarData(equipamento.ultimaInspecao) : 'Não registrada';
+        
+        // Informações de criação
+        const criadoPor = equipamento.criadoPor ? 
+            `Criado por ${equipamento.criadoPor} em ${this.formatarData(equipamento.dataCriacao)}` : 
+            'Data de criação não disponível';
+        document.getElementById('detalhes-criacao').innerHTML = `<small><i class="fas fa-info-circle"></i> ${criadoPor}</small>`;
+        
+        // Atualizar status
+        const statusInfo = APP_CONFIG.statusEquipamento[equipamento.status] || { nome: equipamento.status, cor: '#95a5a6' };
+        const statusElement = document.getElementById('detalhes-status');
+        statusElement.textContent = statusInfo.nome;
+        statusElement.className = `status-chip ${equipamento.status}`;
+        statusElement.style.backgroundColor = statusInfo.cor;
+        
+        // Renderizar pendencias
+        this.renderizarPendenciasDetalhes(equipamento.pendencias);
+        
+        // Abrir modal
+        this.modals.detalhes.classList.add('active');
+    }
+    
+    renderizarPendenciasDetalhes(pendencias) {
+        const container = document.getElementById('detalhes-pendencias');
+        
+        if (!pendencias || pendencias.length === 0) {
+            container.innerHTML = `
+                <div class="no-pendencias">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Nenhuma pendência registrada para este equipamento</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = pendencias.map(pendencia => {
+            const prioridadeInfo = APP_CONFIG.prioridades[pendencia.prioridade] || { nome: pendencia.prioridade, cor: '#95a5a6' };
+            const statusInfo = APP_CONFIG.statusPendencia[pendencia.status] || { nome: pendencia.status, cor: '#95a5a6' };
+            
+            return `
+                <div class="pendencia-detalhes ${pendencia.prioridade}">
+                    <div class="pendencia-header">
+                        <h5>${pendencia.titulo}</h5>
+                        <div class="pendencia-status ${pendencia.status}">
+                            ${statusInfo.nome}
+                        </div>
+                    </div>
+                    <p class="pendencia-descricao">${pendencia.descricao}</p>
+                    <div class="pendencia-metadata">
+                        <div><i class="fas fa-user"></i> Responsável: ${pendencia.responsavel}</div>
+                        <div><i class="fas fa-calendar"></i> Data: ${this.formatarData(pendencia.data)}</div>
+                        <div><i class="fas fa-exclamation-circle" style="color: ${prioridadeInfo.cor}"></i> 
+                            Prioridade: ${prioridadeInfo.nome}
+                        </div>
+                        <div><i class="fas fa-user-clock"></i> Criado por: ${pendencia.criadoPor || 'Sistema'}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    exportarDadosExcel() {
+        // Verificar permissão
+        if (!this.verificarPermissao('exportar_dados')) {
+            this.mostrarMensagem('Você não tem permissão para exportar dados', 'error');
+            return;
+        }
+        
+        try {
+            let csv = 'Código,Nome,Descrição,Setor,Status,Última Inspeção,Pendências Ativas\n';
+            
+            this.equipamentos.forEach(equipamento => {
+                const pendenciasAtivas = equipamento.pendencias.filter(p => 
+                    p.status === 'aberta' || p.status === 'em-andamento'
+                ).length;
+                
+                csv += `"${equipamento.codigo}","${equipamento.nome}","${equipamento.descricao}",`;
+                csv += `"${APP_CONFIG.setores[equipamento.setor]?.nome || equipamento.setor}","${equipamento.status}",`;
+                csv += `"${equipamento.ultimaInspecao || 'N/A'}","${pendenciasAtivas}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const dataAtual = new Date().toISOString().split('T')[0];
+            
+            link.href = URL.createObjectURL(blob);
+            link.download = `equipamentos_${dataAtual}_${this.usuarioAtual}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            
+            this.mostrarMensagem('Dados exportados com sucesso', 'success');
+            
+            // Registrar log
+            if (window.registrarLogAuditoria) {
+                window.registrarLogAuditoria('EXPORTAR_DADOS', 'Exportou dados para CSV');
+            }
+        } catch (error) {
+            console.error('Erro ao exportar dados:', error);
+            this.mostrarMensagem('Erro ao exportar dados', 'error');
+        }
+    }
+    
+    async sincronizarDados() {
+        if (this.sincronizando) return;
+        
+        this.sincronizando = true;
+        this.mostrarMensagem('Sincronizando dados...', 'info');
+        
+        try {
+            // Se offline, apenas salvar localmente
+            if (this.offlineMode) {
+                this.salvarDadosLocais();
+                this.mostrarMensagem('Modo offline: dados salvos localmente', 'warning');
+                return;
+            }
+            
+            // Sincronizar com o servidor
+            const salvou = await this.salvarDados();
+            
+            if (salvou) {
+                this.mostrarMensagem('Dados sincronizados com sucesso', 'success');
+                
+                // Registrar log
+                if (window.registrarLogAuditoria) {
+                    window.registrarLogAuditoria('SINCRONIZAR_DADOS', 'Sincronizou dados com o servidor');
+                }
+            }
+        } catch (error) {
+            console.error('Erro na sincronização:', error);
+            this.mostrarMensagem('Erro ao sincronizar dados', 'error');
+        } finally {
+            this.sincronizando = false;
+        }
+    }
+    
+    sincronizarUsuariosEmBackground() {
+        if (!this.verificarPermissao('gerenciar_usuarios') || this.offlineMode) {
+            return;
+        }
+        
+        console.log('Sincronizando usuários em background...');
+    }
+    
+    fecharModal(modal) {
+        modal.classList.remove('active');
+    }
+    
+    fecharTodosModais() {
+        Object.values(this.modals).forEach(modal => {
+            modal.classList.remove('active');
+        });
+    }
+    
+    mostrarLoading(mostrar) {
+        const loadingElement = document.querySelector('.loading');
+        if (loadingElement) {
+            if (mostrar) {
+                loadingElement.style.display = 'flex';
+            } else {
+                loadingElement.style.display = 'none';
+            }
+        }
+    }
+    
+    mostrarMensagem(texto, tipo = 'info') {
+        // Remover mensagens anteriores
+        const mensagensAntigas = document.querySelectorAll('.mensagem-flutuante');
+        mensagensAntigas.forEach(msg => msg.remove());
+        
+        const cores = {
+            success: '#2ecc71',
+            error: '#e74c3c',
+            warning: '#f39c12',
+            info: '#3498db'
+        };
+        
+        const icones = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+        
+        const mensagem = document.createElement('div');
+        mensagem.className = `mensagem-flutuante ${tipo}`;
+        mensagem.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${cores[tipo] || '#3498db'};
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 300px;
+            max-width: 500px;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease-out;
+        `;
+        
+        mensagem.innerHTML = `
+            <i class="${icones[tipo] || 'fas fa-info-circle'}"></i>
+            <span>${texto}</span>
+        `;
+        
+        document.body.appendChild(mensagem);
+        
+        // Animar entrada
+        setTimeout(() => {
+            mensagem.style.transform = 'translateX(0)';
+            mensagem.style.opacity = '1';
+        }, 10);
+        
+        // Remover após 5 segundos
+        setTimeout(() => {
+            mensagem.style.transform = 'translateX(100%)';
+            mensagem.style.opacity = '0';
+            
+            setTimeout(() => {
+                if (mensagem.parentNode) {
+                    mensagem.remove();
+                }
+            }, 300);
+        }, 5000);
+    }
+    
+    atualizarEstadoBotaoPendencia() {
+        const btnPendencia = document.getElementById('add-pendencia');
+        if (!btnPendencia) return;
+        
+        if (this.equipamentos.length === 0) {
+            btnPendencia.disabled = true;
+            btnPendencia.title = 'Crie um equipamento primeiro';
+        } else if (!this.verificarPermissao('criar_pendencias')) {
+            btnPendencia.disabled = true;
+            btnPendencia.title = 'Você não tem permissão para criar pendências';
+        } else {
+            btnPendencia.disabled = false;
+            btnPendencia.title = 'Adicionar nova pendência';
+        }
+    }
+    
+    configurarAtualizacoes() {
+        // Atualizar estatísticas periodicamente
+        setInterval(() => {
+            this.atualizarEstatisticas();
+        }, 60000); // A cada minuto
+        
+        // Sincronização automática se online
+        if (APP_CONFIG.appSettings.sincronizacaoAutomatica) {
+            setInterval(() => {
+                if (navigator.onLine && !this.sincronizando) {
+                    this.sincronizarDados();
+                }
+            }, APP_CONFIG.appSettings.sincronizacaoForcadaIntervalo * 60 * 1000);
+        }
+    }
+    
+    formatarData(dataString, incluirHora = false) {
+        if (!dataString) return 'Não informada';
+        
+        try {
+            const data = new Date(dataString);
+            if (isNaN(data.getTime())) return dataString;
+            
+            if (incluirHora) {
+                return data.toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } else {
+                return data.toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            }
+        } catch (e) {
+            console.warn('Erro ao formatar data:', dataString, e);
+            return dataString;
+        }
+    }
+}
+
+// ===========================================
+// INICIALIZAÇÃO DA APLICAÇÃO
+// ===========================================
+
+// Criar instância global da aplicação
+let app;
+
+// Inicializar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        console.log('DOM carregado, inicializando aplicação...');
+        app = new EquipamentosApp();
+        window.app = app; // Torna acessível globalmente
+        
+        // Salvar referência para uso no console
+        console.log('Aplicação inicializada. Use "app" no console para acessar.');
+    } catch (error) {
+        console.error('Erro crítico ao inicializar a aplicação:', error);
+        alert('Erro ao inicializar o sistema. Por favor, recarregue a página.');
+    }
+});
