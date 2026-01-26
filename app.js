@@ -1,5 +1,5 @@
 // ===========================================
-// SISTEMA DE GESTÃO DE EQUIPAMENTOS COM PERMISSÕES
+// SISTEMA DE GESTÃO DE EQUIPAMENTOS COM USUÁRIOS SINCRONIZADOS
 // ===========================================
 
 class EquipamentosApp {
@@ -18,13 +18,20 @@ class EquipamentosApp {
         this.usuarioAtual = null;
         this.nivelUsuario = null;
         this.gerenciadorUsuarios = null;
+        this.sincronizando = false;
+        this.ultimaSincronizacao = null;
+        this.searchTimeout = null;
+        this.offlineMode = false;
         
         this.init();
     }
     
     async init() {
+        console.log('Inicializando Sistema de Gestão de Equipamentos...');
+        
         // 1. Verificar sessão
         if (!this.verificarSessao()) {
+            console.log('Sessão inválida ou expirada');
             return;
         }
         
@@ -41,19 +48,26 @@ class EquipamentosApp {
         this.initModals();
         this.initEvents();
         
-        // 6. Inicializar gerenciador de usuários
-        this.inicializarGerenciadorUsuarios();
+        // 6. Inicializar gerenciador de usuários (se admin)
+        if (this.nivelUsuario === 'administrador') {
+            this.inicializarGerenciadorUsuarios();
+        }
         
-        // 7. Carregar dados
+        // 7. Verificar conexão
+        this.verificarConexao();
+        
+        // 8. Carregar dados
         await this.carregarDados();
         
-        // 8. Inicializar interface
+        // 9. Inicializar interface
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
         this.atualizarStatusSincronizacao(true);
         
-        // 9. Configurar atualizações automáticas
+        // 10. Configurar atualizações automáticas
         this.configurarAtualizacoes();
+        
+        console.log('Sistema inicializado com sucesso');
     }
     
     // ================== SISTEMA DE SESSÃO E PERMISSÕES ==================
@@ -62,6 +76,7 @@ class EquipamentosApp {
         const sessao = localStorage.getItem('gestao_equipamentos_sessao');
         
         if (!sessao) {
+            console.warn('Nenhuma sessão encontrada, redirecionando para login');
             window.location.href = 'login.html';
             return false;
         }
@@ -72,6 +87,7 @@ class EquipamentosApp {
             
             // Verificar expiração
             if (agora > sessaoData.expira) {
+                console.warn('Sessão expirada');
                 localStorage.removeItem('gestao_equipamentos_sessao');
                 localStorage.removeItem('gestao_equipamentos_usuario');
                 localStorage.removeItem('gestao_equipamentos_nivel');
@@ -83,6 +99,7 @@ class EquipamentosApp {
             sessaoData.expira = agora + (8 * 60 * 60 * 1000);
             localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessaoData));
             
+            console.log('Sessão válida, usuário:', sessaoData.usuario);
             return true;
         } catch (e) {
             console.error('Erro ao verificar sessão:', e);
@@ -98,6 +115,8 @@ class EquipamentosApp {
         this.usuarioAtual = localStorage.getItem('gestao_equipamentos_usuario');
         this.nivelUsuario = localStorage.getItem('gestao_equipamentos_nivel');
         
+        console.log('Usuário carregado:', this.usuarioAtual, 'Nível:', this.nivelUsuario);
+        
         // Atualizar display do usuário
         this.atualizarDisplayUsuario();
         
@@ -106,6 +125,8 @@ class EquipamentosApp {
     }
     
     registrarLogin() {
+        console.log('Registrando login do usuário:', this.usuarioAtual);
+        
         // Registrar atividade de login
         if (window.registrarAtividade) {
             window.registrarAtividade('LOGIN', `Usuário ${this.usuarioAtual} (${this.getNomeNivel()}) acessou o sistema`);
@@ -121,6 +142,30 @@ class EquipamentosApp {
         
         // Atualizar último acesso
         localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
+        
+        // Atualizar último acesso no gerenciador de usuários
+        this.atualizarUltimoAcessoUsuario();
+    }
+    
+    async atualizarUltimoAcessoUsuario() {
+        try {
+            // Carregar usuários do localStorage
+            const usuariosSalvos = localStorage.getItem('gestao_equipamentos_usuarios');
+            if (usuariosSalvos) {
+                const usuarios = JSON.parse(usuariosSalvos);
+                if (usuarios[this.usuarioAtual]) {
+                    usuarios[this.usuarioAtual].ultimoAcesso = new Date().toISOString();
+                    localStorage.setItem('gestao_equipamentos_usuarios', JSON.stringify(usuarios));
+                    
+                    // Se estiver online, tentar sincronizar
+                    if (navigator.onLine) {
+                        setTimeout(() => this.sincronizarUsuariosEmBackground(), 0);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Erro ao atualizar último acesso:', error);
+        }
     }
     
     // ================== INICIALIZAÇÃO DO GERENCIADOR DE USUÁRIOS ==================
@@ -129,6 +174,13 @@ class EquipamentosApp {
         if (typeof GerenciadorUsuarios !== 'undefined') {
             this.gerenciadorUsuarios = new GerenciadorUsuarios();
             console.log('Gerenciador de usuários inicializado');
+            
+            // Carregar usuários em background
+            setTimeout(() => {
+                this.gerenciadorUsuarios.carregarUsuarios().then(() => {
+                    console.log('Usuários carregados para gerenciamento');
+                });
+            }, 1000);
         }
     }
     
@@ -136,16 +188,19 @@ class EquipamentosApp {
     
     verificarPermissao(permissao) {
         if (!this.nivelUsuario || !window.PERMISSOES) {
+            console.warn('Permissões não disponíveis para verificação');
             return false;
         }
         
         // Permissões básicas que todos têm
-        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes'];
+        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes', 'filtrar_equipamentos'];
         if (permissoesBasicas.includes(permissao)) {
             return true;
         }
         
-        return window.PERMISSOES.verificarPermissao(this.nivelUsuario, permissao);
+        const temPermissao = window.PERMISSOES.verificarPermissao(this.nivelUsuario, permissao);
+        console.log(`Verificando permissão ${permissao} para ${this.nivelUsuario}: ${temPermissao}`);
+        return temPermissao;
     }
     
     podeExecutar(acao, recurso, donoRecurso = null) {
@@ -153,7 +208,9 @@ class EquipamentosApp {
             return false;
         }
         
-        return window.podeExecutar(acao, recurso, donoRecurso);
+        const pode = window.podeExecutar(acao, recurso, donoRecurso);
+        console.log(`Pode executar ${acao} em ${recurso} (dono: ${donoRecurso}): ${pode}`);
+        return pode;
     }
     
     getNomeNivel() {
@@ -226,17 +283,20 @@ class EquipamentosApp {
             letter-spacing: 1px;
             opacity: 0.9;
             transition: opacity 0.3s;
+            cursor: help;
         `;
         indicador.textContent = nomeNivel;
-        indicador.title = `Nível de acesso: ${nomeNivel}`;
+        indicador.title = `Nível de acesso: ${nomeNivel}\nUsuário: ${this.usuarioAtual}`;
         
         // Adicionar hover effect
         indicador.addEventListener('mouseenter', () => {
             indicador.style.opacity = '1';
+            indicador.style.transform = 'scale(1.05)';
         });
         
         indicador.addEventListener('mouseleave', () => {
             indicador.style.opacity = '0.9';
+            indicador.style.transform = 'scale(1)';
         });
         
         document.body.appendChild(indicador);
@@ -244,6 +304,7 @@ class EquipamentosApp {
     
     configurarInterfacePorPermissao() {
         const nivel = this.nivelUsuario;
+        console.log('Configurando interface para nível:', nivel);
         
         // Botões por nível
         const addEquipamentoBtn = document.getElementById('add-equipamento');
@@ -254,66 +315,87 @@ class EquipamentosApp {
         const addPendenciaBtn = document.getElementById('add-pendencia');
         const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
         
+        // Resetar todos os botões primeiro
+        [addEquipamentoBtn, exportDataBtn, viewLogsBtn, systemInfoBtn, exportConfigBtn, addPendenciaBtn, gerenciarUsuariosBtn].forEach(btn => {
+            if (btn) {
+                btn.style.display = 'none';
+                btn.disabled = true;
+            }
+        });
+        
         // Visitante - apenas visualização
         if (nivel === 'visitante') {
-            if (addEquipamentoBtn) addEquipamentoBtn.style.display = 'none';
-            if (exportDataBtn) exportDataBtn.style.display = 'none';
-            if (viewLogsBtn) viewLogsBtn.style.display = 'none';
-            if (systemInfoBtn) systemInfoBtn.style.display = 'none';
-            if (exportConfigBtn) exportConfigBtn.style.display = 'none';
-            if (addPendenciaBtn) addPendenciaBtn.style.display = 'none';
-            if (gerenciarUsuariosBtn) gerenciarUsuariosBtn.style.display = 'none';
+            console.log('Configurando interface para visitante');
+            // Visitante não vê botões de ação
         }
         
         // Operador - pode criar, editar, excluir, exportar
         if (nivel === 'operador') {
-            if (addEquipamentoBtn) {
+            console.log('Configurando interface para operador');
+            
+            if (addEquipamentoBtn && this.verificarPermissao('criar_equipamentos')) {
                 addEquipamentoBtn.style.display = 'flex';
+                addEquipamentoBtn.disabled = false;
                 addEquipamentoBtn.title = 'Adicionar novo equipamento';
             }
-            if (exportDataBtn) {
+            
+            if (exportDataBtn && this.verificarPermissao('exportar_dados')) {
                 exportDataBtn.style.display = 'flex';
+                exportDataBtn.disabled = false;
                 exportDataBtn.title = 'Exportar dados para Excel';
             }
-            if (viewLogsBtn) viewLogsBtn.style.display = 'none';
-            if (systemInfoBtn) systemInfoBtn.style.display = 'none';
-            if (exportConfigBtn) exportConfigBtn.style.display = 'none';
-            if (addPendenciaBtn) {
+            
+            if (addPendenciaBtn && this.verificarPermissao('criar_pendencias')) {
                 addPendenciaBtn.style.display = 'flex';
+                addPendenciaBtn.disabled = false;
                 addPendenciaBtn.title = 'Adicionar nova pendência';
             }
-            if (gerenciarUsuariosBtn) gerenciarUsuariosBtn.style.display = 'none';
         }
         
         // Administrador - tudo
         if (nivel === 'administrador') {
-            if (addEquipamentoBtn) {
+            console.log('Configurando interface para administrador');
+            
+            if (addEquipamentoBtn && this.verificarPermissao('criar_equipamentos')) {
                 addEquipamentoBtn.style.display = 'flex';
+                addEquipamentoBtn.disabled = false;
                 addEquipamentoBtn.title = 'Adicionar novo equipamento';
             }
-            if (exportDataBtn) {
+            
+            if (exportDataBtn && this.verificarPermissao('exportar_dados')) {
                 exportDataBtn.style.display = 'flex';
+                exportDataBtn.disabled = false;
                 exportDataBtn.title = 'Exportar dados para Excel';
             }
-            if (viewLogsBtn) {
+            
+            if (viewLogsBtn && this.verificarPermissao('visualizar_logs')) {
                 viewLogsBtn.style.display = 'flex';
+                viewLogsBtn.disabled = false;
                 viewLogsBtn.title = 'Visualizar logs de auditoria';
             }
-            if (systemInfoBtn) {
+            
+            if (systemInfoBtn && this.verificarPermissao('configurar_sistema')) {
                 systemInfoBtn.style.display = 'flex';
+                systemInfoBtn.disabled = false;
                 systemInfoBtn.title = 'Informações do sistema';
             }
-            if (exportConfigBtn) {
+            
+            if (exportConfigBtn && this.verificarPermissao('configurar_sistema')) {
                 exportConfigBtn.style.display = 'flex';
+                exportConfigBtn.disabled = false;
                 exportConfigBtn.title = 'Exportar configurações';
             }
-            if (addPendenciaBtn) {
+            
+            if (addPendenciaBtn && this.verificarPermissao('criar_pendencias')) {
                 addPendenciaBtn.style.display = 'flex';
+                addPendenciaBtn.disabled = false;
                 addPendenciaBtn.title = 'Adicionar nova pendência';
             }
+            
             // Botão de gerenciar usuários
-            if (gerenciarUsuariosBtn) {
+            if (gerenciarUsuariosBtn && this.verificarPermissao('gerenciar_usuarios')) {
                 gerenciarUsuariosBtn.style.display = 'flex';
+                gerenciarUsuariosBtn.disabled = false;
                 gerenciarUsuariosBtn.title = 'Gerenciar usuários do sistema';
             } else {
                 // Criar botão se não existir
@@ -323,29 +405,32 @@ class EquipamentosApp {
         
         // Adicionar badge de nível no cabeçalho
         this.adicionarBadgeNivel();
+        
+        // Atualizar estado do botão de pendência
+        this.atualizarEstadoBotaoPendencia();
     }
     
     criarBotaoGerenciarUsuarios() {
-        const actionsContainer = document.querySelector('.actions');
-        if (!actionsContainer) return;
-        
-        // Verificar se o botão já existe
+        // Verificar se já existe
         if (document.getElementById('gerenciar-usuarios-btn')) {
             return;
         }
         
+        const actionsContainer = document.querySelector('.actions');
+        if (!actionsContainer) return;
+        
+        // Criar botão
         const botaoHtml = `
-            <button id="gerenciar-usuarios-btn" class="btn-secondary">
+            <button id="gerenciar-usuarios-btn" class="btn-secondary" title="Gerenciar usuários do sistema">
                 <i class="fas fa-users-cog"></i> Gerenciar Usuários
             </button>
         `;
         
-        // Inserir antes do botão de exportar configurações
+        // Inserir na posição correta
         const exportConfigBtn = actionsContainer.querySelector('#export-config');
         if (exportConfigBtn) {
             exportConfigBtn.insertAdjacentHTML('beforebegin', botaoHtml);
         } else {
-            // Inserir após o botão de visualizar logs se existir
             const viewLogsBtn = actionsContainer.querySelector('#view-logs');
             if (viewLogsBtn) {
                 viewLogsBtn.insertAdjacentHTML('afterend', botaoHtml);
@@ -358,22 +443,24 @@ class EquipamentosApp {
         const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
         if (gerenciarUsuariosBtn) {
             gerenciarUsuariosBtn.addEventListener('click', () => {
-                if (window.abrirGerenciadorUsuarios) {
-                    window.abrirGerenciadorUsuarios();
-                } else if (this.gerenciadorUsuarios) {
-                    this.abrirGerenciadorUsuarios();
-                } else {
-                    this.mostrarMensagem('Módulo de gerenciamento de usuários não carregado', 'error');
-                }
+                this.abrirGerenciadorUsuarios();
             });
         }
     }
     
     abrirGerenciadorUsuarios() {
+        if (!this.verificarPermissao('gerenciar_usuarios')) {
+            this.mostrarMensagem('Você não tem permissão para gerenciar usuários', 'error');
+            return;
+        }
+        
         if (window.abrirGerenciadorUsuarios) {
             window.abrirGerenciadorUsuarios();
+        } else if (this.gerenciadorUsuarios) {
+            // Usar implementação local se disponível
+            this.mostrarMensagem('Funcionalidade em desenvolvimento', 'info');
         } else {
-            this.mostrarMensagem('Função de gerenciamento de usuários não disponível', 'error');
+            this.mostrarMensagem('Módulo de gerenciamento de usuários não carregado', 'error');
         }
     }
     
@@ -399,17 +486,49 @@ class EquipamentosApp {
                 margin-left: 8px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                cursor: help;
             `;
             badge.textContent = this.getNomeNivel().substring(0, 3);
-            badge.title = `Nível: ${this.getNomeNivel()}`;
+            badge.title = `Nível: ${this.getNomeNivel()}\nUsuário: ${this.usuarioAtual}`;
             
             userInfo.appendChild(badge);
         }
     }
     
+    // ================== VERIFICAÇÃO DE CONEXÃO ==================
+    
+    verificarConexao() {
+        this.offlineMode = !navigator.onLine;
+        
+        if (this.offlineMode) {
+            console.warn('Modo offline detectado');
+            this.mostrarMensagem('Você está offline. Algumas funcionalidades podem estar limitadas.', 'warning');
+        }
+        
+        // Configurar listeners para mudanças de conexão
+        window.addEventListener('online', () => {
+            console.log('Conexão restabelecida');
+            this.offlineMode = false;
+            this.atualizarStatusSincronizacao(true);
+            this.mostrarMensagem('Conexão restabelecida. Sincronizando dados...', 'success');
+            
+            // Tentar sincronizar automaticamente
+            setTimeout(() => this.sincronizarDados(), 2000);
+        });
+        
+        window.addEventListener('offline', () => {
+            console.warn('Conexão perdida');
+            this.offlineMode = true;
+            this.atualizarStatusSincronizacao(false);
+            this.mostrarMensagem('Conexão perdida. Modo offline ativado.', 'warning');
+        });
+    }
+    
     // ================== FUNÇÕES ORIGINAIS ATUALIZADAS ==================
     
     initModals() {
+        console.log('Inicializando modais...');
+        
         this.modals.equipamento = document.getElementById('equipamento-modal');
         this.modals.pendencia = document.getElementById('pendencia-modal');
         this.modals.detalhes = document.getElementById('detalhes-modal');
@@ -427,9 +546,13 @@ class EquipamentosApp {
                 this.fecharTodosModais();
             }
         });
+        
+        console.log('Modais inicializados:', Object.keys(this.modals));
     }
     
     initEvents() {
+        console.log('Inicializando eventos...');
+        
         // Filtros
         document.getElementById('status-filter').addEventListener('change', (e) => {
             this.filtros.status = e.target.value;
@@ -613,33 +736,46 @@ class EquipamentosApp {
         
         // Botão para excluir equipamento (será adicionado dinamicamente)
         this.setupExcluirEquipamentoEvent();
+        
+        console.log('Eventos inicializados com sucesso');
     }
     
     setupExcluirEquipamentoEvent() {
         // Este evento será configurado dinamicamente quando o botão for criado
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('btn-excluir-equipamento')) {
-                const equipamentoId = parseInt(e.target.dataset.id);
+                const equipamentoId = parseInt(e.target.closest('.btn-excluir-equipamento').dataset.id);
                 this.excluirEquipamento(equipamentoId);
             }
         });
     }
     
     async carregarDados() {
+        console.log('Carregando dados...');
+        this.mostrarLoading(true);
+        
         try {
-            this.mostrarLoading(true);
+            // Verificar se estamos offline
+            if (this.offlineMode) {
+                console.log('Modo offline, carregando do localStorage');
+                await this.carregarDadosLocais();
+                return;
+            }
             
+            // Tentar carregar do servidor
+            console.log('Tentando carregar dados do servidor...');
             const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}/latest`, {
                 headers: JSONBIN_CONFIG.headers
             });
             
             if (!response.ok) {
-                throw new Error('Erro ao carregar dados do servidor');
+                throw new Error(`Erro ao carregar dados do servidor: ${response.status}`);
             }
             
             const result = await response.json();
             
             if (result.record && result.record.equipamentos) {
+                console.log('Dados carregados do servidor com sucesso');
                 this.data = result.record;
                 this.equipamentos = this.data.equipamentos;
                 
@@ -648,33 +784,37 @@ class EquipamentosApp {
                     this.atualizarStatusEquipamentoPorPendencias(index);
                 });
                 
+                // Salvar localmente para cache
+                localStorage.setItem('gestao_equipamentos_dados', JSON.stringify(this.data));
+                
                 // Registrar atividade
                 if (window.registrarAtividade) {
                     window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
                 }
             } else {
-                this.data = INITIAL_DATA;
-                this.equipamentos = INITIAL_DATA.equipamentos;
-                
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
-                }
+                console.warn('Estrutura de dados inválida do servidor, usando dados locais');
+                await this.carregarDadosLocais();
             }
             
             this.atualizarStatusSincronizacao(true);
+            this.ultimaSincronizacao = new Date().toISOString();
             
             // Atualizar última sincronização
-            localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
+            localStorage.setItem('gestao_equipamentos_ultima_sinc', this.ultimaSincronizacao);
+            
+            console.log('Dados carregados com sucesso. Total de equipamentos:', this.equipamentos.length);
             
         } catch (error) {
-            console.error('Erro ao carregar dados:', error);
+            console.error('Erro ao carregar dados do servidor:', error);
             
-            this.data = INITIAL_DATA;
-            this.equipamentos = INITIAL_DATA.equipamentos;
+            // Fallback para dados locais
+            await this.carregarDadosLocais();
             
             this.atualizarStatusSincronizacao(false);
-            this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
+            
+            if (!this.offlineMode) {
+                this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
+            }
             
             // Registrar atividade
             if (window.registrarAtividade) {
@@ -685,10 +825,67 @@ class EquipamentosApp {
         }
     }
     
+    async carregarDadosLocais() {
+        try {
+            // Tentar carregar do localStorage
+            const dadosSalvos = localStorage.getItem('gestao_equipamentos_dados');
+            
+            if (dadosSalvos) {
+                const dados = JSON.parse(dadosSalvos);
+                this.data = dados;
+                this.equipamentos = dados.equipamentos || [];
+                
+                console.log('Dados carregados do localStorage. Equipamentos:', this.equipamentos.length);
+                
+                // Registrar atividade
+                if (window.registrarAtividade) {
+                    window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do cache local`);
+                }
+            } else {
+                // Usar dados iniciais
+                this.data = INITIAL_DATA;
+                this.equipamentos = INITIAL_DATA.equipamentos;
+                
+                console.log('Usando dados iniciais do sistema. Equipamentos:', this.equipamentos.length);
+                
+                // Registrar atividade
+                if (window.registrarAtividade) {
+                    window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
+                }
+            }
+            
+            // Atualizar status baseado nas pendências
+            this.equipamentos.forEach((equipamento, index) => {
+                this.atualizarStatusEquipamentoPorPendencias(index);
+            });
+            
+        } catch (error) {
+            console.error('Erro ao carregar dados locais:', error);
+            
+            // Fallback final para dados iniciais
+            this.data = INITIAL_DATA;
+            this.equipamentos = INITIAL_DATA.equipamentos;
+            
+            // Registrar atividade
+            if (window.registrarAtividade) {
+                window.registrarAtividade('ERRO_CARREGAR', 'Erro crítico ao carregar dados. Usando dados iniciais.');
+            }
+        }
+    }
+    
     async salvarDados() {
+        console.log('Salvando dados...');
+        
+        // Se estiver offline, salvar apenas localmente
+        if (this.offlineMode) {
+            console.log('Modo offline, salvando apenas localmente');
+            return this.salvarDadosLocais();
+        }
+        
         try {
             this.atualizarNextIds();
             
+            console.log('Enviando dados para o servidor...');
             const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}`, {
                 method: 'PUT',
                 headers: JSONBIN_CONFIG.headers,
@@ -696,26 +893,52 @@ class EquipamentosApp {
             });
             
             if (!response.ok) {
-                throw new Error('Erro ao salvar dados');
+                throw new Error(`Erro ao salvar dados: ${response.status}`);
             }
             
+            console.log('Dados salvos no servidor com sucesso');
             this.atualizarStatusSincronizacao(true);
+            this.ultimaSincronizacao = new Date().toISOString();
             
             // Atualizar última sincronização
-            localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
+            localStorage.setItem('gestao_equipamentos_ultima_sinc', this.ultimaSincronizacao);
+            
+            // Salvar localmente também
+            this.salvarDadosLocais();
             
             return true;
         } catch (error) {
-            console.error('Erro ao salvar dados:', error);
+            console.error('Erro ao salvar dados no servidor:', error);
+            
+            // Fallback: salvar localmente
+            const salvouLocal = this.salvarDadosLocais();
+            
             this.atualizarStatusSincronizacao(false);
             
-            this.mostrarMensagem('Erro ao salvar dados no servidor. Alterações podem ser perdidas.', 'error');
+            if (!this.offlineMode) {
+                this.mostrarMensagem('Erro ao salvar dados no servidor. Alterações salvas localmente.', 'error');
+            }
             
             // Registrar atividade
             if (window.registrarAtividade) {
                 window.registrarAtividade('ERRO_SALVAR', `Erro ao salvar dados: ${error.message}`);
             }
             
+            return salvouLocal;
+        }
+    }
+    
+    salvarDadosLocais() {
+        try {
+            this.atualizarNextIds();
+            
+            // Salvar no localStorage
+            localStorage.setItem('gestao_equipamentos_dados', JSON.stringify(this.data));
+            
+            console.log('Dados salvos localmente com sucesso');
+            return true;
+        } catch (error) {
+            console.error('Erro ao salvar dados localmente:', error);
             return false;
         }
     }
@@ -734,6 +957,15 @@ class EquipamentosApp {
             });
         });
         this.data.nextPendenciaId = maxPendenciaId + 1;
+        
+        // Atualizar também nextLogId se necessário
+        if (this.data.logs) {
+            let maxLogId = 0;
+            this.data.logs.forEach(log => {
+                if (log.id > maxLogId) maxLogId = log.id;
+            });
+            this.data.nextLogId = maxLogId + 1;
+        }
     }
     
     resetarFiltros() {
@@ -785,8 +1017,9 @@ class EquipamentosApp {
                 const nomeMatch = equipamento.nome.toLowerCase().includes(busca);
                 const codigoMatch = equipamento.codigo.toLowerCase().includes(busca);
                 const descricaoMatch = equipamento.descricao.toLowerCase().includes(busca);
+                const setorMatch = (APP_CONFIG.setores[equipamento.setor]?.nome || '').toLowerCase().includes(busca);
                 
-                if (!nomeMatch && !codigoMatch && !descricaoMatch) {
+                if (!nomeMatch && !codigoMatch && !descricaoMatch && !setorMatch) {
                     return false;
                 }
             }
@@ -798,6 +1031,8 @@ class EquipamentosApp {
     renderizarEquipamentos() {
         const container = document.getElementById('equipamentos-container');
         const equipamentosFiltrados = this.filtrarEquipamentos();
+        
+        console.log(`Renderizando ${equipamentosFiltrados.length} equipamentos (filtrados de ${this.equipamentos.length} total)`);
         
         // Atualizar contador
         const totalElement = document.getElementById('total-filtrado');
@@ -811,6 +1046,11 @@ class EquipamentosApp {
                     <i class="fas fa-search"></i>
                     <h3>Nenhum equipamento encontrado</h3>
                     <p>Tente ajustar os filtros de busca</p>
+                    ${this.equipamentos.length === 0 ? 
+                        `<button class="btn-primary" onclick="app.abrirModalEquipamento()">
+                            <i class="fas fa-plus"></i> Criar primeiro equipamento
+                        </button>` : ''
+                    }
                 </div>
             `;
             return;
@@ -836,7 +1076,8 @@ class EquipamentosApp {
                 this.formatarData(equipamento.ultimaInspecao) : 
                 'Não registrada';
             
-            const setorFormatado = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
+            const setorInfo = APP_CONFIG.setores[equipamento.setor] || { nome: equipamento.setor };
+            const setorFormatado = setorInfo.nome || equipamento.setor;
             
             // Contar pendencias
             const pendenciasAbertas = equipamento.pendencias.filter(p => p.status === 'aberta').length;
@@ -849,10 +1090,18 @@ class EquipamentosApp {
             // Verificar permissões para ações
             const podeCriarPendencia = this.verificarPermissao('criar_pendencias');
             const podeExcluirEquipamento = this.verificarPermissao('excluir_equipamentos');
+            const podeEditarEquipamento = this.verificarPermissao('editar_equipamentos');
             
             // Informações de criação/edição
-            const criadoPor = equipamento.criadoPor ? `<div class="criado-por"><small><i class="fas fa-user-plus"></i> Criado por: ${equipamento.criadoPor}</small></div>` : '';
-            const editadoPor = equipamento.editadoPor ? `<div class="editado-por"><small><i class="fas fa-user-edit"></i> Editado por: ${equipamento.editadoPor}</small></div>` : '';
+            const criadoPor = equipamento.criadoPor ? 
+                `<div class="criado-por" title="Criado por ${equipamento.criadoPor} em ${this.formatarData(equipamento.dataCriacao)}">
+                    <small><i class="fas fa-user-plus"></i> ${equipamento.criadoPor}</small>
+                </div>` : '';
+            
+            const editadoPor = equipamento.editadoPor ? 
+                `<div class="editado-por" title="Editado por ${equipamento.editadoPor} em ${this.formatarData(equipamento.editadoEm)}">
+                    <small><i class="fas fa-user-edit"></i> ${equipamento.editadoPor}</small>
+                </div>` : '';
             
             return `
                 <div class="${classesCard}" data-id="${equipamento.id}">
@@ -861,17 +1110,20 @@ class EquipamentosApp {
                             <h4>${equipamento.nome}</h4>
                             <div class="equipamento-codigo">${equipamento.codigo}</div>
                         </div>
-                        <div class="status-chip ${equipamento.status}">
-                            ${APP_CONFIG.statusEquipamento[equipamento.status]}
-                            ${temPendenciasCriticasAbertas ? ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>` : ''}
+                        <div class="status-chip ${equipamento.status}" title="${APP_CONFIG.statusEquipamento[equipamento.status]?.descricao || ''}">
+                            ${APP_CONFIG.statusEquipamento[equipamento.status]?.nome || equipamento.status}
+                            ${temPendenciasCriticasAbertas ? 
+                                ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>` : 
+                                ''
+                            }
                         </div>
                     </div>
                     
                     <p class="equipamento-descricao">${equipamento.descricao}</p>
                     
                     <div class="equipamento-metadata">
-                        <div><i class="fas fa-building"></i> ${setorFormatado}</div>
-                        <div><i class="fas fa-calendar"></i> ${dataInspecao}</div>
+                        <div title="${setorFormatado}"><i class="fas fa-building"></i> ${setorFormatado}</div>
+                        <div title="Última inspeção: ${dataInspecao}"><i class="fas fa-calendar"></i> ${dataInspecao}</div>
                     </div>
                     
                     ${criadoPor}
@@ -880,21 +1132,35 @@ class EquipamentosApp {
                     ${equipamento.pendencias.length > 0 ? `
                         <div class="equipamento-pendencias">
                             <strong>Pendências:</strong>
-                            ${pendenciasAbertas > 0 ? `<span class="pendencia-badge aberta">${pendenciasAbertas} Aberta(s)</span>` : ''}
-                            ${pendenciasAndamento > 0 ? `<span class="pendencia-badge em-andamento">${pendenciasAndamento} Em Andamento</span>` : ''}
-                            ${pendenciasResolvidas > 0 ? `<span class="pendencia-badge resolvida">${pendenciasResolvidas} Resolvida(s)</span>` : ''}
-                            ${pendenciasCriticas > 0 ? `<span class="pendencia-badge critica">${pendenciasCriticas} Crítica(s)</span>` : ''}
+                            ${pendenciasAbertas > 0 ? 
+                                `<span class="pendencia-badge aberta" title="${pendenciasAbertas} pendência(s) aberta(s)">${pendenciasAbertas} Aberta(s)</span>` : 
+                                ''
+                            }
+                            ${pendenciasAndamento > 0 ? 
+                                `<span class="pendencia-badge em-andamento" title="${pendenciasAndamento} pendência(s) em andamento">${pendenciasAndamento} Em Andamento</span>` : 
+                                ''
+                            }
+                            ${pendenciasResolvidas > 0 ? 
+                                `<span class="pendencia-badge resolvida" title="${pendenciasResolvidas} pendência(s) resolvida(s)">${pendenciasResolvidas} Resolvida(s)</span>` : 
+                                ''
+                            }
+                            ${pendenciasCriticas > 0 ? 
+                                `<span class="pendencia-badge critica" title="${pendenciasCriticas} pendência(s) crítica(s)">${pendenciasCriticas} Crítica(s)</span>` : 
+                                ''
+                            }
                         </div>
                     ` : ''}
                     
                     <div class="equipamento-actions">
-                        <button class="action-btn secondary btn-detalhes" data-id="${equipamento.id}">
+                        <button class="action-btn secondary btn-detalhes" data-id="${equipamento.id}" title="Ver detalhes do equipamento">
                             <i class="fas fa-eye"></i> Detalhes
                         </button>
-                        <button class="action-btn primary btn-pendencia" data-id="${equipamento.id}" 
-                                ${!podeCriarPendencia ? 'disabled title="Sem permissão para criar pendências"' : ''}>
-                            <i class="fas fa-plus-circle"></i> Pendência
-                        </button>
+                        ${podeEditarEquipamento || podeCriarPendencia ? `
+                            <button class="action-btn primary btn-pendencia" data-id="${equipamento.id}" 
+                                    ${!podeCriarPendencia ? 'disabled title="Sem permissão para criar pendências"' : 'title="Adicionar nova pendência"'}>
+                                <i class="fas fa-plus-circle"></i> Pendência
+                            </button>
+                        ` : ''}
                         ${podeExcluirEquipamento ? `
                             <button class="action-btn danger btn-excluir-equipamento" data-id="${equipamento.id}" 
                                     title="Excluir equipamento">
@@ -907,30 +1173,77 @@ class EquipamentosApp {
         }).join('');
         
         // Adicionar estilos para botão de excluir
-        const style = document.createElement('style');
-        style.textContent = `
-            .action-btn.danger {
-                background-color: var(--cor-erro);
-                color: white;
-                border: 1px solid var(--cor-erro);
-            }
-            
-            .action-btn.danger:hover {
-                background-color: #c0392b;
-            }
-            
-            .criado-por, .editado-por {
-                margin-top: 8px;
-                font-size: 12px;
-                color: var(--cor-texto-secundario);
-            }
-            
-            .criado-por i, .editado-por i {
-                margin-right: 5px;
-            }
-        `;
-        if (!document.querySelector('#estilos-dinamicos-equipamentos')) {
-            style.id = 'estilos-dinamicos-equipamentos';
+        const styleId = 'estilos-dinamicos-equipamentos';
+        if (!document.querySelector(`#${styleId}`)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = `
+                .action-btn.danger {
+                    background-color: var(--cor-erro);
+                    color: white;
+                    border: 1px solid var(--cor-erro);
+                }
+                
+                .action-btn.danger:hover {
+                    background-color: #c0392b;
+                    transform: translateY(-2px);
+                }
+                
+                .criado-por, .editado-por {
+                    margin-top: 8px;
+                    font-size: 12px;
+                    color: var(--cor-texto-secundario);
+                }
+                
+                .criado-por i, .editado-por i {
+                    margin-right: 5px;
+                }
+                
+                .equipamento-pendencias {
+                    margin-top: 10px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 5px;
+                }
+                
+                .pendencia-badge {
+                    padding: 2px 8px;
+                    border-radius: 10px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                
+                .pendencia-badge.aberta {
+                    background-color: rgba(243, 156, 18, 0.1);
+                    color: #f39c12;
+                    border: 1px solid rgba(243, 156, 18, 0.2);
+                }
+                
+                .pendencia-badge.em-andamento {
+                    background-color: rgba(52, 152, 219, 0.1);
+                    color: #3498db;
+                    border: 1px solid rgba(52, 152, 219, 0.2);
+                }
+                
+                .pendencia-badge.resolvida {
+                    background-color: rgba(46, 204, 113, 0.1);
+                    color: #27ae60;
+                    border: 1px solid rgba(46, 204, 113, 0.2);
+                }
+                
+                .pendencia-badge.critica {
+                    background-color: rgba(231, 76, 60, 0.1);
+                    color: #e74c3c;
+                    border: 1px solid rgba(231, 76, 60, 0.2);
+                    animation: pulse 2s infinite;
+                }
+                
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 1; }
+                }
+            `;
             document.head.appendChild(style);
         }
         
@@ -966,28 +1279,54 @@ class EquipamentosApp {
         
         let totalPendenciasAtivas = 0;
         let totalPendenciasCriticas = 0;
+        let totalPendencias = 0;
         
         this.equipamentos.forEach(equipamento => {
-            totalPendenciasAtivas += equipamento.pendencias.filter(p => 
+            const pendenciasAtivas = equipamento.pendencias.filter(p => 
                 p.status === 'aberta' || p.status === 'em-andamento'
-            ).length;
-            
-            totalPendenciasCriticas += equipamento.pendencias.filter(p => 
+            );
+            const pendenciasCriticas = equipamento.pendencias.filter(p => 
                 p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-            ).length;
+            );
+            
+            totalPendenciasAtivas += pendenciasAtivas.length;
+            totalPendenciasCriticas += pendenciasCriticas.length;
+            totalPendencias += equipamento.pendencias.length;
         });
         
+        // Atualizar elementos da interface
         document.getElementById('total-equipamentos').textContent = totalEquipamentos;
         document.getElementById('aptos-operar').textContent = aptosOperar;
         document.getElementById('nao-aptos').textContent = naoAptos;
         document.getElementById('total-pendencias').textContent = totalPendenciasAtivas;
         
         // Destacar se houver pendências críticas
+        const pendenciasElement = document.getElementById('total-pendencias');
         if (totalPendenciasCriticas > 0) {
-            const pendenciasElement = document.getElementById('total-pendencias');
             pendenciasElement.style.color = 'var(--cor-erro)';
-            pendenciasElement.title = `${totalPendenciasCriticas} pendência(s) crítica(s)`;
+            pendenciasElement.style.fontWeight = 'bold';
+            pendenciasElement.title = `${totalPendenciasAtivas} pendências ativas (${totalPendenciasCriticas} críticas)`;
+            
+            // Adicionar ícone de alerta
+            if (!pendenciasElement.querySelector('.fa-exclamation-triangle')) {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-exclamation-triangle';
+                icon.style.marginLeft = '5px';
+                pendenciasElement.appendChild(icon);
+            }
+        } else {
+            pendenciasElement.style.color = '';
+            pendenciasElement.style.fontWeight = '';
+            pendenciasElement.title = `${totalPendenciasAtivas} pendências ativas`;
+            
+            // Remover ícone de alerta se existir
+            const icon = pendenciasElement.querySelector('.fa-exclamation-triangle');
+            if (icon) {
+                icon.remove();
+            }
         }
+        
+        console.log(`Estatísticas atualizadas: ${totalEquipamentos} equipamentos, ${aptosOperar} aptos, ${naoAptos} não aptos, ${totalPendenciasAtivas} pendencias ativas (${totalPendenciasCriticas} críticas)`);
     }
     
     atualizarStatusSincronizacao(conectado) {
@@ -1000,9 +1339,11 @@ class EquipamentosApp {
         if (conectado) {
             statusDot.className = 'status-dot connected';
             statusText.textContent = 'Conectado';
+            statusText.style.color = 'var(--cor-sucesso)';
         } else {
             statusDot.className = 'status-dot disconnected';
-            statusText.textContent = 'Desconectado';
+            statusText.textContent = this.offlineMode ? 'Offline' : 'Desconectado';
+            statusText.style.color = this.offlineMode ? 'var(--cor-alerta)' : 'var(--cor-erro)';
         }
     }
     
@@ -1013,6 +1354,9 @@ class EquipamentosApp {
         document.getElementById('view-grid').classList.toggle('active', mode === 'grid');
         
         this.renderizarEquipamentos();
+        
+        // Salvar preferência
+        localStorage.setItem('gestao_equipamentos_view_mode', mode);
     }
     
     abrirModalEquipamento(equipamentoId = null) {
@@ -1042,13 +1386,24 @@ class EquipamentosApp {
             titulo.textContent = 'Novo Equipamento';
             form.reset();
             
+            // Definir valores padrão
             document.getElementById('equipamento-setor').value = 'moagem-moagem';
+            
+            // Data padrão para hoje
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('equipamento-ultima-inspecao').value = hoje;
+            
             this.atualizarDisplayStatusEquipamento();
             
             delete form.dataset.editId;
         }
         
         modal.classList.add('active');
+        
+        // Focar no primeiro campo
+        setTimeout(() => {
+            document.getElementById('equipamento-codigo').focus();
+        }, 100);
     }
     
     abrirModalPendencia(equipamentoId = null) {
@@ -1068,14 +1423,23 @@ class EquipamentosApp {
         titulo.textContent = 'Nova Pendência';
         form.reset();
         
+        // Definir valores padrão
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('pendencia-data').value = hoje;
-        document.getElementById('pendencia-responsavel').value = '';
+        document.getElementById('pendencia-responsavel').value = 'Elétrica';
+        document.getElementById('pendencia-prioridade').value = 'media';
+        document.getElementById('pendencia-status').value = 'aberta';
         document.getElementById('pendencia-equipamento-id').value = equipamentoId;
         
+        // Limpar ID de edição se existir
         delete form.dataset.editId;
         
         modal.classList.add('active');
+        
+        // Focar no primeiro campo
+        setTimeout(() => {
+            document.getElementById('pendencia-titulo').focus();
+        }, 100);
     }
     
     atualizarDisplayStatusEquipamento(equipamento = null) {
@@ -1088,10 +1452,10 @@ class EquipamentosApp {
             );
             
             const status = temPendenciasCriticasAbertas ? 'nao-apto' : 'apto';
-            const statusTexto = status === 'apto' ? 'Apto a Operar' : 'Não Apto';
+            const statusInfo = APP_CONFIG.statusEquipamento[status] || { nome: status, cor: '#95a5a6' };
             const classeStatus = status === 'apto' ? 'status-chip apto' : 'status-chip nao-apto';
             
-            statusDisplay.innerHTML = `<span class="${classeStatus}">${statusTexto}</span>`;
+            statusDisplay.innerHTML = `<span class="${classeStatus}">${statusInfo.nome}</span>`;
             
             if (temPendenciasCriticasAbertas) {
                 const pendenciasCriticas = equipamento.pendencias.filter(p => 
@@ -1106,7 +1470,8 @@ class EquipamentosApp {
                 `;
             }
         } else {
-            statusDisplay.innerHTML = '<span class="status-chip apto">Apto a Operar</span>';
+            const statusInfo = APP_CONFIG.statusEquipamento['apto'] || { nome: 'Apto a Operar', cor: '#2ecc71' };
+            statusDisplay.innerHTML = `<span class="status-chip apto">${statusInfo.nome}</span>`;
         }
     }
     
@@ -1138,9 +1503,16 @@ class EquipamentosApp {
             pendencias: []
         };
         
+        console.log('Salvando equipamento:', equipamento);
+        
         // Validação
         if (!equipamento.codigo || !equipamento.nome) {
             this.mostrarMensagem('Código e nome são obrigatórios', 'error');
+            return;
+        }
+        
+        if (!equipamento.setor) {
+            this.mostrarMensagem('Selecione um setor', 'error');
             return;
         }
         
@@ -1176,6 +1548,7 @@ class EquipamentosApp {
                 detalhesLog = `Editou equipamento: ${equipamento.codigo} - ${equipamento.nome}`;
                 
                 this.mostrarMensagem('Equipamento atualizado com sucesso', 'success');
+                console.log('Equipamento editado:', equipamento);
             }
         } else {
             // Criar novo equipamento
@@ -1190,6 +1563,7 @@ class EquipamentosApp {
             detalhesLog = `Criou equipamento: ${equipamento.codigo} - ${equipamento.nome}`;
             
             this.mostrarMensagem('Equipamento criado com sucesso', 'success');
+            console.log('Novo equipamento criado:', equipamento);
         }
         
         // Salvar dados
@@ -1218,7 +1592,7 @@ class EquipamentosApp {
             return;
         }
         
-        if (!confirm(`Tem certeza que deseja excluir o equipamento "${equipamento.nome}" (${equipamento.codigo})? Esta ação não pode ser desfeita.`)) {
+        if (!confirm(`Tem certeza que deseja excluir o equipamento "${equipamento.nome}" (${equipamento.codigo})?\n\nEsta ação não pode ser desfeita.`)) {
             return;
         }
         
@@ -1242,7 +1616,14 @@ class EquipamentosApp {
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
         
+        // Fechar modal de detalhes se estiver aberto
+        if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === id) {
+            this.fecharModal(this.modals.detalhes);
+            this.equipamentoSelecionado = null;
+        }
+        
         this.mostrarMensagem('Equipamento excluído com sucesso', 'success');
+        console.log('Equipamento excluído:', equipamento);
     }
     
     async salvarPendencia() {
@@ -1258,6 +1639,8 @@ class EquipamentosApp {
             data: document.getElementById('pendencia-data').value || new Date().toISOString().split('T')[0],
             status: document.getElementById('pendencia-status').value
         };
+        
+        console.log('Salvando pendência:', pendencia);
         
         // Validação
         if (!pendencia.titulo || !pendencia.descricao || !pendencia.responsavel) {
@@ -1296,6 +1679,7 @@ class EquipamentosApp {
                 detalhesLog = `Editou pendência: "${pendencia.titulo}" no equipamento ${this.equipamentos[equipamentoIndex].codigo}`;
                 
                 this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
+                console.log('Pendência editada:', pendencia);
             }
         } else {
             // Criar nova pendência
@@ -1310,6 +1694,7 @@ class EquipamentosApp {
             detalhesLog = `Criou pendência: "${pendencia.titulo}" no equipamento ${this.equipamentos[equipamentoIndex].codigo}`;
             
             this.mostrarMensagem('Pendência registrada com sucesso', 'success');
+            console.log('Nova pendência criada:', pendencia);
         }
         
         // Atualizar status do equipamento
@@ -1332,6 +1717,11 @@ class EquipamentosApp {
         this.fecharModal(this.modals.pendencia);
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
+        
+        // Atualizar modal de detalhes se estiver aberto
+        if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
+            this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
+        }
     }
     
     verDetalhesEquipamento(id) {
@@ -1345,746 +1735,5 @@ class EquipamentosApp {
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
         document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo}`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
-        document.getElementById('detalhes-setor').textContent = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
-        document.getElementById('detalhes-criacao').textContent = this.formatarData(equipamento.dataCriacao);
         
-        // Informações de criação/edição
-        const criadoPor = equipamento.criadoPor ? `<p><i class="fas fa-user-plus"></i> Criado por: ${equipamento.criadoPor} em ${this.formatarData(equipamento.dataCriacao)}</p>` : '';
-        const editadoPor = equipamento.editadoPor ? `<p><i class="fas fa-user-edit"></i> Editado por: ${equipamento.editadoPor} em ${this.formatarData(equipamento.editadoEm)}</p>` : '';
-        
-        // Status
-        const statusChip = document.getElementById('detalhes-status');
-        statusChip.textContent = APP_CONFIG.statusEquipamento[equipamento.status];
-        statusChip.className = `status-chip ${equipamento.status}`;
-        
-        // Adicionar ícone de alerta se houver pendências críticas
-        const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
-            p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-        );
-        if (temPendenciasCriticasAbertas) {
-            const pendenciasCriticas = equipamento.pendencias.filter(p => 
-                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-            ).length;
-            statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
-        }
-        
-        // Data de inspeção
-        const dataInspecao = equipamento.ultimaInspecao ? 
-            this.formatarData(equipamento.ultimaInspecao) : 
-            'Não registrada';
-        document.getElementById('detalhes-inspecao').textContent = dataInspecao;
-        
-        // Atualizar informações de criação/edição
-        document.getElementById('detalhes-criacao').innerHTML = criadoPor + editadoPor;
-        
-        // Registrar log de visualização
-        if (window.registrarLogAuditoria) {
-            window.registrarLogAuditoria(
-                'VISUALIZAR_DETALHES',
-                `Visualizou detalhes do equipamento: ${equipamento.codigo} - ${equipamento.nome}`,
-                equipamento.id
-            );
-        }
-        
-        // Renderizar pendencias
-        this.renderizarPendenciasDetalhes(equipamento.pendencias);
-        
-        // Configurar botões de ação baseado nas permissões
-        this.configurarBotoesDetalhes();
-        
-        // Abrir modal
-        this.modals.detalhes.classList.add('active');
-    }
-    
-    configurarBotoesDetalhes() {
-        const editarBtn = document.getElementById('editar-equipamento');
-        const pendenciaBtn = document.getElementById('nova-pendencia-detalhes');
-        
-        if (editarBtn) {
-            const podeEditar = this.verificarPermissao('editar_equipamentos');
-            editarBtn.style.display = podeEditar ? 'flex' : 'none';
-            editarBtn.disabled = !podeEditar;
-            if (!podeEditar) {
-                editarBtn.title = 'Sem permissão para editar equipamentos';
-            }
-        }
-        
-        if (pendenciaBtn) {
-            const podeCriarPendencia = this.verificarPermissao('criar_pendencias');
-            pendenciaBtn.disabled = !podeCriarPendencia;
-            if (!podeCriarPendencia) {
-                pendenciaBtn.title = 'Sem permissão para criar pendências';
-            }
-        }
-    }
-    
-    renderizarPendenciasDetalhes(pendencias) {
-        const container = document.getElementById('detalhes-pendencias');
-        
-        if (pendencias.length === 0) {
-            container.innerHTML = `
-                <div class="no-pendencias">
-                    <i class="fas fa-check-circle"></i>
-                    <p>Nenhuma pendência registrada para este equipamento.</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Ordenar pendencias
-        const pendenciasOrdenadas = [...pendencias].sort((a, b) => {
-            const statusOrder = { 'aberta': 0, 'em-andamento': 1, 'resolvida': 2, 'cancelada': 3 };
-            if (statusOrder[a.status] !== statusOrder[b.status]) {
-                return statusOrder[a.status] - statusOrder[b.status];
-            }
-            
-            const prioridadeOrder = { 'critica': 0, 'alta': 1, 'media': 2, 'baixa': 3 };
-            if (prioridadeOrder[a.prioridade] !== prioridadeOrder[b.prioridade]) {
-                return prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade];
-            }
-            
-            return new Date(b.data) - new Date(a.data);
-        });
-        
-        container.innerHTML = pendenciasOrdenadas.map(pendencia => {
-            const dataFormatada = this.formatarData(pendencia.data);
-            const isCritica = pendencia.prioridade === 'critica';
-            const podeEditar = this.podeExecutar('editar', 'pendencia', pendencia.criadoPor);
-            const podeExcluir = this.podeExecutar('excluir', 'pendencia', pendencia.criadoPor);
-            
-            // Informações de criação/edição
-            const criadoPor = pendencia.criadoPor ? `<small style="color: var(--cor-texto-secundario);">Criada por: ${pendencia.criadoPor}</small>` : '';
-            const editadoPor = pendencia.editadoPor ? `<small style="color: var(--cor-texto-secundario); margin-left: 8px;">Editada por: ${pendencia.editadoPor}</small>` : '';
-            
-            return `
-                <div class="pendencia-item ${pendencia.status} ${isCritica ? 'critica' : ''}">
-                    <div class="pendencia-header">
-                        <div>
-                            <div class="pendencia-titulo">
-                                ${isCritica ? '<i class="fas fa-exclamation-triangle"></i> ' : ''}
-                                ${pendencia.titulo}
-                                ${criadoPor}
-                                ${editadoPor}
-                            </div>
-                            <div class="pendencia-data">
-                                <i class="far fa-calendar"></i> ${dataFormatada} 
-                                | Prioridade: ${APP_CONFIG.prioridades[pendencia.prioridade]}
-                            </div>
-                        </div>
-                        <div class="pendencia-badge ${pendencia.status}">
-                            ${APP_CONFIG.statusPendencia[pendencia.status]}
-                        </div>
-                    </div>
-                    <p class="pendencia-descricao">${pendencia.descricao}</p>
-                    <div class="pendencia-footer">
-                        <div class="pendencia-responsavel">
-                            <i class="fas fa-user"></i> Responsável: ${pendencia.responsavel}
-                        </div>
-                        <div class="pendencia-acoes">
-                            ${podeEditar ? `
-                                <button class="btn-editar-pendencia" data-id="${pendencia.id}">
-                                    <i class="fas fa-edit"></i> Editar
-                                </button>
-                            ` : ''}
-                            ${podeExcluir ? `
-                                <button class="btn-excluir-pendencia" data-id="${pendencia.id}">
-                                    <i class="fas fa-trash"></i> Excluir
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        // Adicionar eventos
-        container.querySelectorAll('.btn-editar-pendencia').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const pendenciaId = parseInt(e.target.closest('.btn-editar-pendencia').dataset.id);
-                this.editarPendencia(pendenciaId);
-            });
-        });
-        
-        container.querySelectorAll('.btn-excluir-pendencia').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const pendenciaId = parseInt(e.target.closest('.btn-excluir-pendencia').dataset.id);
-                this.excluirPendencia(pendenciaId);
-            });
-        });
-    }
-    
-    editarPendencia(pendenciaId) {
-        if (!this.equipamentoSelecionado) return;
-        
-        const pendencia = this.equipamentoSelecionado.pendencias.find(p => p.id === pendenciaId);
-        if (!pendencia) return;
-        
-        // Verificar se usuário tem permissão para editar
-        const podeEditar = this.podeExecutar('editar', 'pendencia', pendencia.criadoPor);
-        if (!podeEditar) {
-            this.mostrarMensagem('Você não tem permissão para editar esta pendência', 'error');
-            return;
-        }
-        
-        const modal = this.modals.pendencia;
-        const form = document.getElementById('pendencia-form');
-        const titulo = document.getElementById('pendencia-modal-title');
-        
-        titulo.textContent = 'Editar Pendência';
-        
-        // Preencher formulário
-        document.getElementById('pendencia-titulo').value = pendencia.titulo;
-        document.getElementById('pendencia-descricao').value = pendencia.descricao;
-        document.getElementById('pendencia-responsavel').value = pendencia.responsavel;
-        document.getElementById('pendencia-prioridade').value = pendencia.prioridade;
-        document.getElementById('pendencia-data').value = pendencia.data;
-        document.getElementById('pendencia-status').value = pendencia.status;
-        
-        // Armazenar IDs
-        document.getElementById('pendencia-equipamento-id').value = this.equipamentoSelecionado.id;
-        document.getElementById('pendencia-id').value = pendenciaId;
-        form.dataset.editId = pendenciaId;
-        
-        // Fechar modal atual e abrir modal de pendência
-        this.fecharModal(this.modals.detalhes);
-        modal.classList.add('active');
-    }
-    
-    async excluirPendencia(pendenciaId) {
-        if (!this.equipamentoSelecionado) return;
-        
-        const pendencia = this.equipamentoSelecionado.pendencias.find(p => p.id === pendenciaId);
-        if (!pendencia) return;
-        
-        // Verificar se usuário tem permissão para excluir
-        const podeExcluir = this.podeExecutar('excluir', 'pendencia', pendencia.criadoPor);
-        if (!podeExcluir) {
-            this.mostrarMensagem('Você não tem permissão para excluir esta pendência', 'error');
-            return;
-        }
-        
-        if (!confirm('Tem certeza que deseja excluir esta pendência?')) {
-            return;
-        }
-        
-        const equipamentoIndex = this.equipamentos.findIndex(e => e.id === this.equipamentoSelecionado.id);
-        if (equipamentoIndex === -1) return;
-        
-        // Remover pendência
-        this.equipamentos[equipamentoIndex].pendencias = this.equipamentos[equipamentoIndex].pendencias.filter(p => p.id !== pendenciaId);
-        
-        // Atualizar status do equipamento
-        this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
-        
-        // Atualizar equipamento selecionado
-        this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
-        
-        // Registrar log de auditoria
-        if (window.registrarLogAuditoria) {
-            window.registrarLogAuditoria(
-                'EXCLUIR_PENDENCIA',
-                `Excluiu pendência: "${pendencia.titulo}" do equipamento ${this.equipamentoSelecionado.codigo}`,
-                this.equipamentoSelecionado.id,
-                pendenciaId
-            );
-        }
-        
-        // Salvar dados
-        await this.salvarDados();
-        
-        // Atualizar interface
-        this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
-        this.renderizarEquipamentos();
-        this.atualizarEstatisticas();
-        
-        this.mostrarMensagem('Pendência excluída com sucesso', 'success');
-    }
-    
-    fecharModal(modal) {
-        modal.classList.remove('active');
-    }
-    
-    fecharTodosModais() {
-        Object.values(this.modals).forEach(modal => {
-            modal.classList.remove('active');
-        });
-    }
-    
-    atualizarEstadoBotaoPendencia() {
-        const btnPendencia = document.getElementById('add-pendencia');
-        if (btnPendencia) {
-            btnPendencia.disabled = this.equipamentos.length === 0 || !this.verificarPermissao('criar_pendencias');
-            
-            if (btnPendencia.disabled) {
-                if (this.equipamentos.length === 0) {
-                    btnPendencia.title = 'Não há equipamentos disponíveis';
-                } else {
-                    btnPendencia.title = 'Sem permissão para criar pendências';
-                }
-            }
-        }
-    }
-    
-    async sincronizarDados() {
-        this.mostrarMensagem('Sincronizando dados...', 'info');
-        
-        // Registrar atividade
-        if (window.registrarAtividade) {
-            window.registrarAtividade('SINCRONIZAR', 'Iniciou sincronização manual de dados');
-        }
-        
-        await this.carregarDados();
-        this.renderizarEquipamentos();
-        this.atualizarEstatisticas();
-        this.mostrarMensagem('Dados sincronizados com sucesso', 'success');
-    }
-    
-    exportarDadosExcel() {
-        try {
-            // Verificar permissão
-            if (!this.verificarPermissao('exportar_dados')) {
-                this.mostrarMensagem('Você não tem permissão para exportar dados', 'error');
-                return;
-            }
-            
-            const dataAtual = new Date().toISOString().split('T')[0];
-            const usuario = this.usuarioAtual || 'sistema';
-            
-            // Criar cabeçalhos
-            let csvEquipamentos = 'ID,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Editado Por,Data Edição,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
-            
-            // Adicionar dados dos equipamentos
-            this.equipamentos.forEach(equipamento => {
-                const totalPendencias = equipamento.pendencias.length;
-                const pendenciasAbertas = equipamento.pendencias.filter(p => p.status === 'aberta').length;
-                const pendenciasAndamento = equipamento.pendencias.filter(p => p.status === 'em-andamento').length;
-                const pendenciasResolvidas = equipamento.pendencias.filter(p => p.status === 'resolvida').length;
-                const pendenciasCriticas = equipamento.pendencias.filter(p => 
-                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-                ).length;
-                
-                const escapeCSV = (str) => {
-                    if (str === null || str === undefined) return '';
-                    const string = String(str);
-                    if (string.includes(',') || string.includes('"') || string.includes('\n')) {
-                        return `"${string.replace(/"/g, '""')}"`;
-                    }
-                    return string;
-                };
-                
-                csvEquipamentos += [
-                    equipamento.id,
-                    escapeCSV(equipamento.codigo),
-                    escapeCSV(equipamento.nome),
-                    escapeCSV(equipamento.descricao),
-                    escapeCSV(APP_CONFIG.setores[equipamento.setor] || equipamento.setor),
-                    escapeCSV(APP_CONFIG.statusEquipamento[equipamento.status]),
-                    equipamento.ultimaInspecao || '',
-                    equipamento.dataCriacao || '',
-                    equipamento.criadoPor || '',
-                    equipamento.editadoPor || '',
-                    equipamento.editadoEm || '',
-                    totalPendencias,
-                    pendenciasAbertas,
-                    pendenciasAndamento,
-                    pendenciasResolvidas,
-                    pendenciasCriticas
-                ].join(',') + '\n';
-            });
-            
-            // Criar arquivo de pendências
-            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Data Criação,Editado Por,Data Edição\n';
-            
-            this.equipamentos.forEach(equipamento => {
-                equipamento.pendencias.forEach(pendencia => {
-                    const escapeCSV = (str) => {
-                        if (str === null || str === undefined) return '';
-                        const string = String(str);
-                        if (string.includes(',') || string.includes('"') || string.includes('\n')) {
-                            return `"${string.replace(/"/g, '""')}"`;
-                        }
-                        return string;
-                    };
-                    
-                    csvPendencias += [
-                        equipamento.id,
-                        escapeCSV(equipamento.codigo),
-                        escapeCSV(equipamento.nome),
-                        pendencia.id,
-                        escapeCSV(pendencia.titulo),
-                        escapeCSV(pendencia.descricao),
-                        escapeCSV(pendencia.responsavel),
-                        escapeCSV(APP_CONFIG.prioridades[pendencia.prioridade]),
-                        pendencia.data,
-                        escapeCSV(APP_CONFIG.statusPendencia[pendencia.status]),
-                        pendencia.criadoPor || '',
-                        pendencia.criadoEm || '',
-                        pendencia.editadoPor || '',
-                        pendencia.editadoEm || ''
-                    ].join(',') + '\n';
-                });
-            });
-            
-            // Criar arquivo ZIP ou CSV
-            this.criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual, usuario);
-            
-            // Registrar log de auditoria
-            if (window.registrarLogAuditoria) {
-                window.registrarLogAuditoria(
-                    'EXPORTAR_DADOS',
-                    `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + eqp.pendencias.length, 0)}`
-                );
-            }
-            
-            this.mostrarMensagem('Dados exportados para Excel com sucesso', 'success');
-            
-        } catch (error) {
-            console.error('Erro ao exportar dados para Excel:', error);
-            this.mostrarMensagem('Erro ao exportar dados para Excel', 'error');
-            
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('ERRO_EXPORTAR', `Erro ao exportar dados: ${error.message}`);
-            }
-        }
-    }
-    
-    criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual, usuario) {
-        // Usar a biblioteca JSZip se disponível
-        if (typeof JSZip !== 'undefined') {
-            const zip = new JSZip();
-            zip.file(`equipamentos_${dataAtual}_${usuario}.csv`, csvEquipamentos);
-            zip.file(`pendencias_${dataAtual}_${usuario}.csv`, csvPendencias);
-            
-            zip.generateAsync({type: "blob"})
-                .then(function(content) {
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(content);
-                    link.download = `gestao_equipamentos_${dataAtual}_${usuario}.zip`;
-                    link.click();
-                    URL.revokeObjectURL(link.href);
-                });
-        } else {
-            // Fallback: criar dois arquivos CSV separados
-            this.downloadCSV(csvEquipamentos, `equipamentos_${dataAtual}_${usuario}.csv`);
-            setTimeout(() => {
-                this.downloadCSV(csvPendencias, `pendencias_${dataAtual}_${usuario}.csv`);
-            }, 500);
-        }
-    }
-    
-    downloadCSV(csvContent, fileName) {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        
-        if (navigator.msSaveBlob) {
-            navigator.msSaveBlob(blob, fileName);
-        } else {
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-        }
-    }
-    
-    // ================== FUNÇÕES AUXILIARES ==================
-    
-    mostrarLoading(mostrar) {
-        const container = document.getElementById('equipamentos-container');
-        if (mostrar) {
-            container.innerHTML = `
-                <div class="loading">
-                    <i class="fas fa-cog fa-spin"></i>
-                    <p>Carregando equipamentos...</p>
-                </div>
-            `;
-        }
-    }
-    
-    mostrarMensagem(texto, tipo) {
-        // Remover mensagem anterior
-        const mensagemAnterior = document.querySelector('.mensagem-flutuante');
-        if (mensagemAnterior) {
-            mensagemAnterior.remove();
-        }
-        
-        // Criar nova mensagem
-        const mensagem = document.createElement('div');
-        mensagem.className = `mensagem-flutuante ${tipo}`;
-        mensagem.innerHTML = `
-            <div class="mensagem-conteudo">
-                <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-                <span>${texto}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(mensagem);
-        
-        setTimeout(() => {
-            mensagem.classList.add('show');
-        }, 10);
-        
-        // Remover após 5 segundos
-        setTimeout(() => {
-            mensagem.classList.remove('show');
-            setTimeout(() => {
-                if (mensagem.parentNode) {
-                    mensagem.remove();
-                }
-            }, 300);
-        }, 5000);
-    }
-    
-    formatarData(dataString) {
-        if (!dataString) return 'Não informada';
-        
-        try {
-            const data = new Date(dataString);
-            return data.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
-        } catch (e) {
-            return dataString;
-        }
-    }
-    
-    configurarAtualizacoes() {
-        // Atualizar informações de sessão periodicamente
-        setInterval(() => {
-            this.atualizarInfoSessao();
-        }, 60000); // A cada minuto
-        
-        // Atualizar informações de sincronização
-        setInterval(() => {
-            this.atualizarInfoSincronizacao();
-        }, 30000); // A cada 30 segundos
-        
-        // Executar inicialmente
-        this.atualizarInfoSessao();
-        this.atualizarInfoSincronizacao();
-    }
-    
-    atualizarInfoSessao() {
-        const sessao = localStorage.getItem('gestao_equipamentos_sessao');
-        const userSessionElement = document.getElementById('user-session');
-        
-        if (!userSessionElement || !sessao) return;
-        
-        try {
-            const sessaoData = JSON.parse(sessao);
-            const expiracao = new Date(sessaoData.expira);
-            const agora = new Date();
-            
-            const diffMs = expiracao - agora;
-            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-            
-            if (diffMs > 0) {
-                userSessionElement.textContent = `Sessão: ${diffHrs}h ${diffMins}m restantes`;
-                userSessionElement.style.color = diffHrs < 1 ? 'var(--cor-erro)' : 'var(--cor-sucesso)';
-            } else {
-                userSessionElement.textContent = 'Sessão expirada';
-                userSessionElement.style.color = 'var(--cor-erro)';
-            }
-        } catch (e) {
-            console.error('Erro ao atualizar info sessão:', e);
-        }
-    }
-    
-    atualizarInfoSincronizacao() {
-        const lastSync = localStorage.getItem('gestao_equipamentos_ultima_sinc');
-        const lastSyncElement = document.getElementById('last-sync');
-        
-        if (!lastSyncElement) return;
-        
-        if (lastSync) {
-            try {
-                const syncDate = new Date(lastSync);
-                const agora = new Date();
-                const diffMinutos = Math.floor((agora - syncDate) / (1000 * 60));
-                
-                lastSyncElement.textContent = `Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
-                
-                // Destacar se faz mais de 10 minutos
-                if (diffMinutos > 10) {
-                    lastSyncElement.style.color = 'var(--cor-alerta)';
-                } else {
-                    lastSyncElement.style.color = '';
-                }
-                
-            } catch (e) {
-                lastSyncElement.textContent = 'Última sincronização: N/A';
-            }
-        } else {
-            lastSyncElement.textContent = 'Última sincronização: N/A';
-        }
-    }
-}
-
-// ================== INICIALIZAÇÃO DA APLICAÇÃO ==================
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Configurar eventos globais
-    configurarEventosGlobais();
-    
-    // Inicializar aplicação
-    const app = new EquipamentosApp();
-    window.app = app; // Para depuração
-    
-    // Configurar tema
-    configurarTema();
-});
-
-function configurarEventosGlobais() {
-    // Botão de logout
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            if (confirm('Tem certeza que deseja sair do sistema?')) {
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    const usuario = localStorage.getItem('gestao_equipamentos_usuario');
-                    window.registrarAtividade('LOGOUT', `Usuário ${usuario} saiu do sistema`);
-                }
-                
-                // Limpar sessão
-                localStorage.removeItem('gestao_equipamentos_sessao');
-                localStorage.removeItem('gestao_equipamentos_usuario');
-                localStorage.removeItem('gestao_equipamentos_nivel');
-                
-                // Redirecionar para login
-                window.location.href = 'login.html?logout=true';
-            }
-        });
-    }
-    
-    // Botão de tema
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const novoTema = window.alternarTema ? window.alternarTema() : 'claro';
-            const icon = this.querySelector('i');
-            
-            if (novoTema === 'escuro') {
-                icon.className = 'fas fa-sun';
-                themeToggle.title = 'Alternar para tema claro';
-            } else {
-                icon.className = 'fas fa-moon';
-                themeToggle.title = 'Alternar para tema escuro';
-            }
-            
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
-            }
-        });
-        
-        // Configurar ícone inicial
-        const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-        const icon = themeToggle.querySelector('i');
-        if (temaAtual === 'escuro') {
-            icon.className = 'fas fa-sun';
-            themeToggle.title = 'Alternar para tema claro';
-        }
-    }
-    
-    // Botão de gerenciar usuários (se existir)
-    const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
-    if (gerenciarUsuariosBtn) {
-        gerenciarUsuariosBtn.addEventListener('click', function() {
-            if (window.abrirGerenciadorUsuarios) {
-                window.abrirGerenciadorUsuarios();
-            } else {
-                alert('Módulo de gerenciamento de usuários não carregado');
-            }
-        });
-    }
-    
-    // Atalhos de teclado
-    document.addEventListener('keydown', function(e) {
-        // Ctrl+F para focar na busca
-        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-            e.preventDefault();
-            const searchInput = document.getElementById('search');
-            if (searchInput) {
-                searchInput.focus();
-            }
-        }
-        
-        // Esc para limpar busca
-        if (e.key === 'Escape') {
-            const searchInput = document.getElementById('search');
-            if (searchInput && document.activeElement === searchInput) {
-                searchInput.value = '';
-                if (window.app) {
-                    window.app.filtros.busca = '';
-                    window.app.renderizarEquipamentos();
-                }
-            }
-        }
-    });
-}
-
-function configurarTema() {
-    // Aplicar tema salvo
-    const tema = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-    document.documentElement.setAttribute('data-tema', tema);
-    
-    // Configurar ícone do botão de tema
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        const icon = themeToggle.querySelector('i');
-        if (tema === 'escuro') {
-            icon.className = 'fas fa-sun';
-            themeToggle.title = 'Alternar para tema claro';
-        } else {
-            icon.className = 'fas fa-moon';
-            themeToggle.title = 'Alternar para tema escuro';
-        }
-    }
-}
-
-// Adicionar estilos CSS dinâmicos se necessário
-if (!document.querySelector('#app-estilos-dinamicos')) {
-    const estilos = document.createElement('style');
-    estilos.id = 'app-estilos-dinamicos';
-    estilos.textContent = `
-        .user-level-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .nivel-indicator {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 9999;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            transition: opacity 0.3s;
-        }
-        
-        .nivel-indicator:hover {
-            opacity: 1;
-        }
-    `;
-    document.head.appendChild(estilos);
-}
+        const setor
