@@ -17,6 +17,7 @@ class EquipamentosApp {
         this.modals = {};
         this.usuarioAtual = null;
         this.nivelUsuario = null;
+        this.gerenciadorUsuarios = null;
         
         this.init();
     }
@@ -40,15 +41,18 @@ class EquipamentosApp {
         this.initModals();
         this.initEvents();
         
-        // 6. Carregar dados
+        // 6. Inicializar gerenciador de usuários
+        this.inicializarGerenciadorUsuarios();
+        
+        // 7. Carregar dados
         await this.carregarDados();
         
-        // 7. Inicializar interface
+        // 8. Inicializar interface
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
         this.atualizarStatusSincronizacao(true);
         
-        // 8. Configurar atualizações automáticas
+        // 9. Configurar atualizações automáticas
         this.configurarAtualizacoes();
     }
     
@@ -117,6 +121,15 @@ class EquipamentosApp {
         
         // Atualizar último acesso
         localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
+    }
+    
+    // ================== INICIALIZAÇÃO DO GERENCIADOR DE USUÁRIOS ==================
+    
+    inicializarGerenciadorUsuarios() {
+        if (typeof GerenciadorUsuarios !== 'undefined') {
+            this.gerenciadorUsuarios = new GerenciadorUsuarios();
+            console.log('Gerenciador de usuários inicializado');
+        }
     }
     
     // ================== SISTEMA DE PERMISSÕES ==================
@@ -239,6 +252,7 @@ class EquipamentosApp {
         const systemInfoBtn = document.getElementById('system-info');
         const exportConfigBtn = document.getElementById('export-config');
         const addPendenciaBtn = document.getElementById('add-pendencia');
+        const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
         
         // Visitante - apenas visualização
         if (nivel === 'visitante') {
@@ -248,6 +262,7 @@ class EquipamentosApp {
             if (systemInfoBtn) systemInfoBtn.style.display = 'none';
             if (exportConfigBtn) exportConfigBtn.style.display = 'none';
             if (addPendenciaBtn) addPendenciaBtn.style.display = 'none';
+            if (gerenciarUsuariosBtn) gerenciarUsuariosBtn.style.display = 'none';
         }
         
         // Operador - pode criar, editar, excluir, exportar
@@ -260,13 +275,14 @@ class EquipamentosApp {
                 exportDataBtn.style.display = 'flex';
                 exportDataBtn.title = 'Exportar dados para Excel';
             }
-            if (viewLogsBtn) viewLogsBtn.style.display = 'none'; // Operador não vê logs
+            if (viewLogsBtn) viewLogsBtn.style.display = 'none';
             if (systemInfoBtn) systemInfoBtn.style.display = 'none';
             if (exportConfigBtn) exportConfigBtn.style.display = 'none';
             if (addPendenciaBtn) {
                 addPendenciaBtn.style.display = 'flex';
                 addPendenciaBtn.title = 'Adicionar nova pendência';
             }
+            if (gerenciarUsuariosBtn) gerenciarUsuariosBtn.style.display = 'none';
         }
         
         // Administrador - tudo
@@ -295,10 +311,70 @@ class EquipamentosApp {
                 addPendenciaBtn.style.display = 'flex';
                 addPendenciaBtn.title = 'Adicionar nova pendência';
             }
+            // Botão de gerenciar usuários
+            if (gerenciarUsuariosBtn) {
+                gerenciarUsuariosBtn.style.display = 'flex';
+                gerenciarUsuariosBtn.title = 'Gerenciar usuários do sistema';
+            } else {
+                // Criar botão se não existir
+                this.criarBotaoGerenciarUsuarios();
+            }
         }
         
         // Adicionar badge de nível no cabeçalho
         this.adicionarBadgeNivel();
+    }
+    
+    criarBotaoGerenciarUsuarios() {
+        const actionsContainer = document.querySelector('.actions');
+        if (!actionsContainer) return;
+        
+        // Verificar se o botão já existe
+        if (document.getElementById('gerenciar-usuarios-btn')) {
+            return;
+        }
+        
+        const botaoHtml = `
+            <button id="gerenciar-usuarios-btn" class="btn-secondary">
+                <i class="fas fa-users-cog"></i> Gerenciar Usuários
+            </button>
+        `;
+        
+        // Inserir antes do botão de exportar configurações
+        const exportConfigBtn = actionsContainer.querySelector('#export-config');
+        if (exportConfigBtn) {
+            exportConfigBtn.insertAdjacentHTML('beforebegin', botaoHtml);
+        } else {
+            // Inserir após o botão de visualizar logs se existir
+            const viewLogsBtn = actionsContainer.querySelector('#view-logs');
+            if (viewLogsBtn) {
+                viewLogsBtn.insertAdjacentHTML('afterend', botaoHtml);
+            } else {
+                actionsContainer.insertAdjacentHTML('beforeend', botaoHtml);
+            }
+        }
+        
+        // Adicionar evento
+        const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
+        if (gerenciarUsuariosBtn) {
+            gerenciarUsuariosBtn.addEventListener('click', () => {
+                if (window.abrirGerenciadorUsuarios) {
+                    window.abrirGerenciadorUsuarios();
+                } else if (this.gerenciadorUsuarios) {
+                    this.abrirGerenciadorUsuarios();
+                } else {
+                    this.mostrarMensagem('Módulo de gerenciamento de usuários não carregado', 'error');
+                }
+            });
+        }
+    }
+    
+    abrirGerenciadorUsuarios() {
+        if (window.abrirGerenciadorUsuarios) {
+            window.abrirGerenciadorUsuarios();
+        } else {
+            this.mostrarMensagem('Função de gerenciamento de usuários não disponível', 'error');
+        }
     }
     
     adicionarBadgeNivel() {
@@ -515,6 +591,22 @@ class EquipamentosApp {
                     }
                 } else {
                     this.mostrarMensagem('Você não tem permissão para visualizar logs', 'error');
+                }
+            });
+        }
+        
+        // Botão para gerenciar usuários (se existir)
+        const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
+        if (gerenciarUsuariosBtn) {
+            gerenciarUsuariosBtn.addEventListener('click', () => {
+                if (this.verificarPermissao('gerenciar_usuarios')) {
+                    if (window.abrirGerenciadorUsuarios) {
+                        window.abrirGerenciadorUsuarios();
+                    } else {
+                        this.mostrarMensagem('Função de gerenciamento de usuários não disponível', 'error');
+                    }
+                } else {
+                    this.mostrarMensagem('Você não tem permissão para gerenciar usuários', 'error');
                 }
             });
         }
@@ -1901,6 +1993,18 @@ function configurarEventosGlobais() {
             icon.className = 'fas fa-sun';
             themeToggle.title = 'Alternar para tema claro';
         }
+    }
+    
+    // Botão de gerenciar usuários (se existir)
+    const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
+    if (gerenciarUsuariosBtn) {
+        gerenciarUsuariosBtn.addEventListener('click', function() {
+            if (window.abrirGerenciadorUsuarios) {
+                window.abrirGerenciadorUsuarios();
+            } else {
+                alert('Módulo de gerenciamento de usuários não carregado');
+            }
+        });
     }
     
     // Atalhos de teclado
