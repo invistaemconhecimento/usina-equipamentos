@@ -252,6 +252,11 @@
                         <i class="fas fa-file-export"></i> Exportar Dados
                     </button>
                     
+                    <!-- Botão de Gerenciar Usuários (será mostrado apenas para administradores) -->
+                    <button id="gerenciar-usuarios-btn" class="btn-secondary" style="display: none;">
+                        <i class="fas fa-users-cog"></i> Gerenciar Usuários
+                    </button>
+                    
                     <!-- Status da Sincronização -->
                     <div class="sync-status">
                         <p><i class="fas fa-database"></i> Status da Conexão:</p>
@@ -531,10 +536,7 @@
 
     <!-- Scripts de Configuração e Aplicação -->
     <script src="config.js"></script>
-    
-    <!-- Script de Gerenciamento de Usuários -->
     <script src="usuarios.js"></script>
-    
     <script src="app.js"></script>
     
     <!-- Scripts de Interface e Controles -->
@@ -631,6 +633,18 @@
                         window.visualizarLogsAuditoria();
                     } else {
                         alert('Função de logs não disponível');
+                    }
+                });
+            }
+            
+            // Botão de gerenciar usuários
+            const gerenciarUsuariosBtn = document.getElementById('gerenciar-usuarios-btn');
+            if (gerenciarUsuariosBtn) {
+                gerenciarUsuariosBtn.addEventListener('click', function() {
+                    if (window.abrirGerenciadorUsuarios) {
+                        window.abrirGerenciadorUsuarios();
+                    } else {
+                        alert('Função de gerenciamento de usuários não disponível');
                     }
                 });
             }
