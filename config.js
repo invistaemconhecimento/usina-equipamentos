@@ -251,6 +251,9 @@ const PERMISSOES = {
                 if (recurso === 'pendencia') {
                     return nivel.permissoes.includes('criar_pendencias');
                 }
+                if (recurso === 'usuario') {
+                    return nivel.permissoes.includes('gerenciar_usuarios');
+                }
                 break;
                 
             case 'editar':
@@ -263,6 +266,9 @@ const PERMISSOES = {
                     }
                     return nivel.permissoes.includes('editar_pendencias');
                 }
+                if (recurso === 'usuario') {
+                    return nivel.permissoes.includes('gerenciar_usuarios');
+                }
                 break;
                 
             case 'excluir':
@@ -274,6 +280,9 @@ const PERMISSOES = {
                         return nivel.permissoes.includes('excluir_pendencias_proprias');
                     }
                     return nivel.permissoes.includes('excluir_pendencias');
+                }
+                if (recurso === 'usuario') {
+                    return nivel.permissoes.includes('gerenciar_usuarios');
                 }
                 break;
                 
@@ -288,6 +297,12 @@ const PERMISSOES = {
                 
             case 'visualizar_logs':
                 return nivel.permissoes.includes('visualizar_logs');
+                
+            case 'backup_dados':
+                return nivel.permissoes.includes('backup_dados');
+                
+            case 'restaurar_dados':
+                return nivel.permissoes.includes('restaurar_dados');
         }
         
         return false;
@@ -405,7 +420,13 @@ const APP_CONFIG = {
         maxLogs: 1000,
         
         // Mostrar indicador de nível
-        mostrarIndicadorNivel: true
+        mostrarIndicadorNivel: true,
+        
+        // Configurações de usuários
+        permitirCriarUsuarios: true,
+        permitirRedefinirSenha: true,
+        senhaMinimaCaracteres: 6,
+        expiracaoSenhaDias: 90
     },
     
     // Tipos de ações registradas nos logs
@@ -424,7 +445,14 @@ const APP_CONFIG = {
         VISUALIZAR_DETALHES: "VISUALIZAR_DETALHES",
         FILTRAR_EQUIPAMENTOS: "FILTRAR_EQUIPAMENTOS",
         EXPORTAR_LOGS: "EXPORTAR_LOGS",
-        VISUALIZAR_LOGS: "VISUALIZAR_LOGS"
+        VISUALIZAR_LOGS: "VISUALIZAR_LOGS",
+        // Novas ações para gerenciamento de usuários
+        CRIAR_USUARIO: "CRIAR_USUARIO",
+        EDITAR_USUARIO: "EDITAR_USUARIO",
+        EXCLUIR_USUARIO: "EXCLUIR_USUARIO",
+        REDEFINIR_SENHA: "REDEFINIR_SENHA",
+        ATIVAR_USUARIO: "ATIVAR_USUARIO",
+        DESATIVAR_USUARIO: "DESATIVAR_USUARIO"
     }
 };
 
@@ -538,6 +566,36 @@ const APP_UTILS = {
         } catch (e) {
             return null;
         }
+    },
+    
+    // Gerar senha aleatória
+    gerarSenhaAleatoria: function(tamanho = 10) {
+        const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        let senha = '';
+        for (let i = 0; i < tamanho; i++) {
+            senha += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+        }
+        return senha;
+    },
+    
+    // Validar força da senha
+    validarForcaSenha: function(senha) {
+        let forca = 0;
+        
+        // Comprimento mínimo
+        if (senha.length >= 8) forca++;
+        if (senha.length >= 12) forca++;
+        
+        // Caracteres especiais
+        if (/[A-Z]/.test(senha)) forca++; // Letra maiúscula
+        if (/[a-z]/.test(senha)) forca++; // Letra minúscula
+        if (/[0-9]/.test(senha)) forca++; // Número
+        if (/[^A-Za-z0-9]/.test(senha)) forca++; // Caractere especial
+        
+        // Classificar força
+        if (forca <= 2) return { forca: 'fraca', pontos: forca };
+        if (forca <= 4) return { forca: 'média', pontos: forca };
+        return { forca: 'forte', pontos: forca };
     }
 };
 
@@ -548,21 +606,30 @@ const USUARIOS_AUTORIZADOS = {
         nivel: 'visitante',
         nome: 'Visitante',
         email: 'visitante@empresa.com',
-        departamento: 'Visitante'
+        departamento: 'Visitante',
+        dataCriacao: '2023-01-01',
+        criadoPor: 'sistema',
+        ativo: true
     },
     'operador': { 
         senha: 'operador456', 
         nivel: 'operador',
         nome: 'Operador',
         email: 'operador@empresa.com',
-        departamento: 'Operações'
+        departamento: 'Operações',
+        dataCriacao: '2023-01-01',
+        criadoPor: 'sistema',
+        ativo: true
     },
     'administrador': { 
         senha: 'admin789', 
         nivel: 'administrador',
         nome: 'Administrador',
         email: 'admin@empresa.com',
-        departamento: 'TI'
+        departamento: 'TI',
+        dataCriacao: '2023-01-01',
+        criadoPor: 'sistema',
+        ativo: true
     }
 };
 
@@ -571,7 +638,7 @@ const USUARIOS_AUTORIZADOS = {
 // ===========================================
 
 // Função para registrar logs com mais detalhes
-function registrarLogAuditoria(acao, detalhes, equipamentoId = null, pendenciaId = null) {
+function registrarLogAuditoria(acao, detalhes, equipamentoId = null, pendenciaId = null, usuarioAlvo = null) {
     const usuario = getUsuarioLogado();
     const nivel = getNivelUsuario();
     const timestamp = new Date().toISOString();
@@ -586,6 +653,7 @@ function registrarLogAuditoria(acao, detalhes, equipamentoId = null, pendenciaId
         detalhes: detalhes,
         equipamentoId: equipamentoId,
         pendenciaId: pendenciaId,
+        usuarioAlvo: usuarioAlvo,
         timestamp: timestamp,
         ip: ip,
         userAgent: userAgent,
@@ -667,7 +735,7 @@ function exportarLogsAuditoria() {
     }
     
     // Criar CSV
-    let csv = 'ID,Data/Hora,Usuário,Nível,Ação,Detalhes,ID Equipamento,ID Pendência\n';
+    let csv = 'ID,Data/Hora,Usuário,Nível,Ação,Detalhes,ID Equipamento,ID Pendência,Usuário Alvo\n';
     
     logs.forEach(log => {
         const linha = [
@@ -678,7 +746,8 @@ function exportarLogsAuditoria() {
             `"${log.acao}"`,
             `"${log.detalhes.replace(/"/g, '""')}"`,
             log.equipamentoId || '',
-            log.pendenciaId || ''
+            log.pendenciaId || '',
+            log.usuarioAlvo || ''
         ].join(',');
         csv += linha + '\n';
     });
@@ -734,6 +803,7 @@ function visualizarLogsAuditoria() {
                         <th>Ação</th>
                         <th>Detalhes</th>
                         <th>IDs</th>
+                        <th>Usuário Alvo</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -753,6 +823,7 @@ function visualizarLogsAuditoria() {
                 <td><span class="log-acao">${log.acao}</span></td>
                 <td class="log-detalhes">${log.detalhes}</td>
                 <td>${ids.join(', ') || '-'}</td>
+                <td>${log.usuarioAlvo || '-'}</td>
             </tr>
         `;
     });
@@ -949,15 +1020,37 @@ function getUsuarioInfo() {
     const usuario = getUsuarioLogado();
     if (!usuario) return null;
     
+    // Primeiro verificar no localStorage (usuários gerenciados)
+    let usuarioData = null;
+    try {
+        const usuariosSalvos = localStorage.getItem('gestao_equipamentos_usuarios');
+        if (usuariosSalvos) {
+            const usuarios = JSON.parse(usuariosSalvos);
+            usuarioData = usuarios[usuario];
+        }
+    } catch (e) {
+        console.error('Erro ao carregar dados do usuário:', e);
+    }
+    
+    // Se não encontrar no localStorage, usar os dados padrão
+    if (!usuarioData) {
+        usuarioData = USUARIOS_AUTORIZADOS[usuario];
+    }
+    
+    if (!usuarioData) return null;
+    
     return {
         usuario: usuario,
         nivel: getNivelUsuario(),
-        nome: USUARIOS_AUTORIZADOS[usuario]?.nome || usuario,
-        email: USUARIOS_AUTORIZADOS[usuario]?.email || '',
-        departamento: USUARIOS_AUTORIZADOS[usuario]?.departamento || '',
+        nome: usuarioData.nome || usuario,
+        email: usuarioData.email || '',
+        departamento: usuarioData.departamento || '',
         nivelNome: PERMISSOES.getNomeNivel(getNivelUsuario()),
         corNivel: PERMISSOES.getCorNivel(getNivelUsuario()),
-        iconeNivel: PERMISSOES.getIconeNivel(getNivelUsuario())
+        iconeNivel: PERMISSOES.getIconeNivel(getNivelUsuario()),
+        dataCriacao: usuarioData.dataCriacao || '',
+        criadoPor: usuarioData.criadoPor || 'sistema',
+        ativo: usuarioData.ativo !== false
     };
 }
 
@@ -995,9 +1088,6 @@ function registrarAtividade(acao, detalhes) {
         }
         
         localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
-        
-        // Em produção, também enviaria para servidor
-        // enviarLogParaServidor(logEntry);
         
     } catch (e) {
         console.error('Erro ao salvar log:', e);
@@ -1097,6 +1187,7 @@ CONFIGURAÇÕES DE APLICAÇÃO
 • Atualização Automática: ${APP_CONFIG.appSettings.atualizacaoAutomaticaMinutos} minutos
 • Notificações: ${APP_CONFIG.appSettings.notificacoesAtivas ? 'Ativas' : 'Inativas'}
 • Logs de Atividade: ${APP_CONFIG.appSettings.manterLogs ? 'Ativos' : 'Inativos'}
+• Criação de Usuários: ${APP_CONFIG.appSettings.permitirCriarUsuarios ? 'Permitida' : 'Restrita'}
 
 ESTATÍSTICAS DE USO
 -------------------
@@ -1198,6 +1289,11 @@ function inicializarConfiguracoes() {
         localStorage.setItem('gestao_equipamentos_logs_auditoria', JSON.stringify([]));
     }
     
+    // Inicializar usuários se não existirem
+    if (!localStorage.getItem('gestao_equipamentos_usuarios')) {
+        localStorage.setItem('gestao_equipamentos_usuarios', JSON.stringify(USUARIOS_AUTORIZADOS));
+    }
+    
     // Aplicar tema
     const tema = localStorage.getItem('gestao_equipamentos_tema');
     document.documentElement.setAttribute('data-tema', tema);
@@ -1235,6 +1331,27 @@ function getUsuariosDisponiveis() {
         return [];
     }
     
+    try {
+        const usuariosSalvos = localStorage.getItem('gestao_equipamentos_usuarios');
+        if (usuariosSalvos) {
+            const usuarios = JSON.parse(usuariosSalvos);
+            return Object.entries(usuarios).map(([username, info]) => ({
+                username,
+                nome: info.nome,
+                email: info.email,
+                departamento: info.departamento,
+                nivel: info.nivel,
+                nivelNome: PERMISSOES.getNomeNivel(info.nivel),
+                dataCriacao: info.dataCriacao,
+                criadoPor: info.criadoPor,
+                ativo: info.ativo !== false
+            }));
+        }
+    } catch (e) {
+        console.error('Erro ao carregar usuários:', e);
+    }
+    
+    // Fallback para usuários padrão
     return Object.entries(USUARIOS_AUTORIZADOS).map(([username, info]) => ({
         username,
         nome: info.nome,
