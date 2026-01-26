@@ -905,5 +905,23 @@
             }
         });
     </script>
+    <script>
+    // Verificar se a aplicação foi inicializada
+    setTimeout(function() {
+        if (typeof app === 'undefined') {
+            console.error('Aplicação não foi inicializada!');
+            document.getElementById('equipamentos-container').innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e74c3c;"></i>
+                    <h3>Erro ao carregar o sistema</h3>
+                    <p>Não foi possível inicializar a aplicação.</p>
+                    <button onclick="location.reload()" class="btn-primary">
+                        <i class="fas fa-redo"></i> Recarregar Página
+                    </button>
+                </div>
+            `;
+        }
+    }, 3000);
+</script>
 </body>
 </html>
