@@ -2367,3 +2367,25 @@ setTimeout(() => {
         `);
     }
 }, 1000);
+// No final do config.js, adicione:
+async function testarConexaoJSONBin() {
+    try {
+        console.log('Testando conexão com JSONBin...');
+        const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}/latest`, {
+            headers: JSONBIN_CONFIG.headers
+        });
+        console.log('Status da resposta:', response.status);
+        if (response.ok) {
+            console.log('JSONBin acessível!');
+        } else {
+            console.error('JSONBin retornou erro:', response.status);
+        }
+    } catch (error) {
+        console.error('Erro ao conectar com JSONBin:', error);
+    }
+}
+
+// Testar quando a página carregar
+if (typeof window !== 'undefined') {
+    setTimeout(testarConexaoJSONBin, 1000);
+}
