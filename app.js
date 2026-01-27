@@ -421,7 +421,7 @@ class EquipamentosApp {
         });
     }
     
-    async carregarDados() {
+async carregarDados() {
     try {
         this.mostrarLoading(true);
         
@@ -479,8 +479,7 @@ class EquipamentosApp {
     } finally {
         this.mostrarLoading(false);
     }
-}
-    
+}    
 async salvarDados() {
     try {
         this.atualizarNextIds();
