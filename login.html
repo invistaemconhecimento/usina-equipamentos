@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Gestão de Equipamentos</title>
+    <style>
+        /* ===========================================
+           ESTILOS DA PÁGINA DE LOGIN
+           =========================================== */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animação de partículas no fundo */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        /* Container principal */
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Cabeçalho do login */
+        .login-header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 35px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: moveBackground 20s linear infinite;
+        }
+
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-20px, -20px) rotate(360deg); }
+        }
+
+        .login-header h1 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-header p {
+            opacity: 0.9;
+            font-size: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .version-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Corpo do login */
+        .login-body {
+            padding: 35px;
+        }
+
+        /* Mensagem de erro */
+        .error-message {
+            background: linear-gradient(135deg, #ffeaea, #ffcccc);
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #e74c3c;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .error-message i {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Formulário */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-with-icon {
+            position: relative;
+        }
+
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        .input-with-icon input {
+            width: 100%;
+            padding: 15px 15px 15px 50px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .input-with-icon input:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .input-with-icon input:focus + i {
+            color: #3498db;
+        }
+
+        /* Botão de mostrar senha */
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #7f8c8d;
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.3s;
+            padding: 5px;
+        }
+
+        .toggle-password:hover {
+            color: #3498db;
+        }
+
+        /* Botão de login */
+        .login-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            padding: 17px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .login-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .login-btn:disabled:hover::before {
+            left: -100%;
+        }
+
+        /* Indicador de carregamento */
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading i {
+            font-size: 24px;
+            color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Seção de informações */
+        .login-info {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #eee;
+        }
+
+        .user-levels {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .user-levels h4 {
+            color: #2c3e50;
+            margin-bottom: 12px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .levels-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .level-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s;
+            cursor: help;
+        }
+
+        .level-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .level-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .level-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .level-user {
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+
+        /* Rodapé do login */
+        .login-footer {
+            text-align: center;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+
+        .login-footer a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .login-footer a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+
+        .login-footer p {
+            margin-bottom: 8px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 500px) {
+            .login-container {
+                margin: 20px;
+                max-width: 100%;
+            }
+            
+            .login-header, .login-body {
+                padding: 25px 20px;
+            }
+            
+            .login-header h1 {
+                font-size: 26px;
+            }
+            
+            .levels-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 350px) {
+            .levels-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animações extras */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Estilo para campos com erro */
+        .input-error {
+            border-color: #e74c3c !important;
+            background: #ffeaea !important;
+        }
+
+        .input-error + i {
+            color: #e74c3c !important;
+        }
+
+        /* Tooltip para os níveis de usuário */
+        .level-tooltip {
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 200px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Partículas animadas no fundo -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Container principal de login -->
+    <div class="login-container">
+        <!-- Cabeçalho -->
+        <div class="login-header">
+            <div class="version-badge">v2.2.0</div>
+            <h1><i class="fas fa-industry"></i> Gestão de Equipamentos</h1>
+            <p>Sistema de gerenciamento de equipamentos industriais</p>
+        </div>
+
+        <!-- Corpo -->
+        <div class="login-body">
+            <!-- Mensagem de erro -->
+            <div id="error-message" class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="error-text"></span>
+            </div>
+
+            <!-- Formulário de login -->
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username"><i class="fas fa-user"></i> Usuário</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user-circle"></i>
+                        <input type="text" id="username" placeholder="Digite seu nome de usuário" required autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-key"></i>
+                        <input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password">
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+                </button>
+            </form>
+
+            <!-- Indicador de carregamento -->
+            <div class="loading" id="loading">
+                <i class="fas fa-circle-notch fa-spin"></i>
+                <p>Autenticando...</p>
+            </div>
+
+            <!-- Informações dos níveis de usuário -->
+            <div class="login-info fade-in">
+                <div class="user-levels">
+                    <h4><i class="fas fa-users-cog"></i> Níveis de Acesso</h4>
+                    <div class="levels-grid" id="levelsGrid">
+                        <!-- Níveis serão preenchidos via JavaScript -->
+                    </div>
+                </div>
+
+                <div class="login-footer">
+                    <p><i class="fas fa-shield-alt"></i> Sistema seguro | Acesso restrito</p>
+                    <p>Problemas para acessar? <a href="mailto:suporte@empresa.com.br">Contate o suporte técnico</a></p>
+                    <p style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+                        <i class="fas fa-clock"></i> Último acesso: <span id="last-access">Nenhum registro</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // CONFIGURAÇÃO DO SISTEMA DE LOGIN
+        // ===========================================
+
+        // Banco de usuários autorizados com níveis de acesso
+        const USUARIOS_AUTORIZADOS = {
+            'visitante': { 
+                senha: 'visitante123', 
+                nivel: 'visitante',
+                nome: 'Visitante',
+                icone: 'fa-eye',
+                cor: '#95a5a6',
+                descricao: 'Somente visualização de equipamentos'
+            },
+            'operador': { 
+                senha: 'operador456', 
+                nivel: 'operador',
+                nome: 'Operador',
+                icone: 'fa-user-cog',
+                cor: '#3498db',
+                descricao: 'Cria, edita, exclui e exporta dados'
+            },
+            'administrador': { 
+                senha: 'admin789', 
+                nivel: 'administrador',
+                nome: 'Administrador',
+                icone: 'fa-user-shield',
+                cor: '#e74c3c',
+                descricao: 'Acesso total ao sistema'
+            }
+        };
+
+        // Configurações do sistema
+        const SISTEMA_CONFIG = {
+            nome: 'Gestão de Equipamentos',
+            versao: '2.2.0',
+            empresa: 'Usina Industrial',
+            tempoSessao: 8, // horas
+        };
+
+        // ===========================================
+        // INICIALIZAÇÃO DA PÁGINA
+        // ===========================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar partículas
+            criarParticulas();
+            
+            // Configurar interface
+            inicializarInterface();
+            
+            // Verificar se há sessão expirada
+            verificarSessaoExpirada();
+            
+            // Carregar último acesso
+            carregarUltimoAcesso();
+            
+            // Configurar eventos
+            configurarEventos();
+            
+            // Foco no campo de usuário
+            setTimeout(() => {
+                document.getElementById('username').focus();
+            }, 500);
+        });
+
+        // ===========================================
+        // FUNÇÕES PRINCIPAIS
+        // ===========================================
+
+        // Criar partículas animadas
+        function criarParticulas() {
+            const container = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Tamanho aleatório
+                const size = Math.random() * 4 + 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Posição aleatória
+                particle.style.left = `${Math.random() * 100}%`;
+                
+                // Atraso aleatório na animação
+                particle.style.animationDelay = `${Math.random() * 15}s`;
+                
+                // Duração aleatória
+                particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                
+                container.appendChild(particle);
+            }
+        }
+
+        // Inicializar interface
+        function inicializarInterface() {
+            // Preencher grid de níveis de usuário
+            const levelsGrid = document.getElementById('levelsGrid');
+            levelsGrid.innerHTML = '';
+            
+            Object.entries(USUARIOS_AUTORIZADOS).forEach(([username, info]) => {
+                const levelItem = document.createElement('div');
+                levelItem.className = 'level-item';
+                levelItem.title = `${info.nome}\nUsuário: ${username}\nSenha: ${info.senha}\n\n${info.descricao}`;
+                levelItem.style.borderLeft = `4px solid ${info.cor}`;
+                
+                levelItem.innerHTML = `
+                    <div class="level-icon" style="color: ${info.cor}">
+                        <i class="fas ${info.icone}"></i>
+                    </div>
+                    <div class="level-name">${info.nome}</div>
+                    <div class="level-user">${username}</div>
+                `;
+                
+                levelsGrid.appendChild(levelItem);
+            });
+            
+            // Mostrar versão do sistema
+            document.querySelector('.version-badge').textContent = `v${SISTEMA_CONFIG.versao}`;
+        }
+
+        // Verificar se há sessão expirada
+        function verificarSessaoExpirada() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.get('expired') === 'true') {
+                mostrarErro('Sua sessão expirou. Por favor, faça login novamente.');
+            }
+            
+            if (urlParams.get('logout') === 'true') {
+                mostrarErro('Você saiu do sistema com sucesso.');
+            }
+            
+            // Limpar qualquer sessão residual
+            localStorage.removeItem('gestao_equipamentos_sessao');
+            localStorage.removeItem('gestao_equipamentos_usuario');
+            localStorage.removeItem('gestao_equipamentos_nivel');
+        }
+
+        // Carregar último acesso
+        function carregarUltimoAcesso() {
+            const lastAccess = localStorage.getItem('gestao_equipamentos_ultimo_acesso');
+            const lastAccessElement = document.getElementById('last-access');
+            
+            if (lastAccess && lastAccessElement) {
+                try {
+                    const date = new Date(lastAccess);
+                    lastAccessElement.textContent = date.toLocaleDateString('pt-BR') + 
+                                                   ' às ' + 
+                                                   date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+                } catch (e) {
+                    lastAccessElement.textContent = 'Nenhum registro';
+                }
+            }
+        }
+
+        // Configurar eventos
+        function configurarEventos() {
+            const loginForm = document.getElementById('loginForm');
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            
+            // Evento de submit do formulário
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                realizarLogin();
+            });
+            
+            // Evento do botão de mostrar/ocultar senha
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                const icon = this.querySelector('i');
+                
+                passwordInput.setAttribute('type', type);
+                icon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+            });
+            
+            // Tecla Enter para navegação
+            document.getElementById('username').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('password').focus();
+                }
+            });
+            
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            });
+            
+            // Efeito visual ao focar nos campos
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.classList.add('focused');
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.parentElement.classList.remove('focused');
+                });
+            });
+        }
+
+        // ===========================================
+        // FUNÇÕES DE AUTENTICAÇÃO
+        // ===========================================
+
+        // Realizar login
+        function realizarLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            
+            // Limpar mensagens de erro anteriores
+            limparErros();
+            
+            // Validações básicas
+            if (!username || !password) {
+                mostrarErro('Por favor, preencha todos os campos.');
+                destacarCamposVazios(username, password);
+                return;
+            }
+            
+            // Verificar se usuário existe
+            if (!USUARIOS_AUTORIZADOS[username]) {
+                mostrarErro('Usuário não encontrado. Verifique o nome de usuário.');
+                destacarCampoErro('username');
+                return;
+            }
+            
+            // Verificar senha
+            const userData = USUARIOS_AUTORIZADOS[username];
+            if (userData.senha !== password) {
+                mostrarErro('Senha incorreta. Tente novamente.');
+                destacarCampoErro('password');
+                return;
+            }
+            
+            // Desabilitar botão e mostrar carregamento
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...';
+            
+            // Simular delay de autenticação (em produção seria chamada a API)
+            setTimeout(() => {
+                // Criar dados da sessão
+                const sessionData = {
+                    usuario: username,
+                    nivel: userData.nivel,
+                    nome: userData.nome,
+                    timestamp: new Date().getTime(),
+                    expira: new Date().getTime() + (SISTEMA_CONFIG.tempoSessao * 60 * 60 * 1000)
+                };
+                
+                // Salvar dados da sessão
+                localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessionData));
+                localStorage.setItem('gestao_equipamentos_usuario', username);
+                localStorage.setItem('gestao_equipamentos_nivel', userData.nivel);
+                localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
+                
+                // Registrar log de login (em produção, enviaria para servidor)
+                const logEntry = {
+                    usuario: username,
+                    nivel: userData.nivel,
+                    acao: 'LOGIN',
+                    detalhes: 'Login realizado com sucesso',
+                    timestamp: new Date().toISOString(),
+                    ip: 'local'
+                };
+                
+                // Salvar log localmente
+                try {
+                    let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
+                    logs.unshift(logEntry);
+                    if (logs.length > 100) logs = logs.slice(0, 100);
+                    localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
+                } catch (e) {
+                    console.error('Erro ao salvar log:', e);
+                }
+                
+                // Redirecionar para aplicação principal
+                window.location.href = 'index.html';
+                
+            }, 1500); // Simula delay de rede
+        }
+
+        // ===========================================
+        // FUNÇÕES AUXILIARES
+        // ===========================================
+
+        // Mostrar mensagem de erro
+        function mostrarErro(mensagem) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            errorText.textContent = mensagem;
+            errorDiv.classList.add('show');
+            
+            // Remover automaticamente após 5 segundos
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Limpar erros
+        function limparErros() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.classList.remove('show');
+            
+            // Remover destaques de erro dos campos
+            document.querySelectorAll('.input-error').forEach(el => {
+                el.classList.remove('input-error');
+            });
+        }
+
+        // Destacar campos vazios
+        function destacarCamposVazios(username, password) {
+            if (!username) {
+                destacarCampoErro('username');
+            }
+            
+            if (!password) {
+                destacarCampoErro('password');
+            }
+        }
+
+        // Destacar campo com erro
+        function destacarCampoErro(campoId) {
+            const campo = document.getElementById(campoId);
+            if (campo) {
+                campo.classList.add('input-error');
+                
+                // Focar no campo com erro
+                campo.focus();
+                
+                // Remover destaque após 3 segundos
+                setTimeout(() => {
+                    campo.classList.remove('input-error');
+                }, 3000);
+            }
+        }
+
+        // Validar força da senha (para futuro uso)
+        function validarForcaSenha(senha) {
+            const forca = {
+                pontos: 0,
+                nivel: 'fraca'
+            };
+            
+            // Verificar comprimento
+            if (senha.length >= 8) forca.pontos++;
+            if (senha.length >= 12) forca.pontos++;
+            
+            // Verificar caracteres especiais
+            if (/[A-Z]/.test(senha)) forca.pontos++;
+            if (/[0-9]/.test(senha)) forca.pontos++;
+            if (/[^A-Za-z0-9]/.test(senha)) forca.pontos++;
+            
+            // Determinar nível
+            if (forca.pontos <= 2) forca.nivel = 'fraca';
+            else if (forca.pontos <= 4) forca.nivel = 'média';
+            else forca.nivel = 'forte';
+            
+            return forca;
+        }
+
+        // Gerar dica de senha (para futuro uso)
+        function gerarDicaSenha() {
+            const dicas = [
+                'Use pelo menos 8 caracteres',
+                'Combine letras maiúsculas e minúsculas',
+                'Adicione números e símbolos',
+                'Evite sequências óbvias (123456, abcdef)',
+                'Não use informações pessoais como senha'
+            ];
+            
+            return dicas[Math.floor(Math.random() * dicas.length)];
+        }
+
+        // ===========================================
+        // FUNÇÕES DE SEGURANÇA ADICIONAIS
+        // ===========================================
+
+        // Proteger contra brute force (simples)
+        let tentativasLogin = 0;
+        const maxTentativas = 5;
+        let bloqueadoAte = 0;
+
+        function verificarBloqueio() {
+            const agora = Date.now();
+            
+            if (tentativasLogin >= maxTentativas && agora < bloqueadoAte) {
+                const minutosRestantes = Math.ceil((bloqueadoAte - agora) / 60000);
+                mostrarErro(`Muitas tentativas falhas. Tente novamente em ${minutosRestantes} minutos.`);
+                return true;
+            }
+            
+            // Resetar contador se bloqueio expirou
+            if (agora > bloqueadoAte) {
+                tentativasLogin = 0;
+            }
+            
+            return false;
+        }
+
+        function registrarTentativaFalha() {
+            tentativasLogin++;
+            
+            if (tentativasLogin >= maxTentativas) {
+                // Bloquear por 15 minutos
+                bloqueadoAte = Date.now() + (15 * 60 * 1000);
+                mostrarErro('Muitas tentativas falhas. Sistema bloqueado por 15 minutos.');
+            }
+        }
+
+        // Em caso de login bem-sucedido
+        function resetarTentativas() {
+            tentativasLogin = 0;
+            bloqueadoAte = 0;
+        }
+
+        // ===========================================
+        // ANIMAÇÕES E EFEITOS VISUAIS
+        // ===========================================
+
+        // Efeito de digitação no título (opcional)
+        function efeitoDigitacao(elemento, texto, velocidade = 50) {
+            let i = 0;
+            elemento.textContent = '';
+            
+            function digitar() {
+                if (i < texto.length) {
+                    elemento.textContent += texto.charAt(i);
+                    i++;
+                    setTimeout(digitar, velocidade);
+                }
+            }
+            
+            digitar();
+        }
+
+        // Inicializar efeitos visuais
+        function inicializarEfeitosVisuais() {
+            // Efeito de onda nos botões
+            const botoes = document.querySelectorAll('.login-btn, .level-item');
+            botoes.forEach(botao => {
+                botao.addEventListener('click', function(e) {
+                    const x = e.clientX - e.target.getBoundingClientRect().left;
+                    const y = e.clientY - e.target.getBoundingClientRect().top;
+                    
+                    const onda = document.createElement('span');
+                    onda.style.position = 'absolute';
+                    onda.style.borderRadius = '50%';
+                    onda.style.background = 'rgba(255, 255, 255, 0.5)';
+                    onda.style.transform = 'translate(-50%, -50%) scale(0)';
+                    onda.style.animation = 'onda 0.5s linear';
+                    onda.style.left = `${x}px`;
+                    onda.style.top = `${y}px`;
+                    
+                    this.appendChild(onda);
+                    
+                    setTimeout(() => {
+                        onda.remove();
+                    }, 500);
+                });
+            });
+            
+            // Adicionar estilo para animação de onda
+            const estilo = document.createElement('style');
+            estilo.textContent = `
+                @keyframes onda {
+                    to {
+                        transform: translate(-50%, -50%) scale(4);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(estilo);
+        }
+
+        // Inicializar efeitos quando a página carregar
+        window.addEventListener('load', inicializarEfeitosVisuais);
+
+        // ===========================================
+        // ACESSIBILIDADE
+        // ===========================================
+
+        // Adicionar suporte a teclado
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Alt+L para focar no campo de login
+            if (e.ctrlKey && e.altKey && e.key === 'l') {
+                e.preventDefault();
+                document.getElementById('username').focus();
+            }
+            
+            // Esc para limpar formulário
+            if (e.key === 'Escape') {
+                document.getElementById('loginForm').reset();
+                limparErros();
+            }
+        });
+
+        // Suporte a alto contraste
+        function verificarPreferenciaContraste() {
+            const prefersContrast = window.matchMedia('(prefers-contrast: more)').matches;
+            
+            if (prefersContrast) {
+                document.body.classList.add('alto-contraste');
+            }
+        }
+
+        // Verificar preferência de contraste
+        window.matchMedia('(prefers-contrast: more)').addEventListener('change', verificarPreferenciaContraste);
+        verificarPreferenciaContraste();
+
+    </script>
+
+    <!-- Estilo adicional para alto contraste -->
+    <style>
+        .alto-contraste .login-container {
+            border: 3px solid white;
+        }
+        
+        .alto-contraste .input-with-icon input {
+            border-width: 3px;
+        }
+        
+        .alto-contraste .error-message {
+            border-width: 3px;
+        }
+    </style>
+</body>
+</html>
