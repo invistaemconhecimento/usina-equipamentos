@@ -422,100 +422,108 @@ class EquipamentosApp {
     }
     
     async carregarDados() {
-        try {
-            this.mostrarLoading(true);
+    try {
+        this.mostrarLoading(true);
+        
+        // Carregar equipamentos do bin principal
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.BASE_URL}/${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.ID}/latest`,
+            { headers: JSONBIN_CONFIG.headers }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar dados do servidor');
+        }
+        
+        const result = await response.json();
+        
+        if (result.record && result.record.equipamentos) {
+            this.data = result.record;
+            this.equipamentos = this.data.equipamentos;
             
-            const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}/latest`, {
-                headers: JSONBIN_CONFIG.headers
+            // Atualizar status baseado nas pendências
+            this.equipamentos.forEach((equipamento, index) => {
+                this.atualizarStatusEquipamentoPorPendencias(index);
             });
             
-            if (!response.ok) {
-                throw new Error('Erro ao carregar dados do servidor');
+            // Registrar atividade
+            if (window.registrarAtividade) {
+                window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
             }
-            
-            const result = await response.json();
-            
-            if (result.record && result.record.equipamentos) {
-                this.data = result.record;
-                this.equipamentos = this.data.equipamentos;
-                
-                // Atualizar status baseado nas pendências
-                this.equipamentos.forEach((equipamento, index) => {
-                    this.atualizarStatusEquipamentoPorPendencias(index);
-                });
-                
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
-                }
-            } else {
-                this.data = INITIAL_DATA;
-                this.equipamentos = INITIAL_DATA.equipamentos;
-                
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
-                }
-            }
-            
-            this.atualizarStatusSincronizacao(true);
-            
-            // Atualizar última sincronização
-            localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
-            
-        } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-            
+        } else {
             this.data = INITIAL_DATA;
             this.equipamentos = INITIAL_DATA.equipamentos;
             
-            this.atualizarStatusSincronizacao(false);
-            this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
-            
             // Registrar atividade
             if (window.registrarAtividade) {
-                window.registrarAtividade('ERRO_CARREGAR', `Erro ao carregar dados: ${error.message}`);
+                window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
             }
-        } finally {
-            this.mostrarLoading(false);
         }
+        
+        this.atualizarStatusSincronizacao(true);
+        localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        
+        this.data = INITIAL_DATA;
+        this.equipamentos = INITIAL_DATA.equipamentos;
+        
+        this.atualizarStatusSincronizacao(false);
+        this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
+        
+        // Registrar atividade
+        if (window.registrarAtividade) {
+            window.registrarAtividade('ERRO_CARREGAR', `Erro ao carregar dados: ${error.message}`);
+        }
+    } finally {
+        this.mostrarLoading(false);
     }
+}
     
-    async salvarDados() {
-        try {
-            this.atualizarNextIds();
-            
-            const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}`, {
+async salvarDados() {
+    try {
+        this.atualizarNextIds();
+        
+        // Salvar apenas equipamentos no bin principal
+        const dadosEquipamentos = {
+            equipamentos: this.equipamentos,
+            nextEquipamentoId: this.data.nextEquipamentoId,
+            nextPendenciaId: this.data.nextPendenciaId,
+            logs: this.data.logs || []
+        };
+        
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.BASE_URL}/${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.ID}`,
+            {
                 method: 'PUT',
                 headers: JSONBIN_CONFIG.headers,
-                body: JSON.stringify(this.data)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Erro ao salvar dados');
+                body: JSON.stringify(dadosEquipamentos)
             }
-            
-            this.atualizarStatusSincronizacao(true);
-            
-            // Atualizar última sincronização
-            localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
-            
-            return true;
-        } catch (error) {
-            console.error('Erro ao salvar dados:', error);
-            this.atualizarStatusSincronizacao(false);
-            
-            this.mostrarMensagem('Erro ao salvar dados no servidor. Alterações podem ser perdidas.', 'error');
-            
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('ERRO_SALVAR', `Erro ao salvar dados: ${error.message}`);
-            }
-            
-            return false;
+        );
+        
+        if (!response.ok) {
+            throw new Error('Erro ao salvar dados');
         }
+        
+        this.atualizarStatusSincronizacao(true);
+        localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
+        
+        return true;
+    } catch (error) {
+        console.error('Erro ao salvar dados:', error);
+        this.atualizarStatusSincronizacao(false);
+        
+        this.mostrarMensagem('Erro ao salvar dados no servidor. Alterações podem ser perdidas.', 'error');
+        
+        // Registrar atividade
+        if (window.registrarAtividade) {
+            window.registrarAtividade('ERRO_SALVAR', `Erro ao salvar dados: ${error.message}`);
+        }
+        
+        return false;
     }
-    
+}    
     atualizarNextIds() {
         let maxEquipamentoId = 0;
         this.equipamentos.forEach(eqp => {
