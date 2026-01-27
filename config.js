@@ -923,6 +923,57 @@ function inicializarConfiguracoes() {
     document.documentElement.setAttribute('data-tema', tema);
 }
 
+// Função para validar login com dados do JSONBin
+async function validarLoginComJSONBin(username, password) {
+    try {
+        // Carregar usuários do bin específico
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
+            { headers: JSONBIN_CONFIG.headers }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar usuários');
+        }
+        
+        const result = await response.json();
+        const usuarios = result.record?.usuarios || [];
+        
+        // Buscar usuário
+        const usuario = usuarios.find(u => 
+            u.username.toLowerCase() === username.toLowerCase() && 
+            (u.ativo === true || u.ativo === undefined)
+        );
+        
+        if (!usuario) {
+            return { sucesso: false, mensagem: 'Usuário não encontrado ou inativo' };
+        }
+        
+        // Verificar senha (em produção, use bcrypt ou similar)
+        if (usuario.senha !== password) {
+            return { sucesso: false, mensagem: 'Senha incorreta' };
+        }
+        
+        return { 
+            sucesso: true, 
+            usuario: {
+                username: usuario.username,
+                nivel: usuario.nivel,
+                nome: usuario.nome,
+                email: usuario.email,
+                departamento: usuario.departamento
+            }
+        };
+        
+    } catch (error) {
+        console.error('Erro na autenticação:', error);
+        return { 
+            sucesso: false, 
+            mensagem: 'Erro de conexão. Tente novamente mais tarde.' 
+        };
+    }
+}
+
 // Função para alternar tema
 function alternarTema() {
     const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
