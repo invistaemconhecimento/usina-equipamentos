@@ -480,7 +480,8 @@ async carregarDados() {
         this.mostrarLoading(false);
     }
 }    
-async salvarDados() {
+
+    async salvarDados() {
     try {
         this.atualizarNextIds();
         
@@ -522,7 +523,8 @@ async salvarDados() {
         
         return false;
     }
-}    
+}
+    
     atualizarNextIds() {
         let maxEquipamentoId = 0;
         this.equipamentos.forEach(eqp => {
