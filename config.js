@@ -2,13 +2,25 @@
 // CONFIGURAÇÃO DO SISTEMA DE GESTÃO DE EQUIPAMENTOS
 // ===========================================
 
-// Configuração do JSONBin.io
+// Configuração do JSONBin.io - Multi-Bin
 const JSONBIN_CONFIG = {
-    // ID do bin que você criou no JSONBin.io
-    BIN_ID: '696fa19fae596e708fe90a63',
+    // Bin para equipamentos
+    BIN_EQUIPAMENTOS: {
+        ID: '696fa19fae596e708fe90a63',
+        BASE_URL: 'https://api.jsonbin.io/v3/b'
+    },
     
-    // URL base da API
-    BASE_URL: 'https://api.jsonbin.io/v3/b',
+    // Bin para usuários
+    BIN_USUARIOS: {
+        ID: '6978e17b43b1c97be94efa1b',  // Substitua pelo ID do novo bin
+        BASE_URL: 'https://api.jsonbin.io/v3/b'
+    },
+    
+    // Bin para logs
+    BIN_LOGS: {
+        ID: 'OUTRO_BIN_ID_AQUI',  // Opcional, para logs separados
+        BASE_URL: 'https://api.jsonbin.io/v3/b'
+    },
     
     // Cabeçalhos para as requisições
     headers: {
