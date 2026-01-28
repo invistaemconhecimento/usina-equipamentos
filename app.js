@@ -421,109 +421,100 @@ class EquipamentosApp {
         });
     }
     
-async carregarDados() {
-    try {
-        this.mostrarLoading(true);
-        
-        // Carregar equipamentos do bin principal
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.BASE_URL}/${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.ID}/latest`,
-            { headers: JSONBIN_CONFIG.headers }
-        );
-        
-        if (!response.ok) {
-            throw new Error('Erro ao carregar dados do servidor');
-        }
-        
-        const result = await response.json();
-        
-        if (result.record && result.record.equipamentos) {
-            this.data = result.record;
-            this.equipamentos = this.data.equipamentos;
+    async carregarDados() {
+        try {
+            this.mostrarLoading(true);
             
-            // Atualizar status baseado nas pendências
-            this.equipamentos.forEach((equipamento, index) => {
-                this.atualizarStatusEquipamentoPorPendencias(index);
+            const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}/latest`, {
+                headers: JSONBIN_CONFIG.headers
             });
             
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
+            if (!response.ok) {
+                throw new Error('Erro ao carregar dados do servidor');
             }
-        } else {
+            
+            const result = await response.json();
+            
+            if (result.record && result.record.equipamentos) {
+                this.data = result.record;
+                this.equipamentos = this.data.equipamentos;
+                
+                // Atualizar status baseado nas pendências
+                this.equipamentos.forEach((equipamento, index) => {
+                    this.atualizarStatusEquipamentoPorPendencias(index);
+                });
+                
+                // Registrar atividade
+                if (window.registrarAtividade) {
+                    window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
+                }
+            } else {
+                this.data = INITIAL_DATA;
+                this.equipamentos = INITIAL_DATA.equipamentos;
+                
+                // Registrar atividade
+                if (window.registrarAtividade) {
+                    window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
+                }
+            }
+            
+            this.atualizarStatusSincronizacao(true);
+            
+            // Atualizar última sincronização
+            localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
+            
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
+            
             this.data = INITIAL_DATA;
             this.equipamentos = INITIAL_DATA.equipamentos;
             
+            this.atualizarStatusSincronizacao(false);
+            this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
+            
             // Registrar atividade
             if (window.registrarAtividade) {
-                window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
+                window.registrarAtividade('ERRO_CARREGAR', `Erro ao carregar dados: ${error.message}`);
             }
+        } finally {
+            this.mostrarLoading(false);
         }
-        
-        this.atualizarStatusSincronizacao(true);
-        localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
-        
-    } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        
-        this.data = INITIAL_DATA;
-        this.equipamentos = INITIAL_DATA.equipamentos;
-        
-        this.atualizarStatusSincronizacao(false);
-        this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
-        
-        // Registrar atividade
-        if (window.registrarAtividade) {
-            window.registrarAtividade('ERRO_CARREGAR', `Erro ao carregar dados: ${error.message}`);
-        }
-    } finally {
-        this.mostrarLoading(false);
     }
-}    
-
+    
     async salvarDados() {
-    try {
-        this.atualizarNextIds();
-        
-        // Salvar apenas equipamentos no bin principal
-        const dadosEquipamentos = {
-            equipamentos: this.equipamentos,
-            nextEquipamentoId: this.data.nextEquipamentoId,
-            nextPendenciaId: this.data.nextPendenciaId,
-            logs: this.data.logs || []
-        };
-        
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.BASE_URL}/${JSONBIN_CONFIG.BIN_EQUIPAMENTOS.ID}`,
-            {
+        try {
+            this.atualizarNextIds();
+            
+            const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}`, {
                 method: 'PUT',
                 headers: JSONBIN_CONFIG.headers,
-                body: JSON.stringify(dadosEquipamentos)
+                body: JSON.stringify(this.data)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erro ao salvar dados');
             }
-        );
-        
-        if (!response.ok) {
-            throw new Error('Erro ao salvar dados');
+            
+            this.atualizarStatusSincronizacao(true);
+            
+            // Atualizar última sincronização
+            localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
+            
+            return true;
+        } catch (error) {
+            console.error('Erro ao salvar dados:', error);
+            this.atualizarStatusSincronizacao(false);
+            
+            this.mostrarMensagem('Erro ao salvar dados no servidor. Alterações podem ser perdidas.', 'error');
+            
+            // Registrar atividade
+            if (window.registrarAtividade) {
+                window.registrarAtividade('ERRO_SALVAR', `Erro ao salvar dados: ${error.message}`);
+            }
+            
+            return false;
         }
-        
-        this.atualizarStatusSincronizacao(true);
-        localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
-        
-        return true;
-    } catch (error) {
-        console.error('Erro ao salvar dados:', error);
-        this.atualizarStatusSincronizacao(false);
-        
-        this.mostrarMensagem('Erro ao salvar dados no servidor. Alterações podem ser perdidas.', 'error');
-        
-        // Registrar atividade
-        if (window.registrarAtividade) {
-            window.registrarAtividade('ERRO_SALVAR', `Erro ao salvar dados: ${error.message}`);
-        }
-        
-        return false;
     }
-}
     
     atualizarNextIds() {
         let maxEquipamentoId = 0;
@@ -1305,8 +1296,7 @@ async carregarDados() {
         this.atualizarEstatisticas();
         this.mostrarMensagem('Dados sincronizados com sucesso', 'success');
     }
-
-   
+    
     exportarDadosExcel() {
         try {
             // Verificar permissão
@@ -1626,38 +1616,45 @@ function configurarEventosGlobais() {
         });
     }
     
-    // Botão de tema
+    // Botão de tema - ATUALIZADO
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const novoTema = window.alternarTema ? window.alternarTema() : 'claro';
-            const icon = this.querySelector('i');
+        themeToggle.addEventListener('click', function(e) {
+            e.preventDefault();
             
-            if (novoTema === 'escuro') {
-                icon.className = 'fas fa-sun';
-                themeToggle.title = 'Alternar para tema claro';
-            } else {
-                icon.className = 'fas fa-moon';
-                themeToggle.title = 'Alternar para tema escuro';
-            }
-            
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
+            // Alternar tema usando a função global
+            if (window.alternarTema) {
+                const novoTema = window.alternarTema();
+                
+                // Atualizar título do botão
+                if (novoTema === 'escuro') {
+                    this.title = 'Alternar para tema claro';
+                } else {
+                    this.title = 'Alternar para tema escuro';
+                }
             }
         });
         
-        // Configurar ícone inicial
+        // Configurar título inicial
         const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-        const icon = themeToggle.querySelector('i');
         if (temaAtual === 'escuro') {
-            icon.className = 'fas fa-sun';
             themeToggle.title = 'Alternar para tema claro';
+        } else {
+            themeToggle.title = 'Alternar para tema escuro';
         }
     }
     
     // Atalhos de teclado
     document.addEventListener('keydown', function(e) {
+        // Ctrl+T para alternar tema
+        if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+            e.preventDefault();
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.click();
+            }
+        }
+        
         // Ctrl+F para focar na busca
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();
@@ -1682,20 +1679,26 @@ function configurarEventosGlobais() {
 }
 
 function configurarTema() {
-    // Aplicar tema salvo
-    const tema = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-    document.documentElement.setAttribute('data-tema', tema);
-    
-    // Configurar ícone do botão de tema
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        const icon = themeToggle.querySelector('i');
-        if (tema === 'escuro') {
-            icon.className = 'fas fa-sun';
-            themeToggle.title = 'Alternar para tema claro';
-        } else {
-            icon.className = 'fas fa-moon';
-            themeToggle.title = 'Alternar para tema escuro';
+    // Aplicar tema salvo - simplificado para usar a função global
+    if (window.aplicarTema) {
+        window.aplicarTema();
+    } else {
+        const tema = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
+        document.documentElement.setAttribute('data-tema', tema);
+        
+        // Configurar ícone do botão de tema
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            if (icon) {
+                if (tema === 'escuro') {
+                    icon.className = 'fas fa-sun';
+                    themeToggle.title = 'Alternar para tema claro';
+                } else {
+                    icon.className = 'fas fa-moon';
+                    themeToggle.title = 'Alternar para tema escuro';
+                }
+            }
         }
     }
 }
@@ -1733,6 +1736,41 @@ if (!document.querySelector('#app-estilos-dinamicos')) {
         
         .nivel-indicator:hover {
             opacity: 1;
+        }
+        
+        /* Estilos para o botão de tema */
+        #theme-toggle {
+            background: var(--cor-primaria);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 18px;
+        }
+        
+        #theme-toggle:hover {
+            background: var(--cor-primaria);
+            opacity: 0.9;
+            transform: scale(1.1);
+        }
+        
+        #theme-toggle:active {
+            transform: scale(0.95);
+        }
+        
+        /* Animações para transição de tema */
+        body {
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+        
+        .equipamento-card {
+            transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
         }
     `;
     document.head.appendChild(estilos);
