@@ -2,25 +2,13 @@
 // CONFIGURAÇÃO DO SISTEMA DE GESTÃO DE EQUIPAMENTOS
 // ===========================================
 
-// Configuração do JSONBin.io - Multi-Bin
+// Configuração do JSONBin.io
 const JSONBIN_CONFIG = {
-    // Bin para equipamentos
-    BIN_EQUIPAMENTOS: {
-        ID: '696fa19fae596e708fe90a63',
-        BASE_URL: 'https://api.jsonbin.io/v3/b'
-    },
+    // ID do bin que você criou no JSONBin.io
+    BIN_ID: '696fa19fae596e708fe90a63',
     
-    // Bin para usuários
-    BIN_USUARIOS: {
-        ID: '6978e17b43b1c97be94efa1b',  // Substitua pelo ID do novo bin
-        BASE_URL: 'https://api.jsonbin.io/v3/b'
-    },
-    
-    // Bin para logs
-    BIN_LOGS: {
-        ID: 'OUTRO_BIN_ID_AQUI',  // Opcional, para logs separados
-        BASE_URL: 'https://api.jsonbin.io/v3/b'
-    },
+    // URL base da API
+    BASE_URL: 'https://api.jsonbin.io/v3/b',
     
     // Cabeçalhos para as requisições
     headers: {
@@ -895,6 +883,58 @@ function copiarInformacoesSistema() {
     });
 }
 
+// Função para aplicar tema em qualquer página
+function aplicarTema() {
+    const tema = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
+    document.documentElement.setAttribute('data-tema', tema);
+    
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        const icon = themeToggle.querySelector('i');
+        if (icon) {
+            if (tema === 'escuro') {
+                icon.className = 'fas fa-sun';
+                themeToggle.title = 'Alternar para tema claro';
+            } else {
+                icon.className = 'fas fa-moon';
+                themeToggle.title = 'Alternar para tema escuro';
+            }
+        }
+    }
+}
+
+// Função para alternar tema - ATUALIZADA
+function alternarTema() {
+    const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
+    const novoTema = temaAtual === 'claro' ? 'escuro' : 'claro';
+    
+    // Salvar tema no localStorage
+    localStorage.setItem('gestao_equipamentos_tema', novoTema);
+    
+    // Aplicar tema imediatamente
+    document.documentElement.setAttribute('data-tema', novoTema);
+    
+    // Atualizar ícone do botão se ele existir na página
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        const icon = themeToggle.querySelector('i');
+        if (icon) {
+            if (novoTema === 'escuro') {
+                icon.className = 'fas fa-sun';
+                themeToggle.title = 'Alternar para tema claro';
+            } else {
+                icon.className = 'fas fa-moon';
+                themeToggle.title = 'Alternar para tema escuro';
+            }
+        }
+    }
+    
+    // Registrar atividade
+    registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
+    
+    return novoTema;
+}
+
 // Inicializar configurações padrão
 function inicializarConfiguracoes() {
     // Configuração de filtros
@@ -919,72 +959,7 @@ function inicializarConfiguracoes() {
     }
     
     // Aplicar tema
-    const tema = localStorage.getItem('gestao_equipamentos_tema');
-    document.documentElement.setAttribute('data-tema', tema);
-}
-
-// Função para validar login com dados do JSONBin
-async function validarLoginComJSONBin(username, password) {
-    try {
-        // Carregar usuários do bin específico
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
-            { headers: JSONBIN_CONFIG.headers }
-        );
-        
-        if (!response.ok) {
-            throw new Error('Erro ao carregar usuários');
-        }
-        
-        const result = await response.json();
-        const usuarios = result.record?.usuarios || [];
-        
-        // Buscar usuário
-        const usuario = usuarios.find(u => 
-            u.username.toLowerCase() === username.toLowerCase() && 
-            (u.ativo === true || u.ativo === undefined)
-        );
-        
-        if (!usuario) {
-            return { sucesso: false, mensagem: 'Usuário não encontrado ou inativo' };
-        }
-        
-        // Verificar senha (em produção, use bcrypt ou similar)
-        if (usuario.senha !== password) {
-            return { sucesso: false, mensagem: 'Senha incorreta' };
-        }
-        
-        return { 
-            sucesso: true, 
-            usuario: {
-                username: usuario.username,
-                nivel: usuario.nivel,
-                nome: usuario.nome,
-                email: usuario.email,
-                departamento: usuario.departamento
-            }
-        };
-        
-    } catch (error) {
-        console.error('Erro na autenticação:', error);
-        return { 
-            sucesso: false, 
-            mensagem: 'Erro de conexão. Tente novamente mais tarde.' 
-        };
-    }
-}
-
-// Função para alternar tema
-function alternarTema() {
-    const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-    const novoTema = temaAtual === 'claro' ? 'escuro' : 'claro';
-    
-    localStorage.setItem('gestao_equipamentos_tema', novoTema);
-    document.documentElement.setAttribute('data-tema', novoTema);
-    
-    registrarAtividade('ALTERAR_TEMA', `Tema alterado para ${novoTema}`);
-    
-    return novoTema;
+    aplicarTema();
 }
 
 // Função para verificar permissão do usuário atual
@@ -1041,6 +1016,7 @@ if (typeof window !== 'undefined') {
     window.mostrarInfoSistema = mostrarInfoSistema;
     window.copiarInformacoesSistema = copiarInformacoesSistema;
     window.inicializarConfiguracoes = inicializarConfiguracoes;
+    window.aplicarTema = aplicarTema;
     window.alternarTema = alternarTema;
     window.temPermissao = temPermissao;
     window.podeExecutar = podeExecutar;
@@ -1069,12 +1045,21 @@ if (typeof module !== 'undefined' && module.exports) {
         mostrarInfoSistema,
         copiarInformacoesSistema,
         inicializarConfiguracoes,
+        aplicarTema,
         alternarTema,
         temPermissao,
         podeExecutar,
         getUsuariosDisponiveis
     };
 }
+
+// Aplicar tema imediatamente ao carregar
+aplicarTema();
+
+// Aplicar também quando a página carregar completamente
+document.addEventListener('DOMContentLoaded', function() {
+    aplicarTema();
+});
 
 // Inicializar configurações quando o script carregar
 if (typeof window !== 'undefined' && document.readyState === 'loading') {
