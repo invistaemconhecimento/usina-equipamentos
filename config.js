@@ -1001,16 +1001,17 @@ function getUsuariosDisponiveis() {
     }));
 }
 
-// NO: config.js - Atualize a função salvarUsuariosNoJSONBin
 async function salvarUsuariosNoJSONBin(usuarios) {
     try {
-        // Para o JSONBin, sempre envie um objeto completo
+        // Estrutura consistente com o JSONBin
         const dataParaSalvar = {
-            usuarios: usuarios,
-            metadata: {
-                ultimaAtualizacao: new Date().toISOString(),
-                totalUsuarios: usuarios.length,
-                atualizadoPor: getUsuarioLogado() || 'sistema'
+            record: {
+                usuarios: usuarios,
+                metadata: {
+                    ultimaAtualizacao: new Date().toISOString(),
+                    totalUsuarios: usuarios.length,
+                    atualizadoPor: getUsuarioLogado() || 'sistema'
+                }
             }
         };
         
@@ -1019,23 +1020,11 @@ async function salvarUsuariosNoJSONBin(usuarios) {
             {
                 method: 'PUT',
                 headers: JSONBIN_CONFIG.headers,
-                body: JSON.stringify(dataParaSalvar) // Agora é um objeto completo
+                body: JSON.stringify(dataParaSalvar)
             }
         );
         
-        if (!response.ok) {
-            throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('Usuários salvos com sucesso:', result);
-        
-        // Registrar atividade
-        if (window.registrarAtividade) {
-            registrarAtividade('UPDATE_USUARIOS', `Atualizou lista de usuários (${usuarios.length} usuários)`);
-        }
-        
-        return result;
+        // ... restante do código
     } catch (error) {
         console.error('Erro ao salvar usuários:', error);
         throw error;
