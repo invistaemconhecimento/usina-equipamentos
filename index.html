@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Equipamentos - Usina</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos adicionais para o sistema de login */
+        .user-info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            min-width: 200px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .user-info i {
+            font-size: 16px;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(30deg);
+        }
+        
+        .logout-btn {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(231, 76, 60, 1);
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .header-controls {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .user-info-container {
+                width: 100%;
+                align-items: center;
+            }
+            
+            .theme-toggle, .logout-btn {
+                width: 100%;
+                border-radius: 8px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Verificação de Sessão -->
+    <script>
+        (function() {
+            // Verificar se há uma sessão válida
+            const sessao = localStorage.getItem('gestao_equipamentos_sessao');
+            
+            if (!sessao) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const sessaoData = JSON.parse(sessao);
+                const agora = new Date().getTime();
+                
+                // Verificar se a sessão expirou
+                if (agora > sessaoData.expira) {
+                    localStorage.removeItem('gestao_equipamentos_sessao');
+                    localStorage.removeItem('gestao_equipamentos_usuario');
+                    window.location.href = 'login.html?expired=true';
+                    return;
+                }
+                
+                // Renovar sessão (extender por mais 8 horas)
+                sessaoData.expira = agora + (8 * 60 * 60 * 1000);
+                localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessaoData));
+                
+                // Salvar último acesso
+                localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
+                
+            } catch (e) {
+                console.error('Erro ao verificar sessão:', e);
+                localStorage.removeItem('gestao_equipamentos_sessao');
+                localStorage.removeItem('gestao_equipamentos_usuario');
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
+
+    <div class="container">
+        <!-- Cabeçalho Principal -->
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 20px;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h1><i class="fas fa-industry"></i> Gestão de Equipamentos - Usina</h1>
+                    <p class="subtitle">Sistema de gerenciamento de 300 equipamentos | Status operacional e pendências</p>
+                </div>
+                
+                <div class="header-controls">
+                    <!-- Botão de Tema -->
+                    <button id="theme-toggle" class="theme-toggle" title="Alternar tema claro/escuro">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    
+                    <!-- Informações do Usuário -->
+                    <div class="user-info-container">
+                        <div class="user-info">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="current-user">Carregando...</span>
+                        </div>
+                        
+                        <!-- Botão de Logout -->
+                        <button id="logout-btn" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Sair do Sistema
+                        </button>
+                            
+                        <button onclick="window.location.href='admin-usuarios.html'" 
+                        style="background: #e74c3c; color: white; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer;">
+                            <i class="fas fa-users-cog"></i> Admin Usuários
+                        </button>
+                        
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Barra de Estatísticas -->
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-value" id="total-equipamentos">0</span>
+                    <span class="stat-label">Total de Equipamentos</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value apto" id="aptos-operar">0</span>
+                    <span class="stat-label">Aptos a Operar</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value nao-apto" id="nao-aptos">0</span>
+                    <span class="stat-label">Não Aptos</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value pendente" id="total-pendencias">0</span>
+                    <span class="stat-label">Pendências Ativas</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <!-- Sidebar com Filtros e Ações -->
+            <div class="sidebar">
+                <!-- Filtros -->
+                <div class="filters">
+                    <h3><i class="fas fa-filter"></i> Filtros</h3>
+                    <div class="filter-group">
+                        <label for="status-filter">Status Operacional:</label>
+                        <select id="status-filter">
+                            <option value="all">Todos</option>
+                            <option value="apto">Apto a Operar</option>
+                            <option value="nao-apto">Não Apto</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="pendencia-filter">Status de Pendência:</label>
+                        <select id="pendencia-filter">
+                            <option value="all">Todas</option>
+                            <option value="com-pendencia">Com Pendência</option>
+                            <option value="sem-pendencia">Sem Pendência</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="setor-filter">Setor:</label>
+                        <select id="setor-filter">
+                            <option value="all">Todos os Setores</option>
+                            <option value="moagem-moagem">MOAGEM / MOAGEM</option>
+                            <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
+                            <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
+                            <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
+                            <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
+                            <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
+                            <option value="reagentes-pax">REAGENTES / PAX</option>
+                            <option value="reagentes-dtf">REAGENTES / DTF</option>
+                            <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
+                            <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
+                            <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
+                            <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
+                            <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
+                            <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="search">Buscar Equipamento:</label>
+                        <input type="text" id="search" placeholder="Nome, código ou descrição...">
+                    </div>
+                    <button id="reset-filters" class="btn-secondary">
+                        <i class="fas fa-redo"></i> Limpar Filtros
+                    </button>
+                </div>
+
+                <!-- Ações Rápidas -->
+                <div class="actions">
+                    <h3><i class="fas fa-tools"></i> Ações</h3>
+                    <button id="add-equipamento" class="btn-primary">
+                        <i class="fas fa-plus-circle"></i> Novo Equipamento
+                    </button>
+                    <button id="add-pendencia" class="btn-secondary" disabled>
+                        <i class="fas fa-exclamation-circle"></i> Nova Pendência
+                    </button>
+                    <button id="export-data" class="btn-secondary">
+                        <i class="fas fa-file-export"></i> Exportar Dados
+                    </button>
+                    
+                    <!-- Status da Sincronização -->
+                    <div class="sync-status">
+                        <p><i class="fas fa-database"></i> Status da Conexão:</p>
+                        <div class="status-indicator" id="sync-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Conectando...</span>
+                        </div>
+                        <button id="manual-sync" class="btn-small">
+                            <i class="fas fa-sync"></i> Sincronizar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Informações do Sistema -->
+                <div class="actions" style="margin-top: 20px; background: #f8f9fa;">
+                    <h3><i class="fas fa-info-circle"></i> Sistema</h3>
+                    <button id="system-info" class="btn-small" style="width: 100%; margin-bottom: 10px;">
+                        <i class="fas fa-cog"></i> Informações do Sistema
+                    </button>
+                    <button id="export-config" class="btn-small" style="width: 100%;">
+                        <i class="fas fa-download"></i> Exportar Configurações
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área Principal de Conteúdo -->
+            <div class="content">
+                <!-- Cabeçalho do Conteúdo -->
+                <div class="content-header">
+                    <h2><i class="fas fa-list"></i> Equipamentos <span id="total-filtrado">(0)</span></h2>
+                    <div class="view-controls">
+                        <button id="view-list" class="view-btn active" title="Visualização em Lista">
+                            <i class="fas fa-list"></i>
+                        </button>
+                        <button id="view-grid" class="view-btn" title="Visualização em Grade">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Container dos Equipamentos -->
+                <div class="equipamentos-container" id="equipamentos-container">
+                    <div class="loading">
+                        <i class="fas fa-cog fa-spin"></i>
+                        <p>Carregando equipamentos...</p>
+                    </div>
+                </div>
+                
+                <!-- Rodapé com informações -->
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 13px; color: #7f8c8d;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <i class="fas fa-info-circle"></i> 
+                            <span id="last-sync">Última sincronização: --:--</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-user"></i> 
+                            <span id="user-session">Sessão válida até: --:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== MODAIS ========== -->
+
+        <!-- Modal para Adicionar/Editar Equipamento -->
+        <div id="equipamento-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">Novo Equipamento</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="equipamento-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="equipamento-codigo">Código *</label>
+                                <input type="text" id="equipamento-codigo" required 
+                                       placeholder="Ex: EQP-001" 
+                                       title="Código único do equipamento">
+                            </div>
+                            <div class="form-group">
+                                <label for="equipamento-nome">Nome *</label>
+                                <input type="text" id="equipamento-nome" required 
+                                       placeholder="Ex: Turbina Principal"
+                                       title="Nome descritivo do equipamento">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="equipamento-descricao">Descrição</label>
+                            <textarea id="equipamento-descricao" rows="3" 
+                                      placeholder="Descreva o equipamento, função, características..."
+                                      title="Descrição detalhada do equipamento"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="equipamento-setor">Setor *</label>
+                                <select id="equipamento-setor" required>
+                                    <option value="">Selecione um setor</option>
+                                    <option value="moagem-moagem" selected>MOAGEM / MOAGEM</option>
+                                    <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
+                                    <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
+                                    <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
+                                    <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
+                                    <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
+                                    <option value="reagentes-pax">REAGENTES / PAX</option>
+                                    <option value="reagentes-dtf">REAGENTES / DTF</option>
+                                    <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
+                                    <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
+                                    <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
+                                    <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
+                                    <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
+                                    <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="equipamento-status">Status Operacional *</label>
+                                <select id="equipamento-status" required>
+                                    <option value="apto" selected>Apto a Operar</option>
+                                    <option value="nao-apto">Não Apto</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="equipamento-ultima-inspecao">Última Inspeção</label>
+                            <input type="date" id="equipamento-ultima-inspecao">
+                        </div>
+                        
+                        <!-- Display do Status Automático -->
+                        <div class="form-group" style="background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                            <label>Status Determinado por Pendências:</label>
+                            <div id="equipamento-status-display">
+                                <span class="status-chip apto">Apto a Operar</span>
+                                <small style="display: block; margin-top: 5px; color: #7f8c8d;">
+                                    <i class="fas fa-info-circle"></i> O status será automaticamente ajustado conforme as pendências críticas
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary close-modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Salvar Equipamento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Adicionar/Editar Pendência -->
+        <div id="pendencia-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="pendencia-modal-title">Nova Pendência</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="pendencia-form">
+                        <input type="hidden" id="pendencia-equipamento-id">
+                        <input type="hidden" id="pendencia-id">
+                        
+                        <div class="form-group">
+                            <label for="pendencia-titulo">Título da Pendência *</label>
+                            <input type="text" id="pendencia-titulo" required 
+                                   placeholder="Ex: Vazamento identificado"
+                                   title="Título descritivo da pendência">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pendencia-descricao">Descrição Detalhada *</label>
+                            <textarea id="pendencia-descricao" rows="4" required 
+                                      placeholder="Descreva detalhadamente o problema, localização, sintomas..."
+                                      title="Descrição completa da pendência"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pendencia-responsavel">Responsável *</label>
+                                <select id="pendencia-responsavel" required>
+                                    <option value="">Selecione um responsável</option>
+                                    <option value="Elétrica">Elétrica</option>
+                                    <option value="Instrumentação">Instrumentação</option>
+                                    <option value="Mecânica">Mecânica</option>
+                                    <option value="Preventiva_Engenharia">Preventiva Engenharia</option>
+                                    <option value="Automação">Automação</option>
+                                    <option value="Externo">Externo</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="pendencia-prioridade">Prioridade *</label>
+                                <select id="pendencia-prioridade" required>
+                                    <option value="baixa">Baixa</option>
+                                    <option value="media" selected>Média</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="critica">Crítica</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pendencia-data">Data da Ocorrência *</label>
+                                <input type="date" id="pendencia-data" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="pendencia-status">Status da Pendência *</label>
+                                <select id="pendencia-status" required>
+                                    <option value="aberta" selected>Aberta</option>
+                                    <option value="em-andamento">Em Andamento</option>
+                                    <option value="resolvida">Resolvida</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary close-modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Salvar Pendência
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Visualizar Detalhes do Equipamento -->
+        <div id="detalhes-modal" class="modal">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3 id="detalhes-titulo">Detalhes do Equipamento</h3>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="detalhes-header">
+                        <div class="detalhes-info">
+                            <h4 id="detalhes-nome"></h4>
+                            <div class="status-chip" id="detalhes-status"></div>
+                            <p id="detalhes-codigo"></p>
+                            <p id="detalhes-descricao"></p>
+                            <div class="detalhes-metadata">
+                                <p><i class="fas fa-building"></i> <span id="detalhes-setor"></span></p>
+                                <p><i class="fas fa-calendar"></i> Última inspeção: <span id="detalhes-inspecao"></span></p>
+                                <p><i class="fas fa-calendar-plus"></i> Data de criação: <span id="detalhes-criacao"></span></p>
+                            </div>
+                        </div>
+                        <div class="detalhes-actions">
+                            <button id="editar-equipamento" class="btn-secondary">
+                                <i class="fas fa-edit"></i> Editar Equipamento
+                            </button>
+                            <button id="nova-pendencia-detalhes" class="btn-primary">
+                                <i class="fas fa-plus-circle"></i> Nova Pendência
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pendencias-section">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Histórico de Pendências</h4>
+                        <div class="pendencias-container" id="detalhes-pendencias">
+                            <!-- Pendencias serão carregadas aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de Configuração e Aplicação -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    
+    <!-- Scripts de Interface e Controles -->
+    <script>
+        // Configuração de Eventos de Interface
+        document.addEventListener('DOMContentLoaded', function() {
+            // ========== CONTROLES DE USUÁRIO ==========
+            
+            // Mostrar usuário atual
+            const usuario = localStorage.getItem('gestao_equipamentos_usuario');
+            if (usuario) {
+                const usuarioFormatado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+                document.getElementById('current-user').textContent = usuarioFormatado;
+            }
+            
+            // Configurar botão de logout
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Tem certeza que deseja sair do sistema?')) {
+                        // Registrar atividade
+                        if (window.registrarAtividade) {
+                            window.registrarAtividade('LOGOUT', 'Usuário saiu do sistema');
+                        }
+                        
+                        // Limpar sessão
+                        localStorage.removeItem('gestao_equipamentos_sessao');
+                        localStorage.removeItem('gestao_equipamentos_usuario');
+                        
+                        // Redirecionar para login
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+            
+            // Configurar botão de tema
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const novoTema = window.alternarTema ? window.alternarTema() : 'claro';
+                    const icon = this.querySelector('i');
+                    
+                    // Atualizar ícone
+                    if (novoTema === 'escuro') {
+                        icon.className = 'fas fa-sun';
+                        themeToggle.title = 'Alternar para tema claro';
+                    } else {
+                        icon.className = 'fas fa-moon';
+                        themeToggle.title = 'Alternar para tema escuro';
+                    }
+                });
+                
+                // Configurar ícone inicial
+                const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
+                const icon = themeToggle.querySelector('i');
+                if (temaAtual === 'escuro') {
+                    icon.className = 'fas fa-sun';
+                    themeToggle.title = 'Alternar para tema claro';
+                }
+            }
+            
+            // ========== CONTROLES DE SISTEMA ==========
+            
+            // Botão de informações do sistema
+            const systemInfoBtn = document.getElementById('system-info');
+            if (systemInfoBtn) {
+                systemInfoBtn.addEventListener('click', function() {
+                    if (window.mostrarInfoSistema) {
+                        window.mostrarInfoSistema();
+                    } else {
+                        alert('Informações do sistema:\n\nUsuário: ' + (usuario || 'Não autenticado') + 
+                              '\nData: ' + new Date().toLocaleString('pt-BR'));
+                    }
+                });
+            }
+            
+            // Botão de exportar configurações
+            const exportConfigBtn = document.getElementById('export-config');
+            if (exportConfigBtn) {
+                exportConfigBtn.addEventListener('click', function() {
+                    if (window.exportarConfiguracoes) {
+                        window.exportarConfiguracoes();
+                    } else {
+                        alert('Função de exportação não disponível');
+                    }
+                });
+            }
+            
+            // ========== CONTROLES DE FILTRO ==========
+            
+            // Filtro por setor
+            const setorFilter = document.getElementById('setor-filter');
+            if (setorFilter) {
+                setorFilter.addEventListener('change', function() {
+                    if (window.app && window.app.filtros) {
+                        window.app.filtros.setor = this.value;
+                        window.app.renderizarEquipamentos();
+                        atualizarContadorFiltrado();
+                    }
+                });
+            }
+            
+            // ========== ATUALIZAÇÕES AUTOMÁTICAS ==========
+            
+            // Atualizar informações de sessão
+            function atualizarInfoSessao() {
+                const sessao = localStorage.getItem('gestao_equipamentos_sessao');
+                if (sessao) {
+                    try {
+                        const sessaoData = JSON.parse(sessao);
+                        const expiracao = new Date(sessaoData.expira);
+                        const agora = new Date();
+                        
+                        // Calcular tempo restante
+                        const diffMs = expiracao - agora;
+                        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        
+                        const userSessionElement = document.getElementById('user-session');
+                        if (userSessionElement) {
+                            if (diffMs > 0) {
+                                userSessionElement.textContent = `Sessão válida por: ${diffHrs}h ${diffMins}m`;
+                                userSessionElement.style.color = diffHrs < 1 ? '#e74c3c' : '#27ae60';
+                            } else {
+                                userSessionElement.textContent = 'Sessão expirada';
+                                userSessionElement.style.color = '#e74c3c';
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Erro ao processar sessão:', e);
+                    }
+                }
+            }
+            
+            // Atualizar última sincronização
+            function atualizarUltimaSincronizacao() {
+                const lastSync = localStorage.getItem('gestao_equipamentos_ultima_sinc');
+                const lastSyncElement = document.getElementById('last-sync');
+                
+                if (lastSyncElement) {
+                    if (lastSync) {
+                        try {
+                            const syncDate = new Date(lastSync);
+                            lastSyncElement.textContent = `Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
+                        } catch (e) {
+                            lastSyncElement.textContent = 'Última sincronização: N/A';
+                        }
+                    } else {
+                        lastSyncElement.textContent = 'Última sincronização: N/A';
+                    }
+                }
+            }
+            
+            // Atualizar contador de equipamentos filtrados
+            function atualizarContadorFiltrado() {
+                if (window.app && window.app.equipamentos) {
+                    const equipamentosFiltrados = window.app.filtrarEquipamentos ? 
+                        window.app.filtrarEquipamentos() : window.app.equipamentos;
+                    
+                    const totalFiltradoElement = document.getElementById('total-filtrado');
+                    if (totalFiltradoElement) {
+                        totalFiltradoElement.textContent = `(${equipamentosFiltrados.length})`;
+                    }
+                }
+            }
+            
+            // Iniciar atualizações periódicas
+            setInterval(atualizarInfoSessao, 60000); // A cada minuto
+            setInterval(atualizarUltimaSincronizacao, 30000); // A cada 30 segundos
+            
+            // Executar inicialmente
+            atualizarInfoSessao();
+            atualizarUltimaSincronizacao();
+            atualizarContadorFiltrado();
+            
+            // ========== MELHORIAS DE USABILIDADE ==========
+            
+            // Foco automático nos campos de busca
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                // Atalho Ctrl+F para focar na busca
+                document.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                        e.preventDefault();
+                        searchInput.focus();
+                    }
+                });
+                
+                // Limpar busca com Escape
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        this.value = '';
+                        if (window.app && window.app.filtros) {
+                            window.app.filtros.busca = '';
+                            window.app.renderizarEquipamentos();
+                            atualizarContadorFiltrado();
+                        }
+                    }
+                });
+            }
+            
+            // ========== VALIDAÇÕES ==========
+            
+            // Validar data de inspeção não futura
+            const dataInspecaoInput = document.getElementById('equipamento-ultima-inspecao');
+            if (dataInspecaoInput) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataInspecaoInput.max = hoje;
+            }
+            
+            // Validar data de pendência não futura
+            const dataPendenciaInput = document.getElementById('pendencia-data');
+            if (dataPendenciaInput) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataPendenciaInput.max = hoje;
+                dataPendenciaInput.value = hoje; // Data padrão
+            }
+            
+            // ========== NOTIFICAÇÕES ==========
+            
+            // Verificar sessão próxima do vencimento
+            setInterval(function() {
+                const sessao = localStorage.getItem('gestao_equipamentos_sessao');
+                if (sessao) {
+                    try {
+                        const sessaoData = JSON.parse(sessao);
+                        const expiracao = new Date(sessaoData.expira);
+                        const agora = new Date();
+                        const diffMs = expiracao - agora;
+                        
+                        // Notificar se faltar menos de 5 minutos
+                        if (diffMs > 0 && diffMs < 5 * 60 * 1000) {
+                            if (!document.querySelector('.sessao-expiracao-alerta')) {
+                                const alerta = document.createElement('div');
+                                alerta.className = 'mensagem-flutuante info sessao-expiracao-alerta';
+                                alerta.innerHTML = `
+                                    <div class="mensagem-conteudo">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Sua sessão expira em ${Math.ceil(diffMs / (60 * 1000))} minutos</span>
+                                    </div>
+                                `;
+                                document.body.appendChild(alerta);
+                                
+                                setTimeout(() => {
+                                    alerta.classList.add('show');
+                                }, 10);
+                                
+                                // Remover após 10 segundos
+                                setTimeout(() => {
+                                    alerta.classList.remove('show');
+                                    setTimeout(() => {
+                                        if (alerta.parentNode) {
+                                            alerta.remove();
+                                        }
+                                    }, 300);
+                                }, 10000);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Erro ao verificar expiração:', e);
+                    }
+                }
+            }, 60000); // Verificar a cada minuto
+        });
+        
+        // Verificar se há dados de filtro salvos
+        window.addEventListener('load', function() {
+            const filtrosSalvos = localStorage.getItem('gestao_equipamentos_filtros');
+            if (filtrosSalvos) {
+                try {
+                    const filtros = JSON.parse(filtrosSalvos);
+                    
+                    // Aplicar filtros salvos
+                    if (filtros.status) {
+                        const statusFilter = document.getElementById('status-filter');
+                        if (statusFilter) statusFilter.value = filtros.status;
+                    }
+                    
+                    if (filtros.pendencia) {
+                        const pendenciaFilter = document.getElementById('pendencia-filter');
+                        if (pendenciaFilter) pendenciaFilter.value = filtros.pendencia;
+                    }
+                    
+                    if (filtros.setor) {
+                        const setorFilter = document.getElementById('setor-filter');
+                        if (setorFilter) setorFilter.value = filtros.setor;
+                    }
+                    
+                    if (filtros.busca) {
+                        const searchInput = document.getElementById('search');
+                        if (searchInput) searchInput.value = filtros.busca;
+                    }
+                    
+                    if (filtros.viewMode) {
+                        const viewListBtn = document.getElementById('view-list');
+                        const viewGridBtn = document.getElementById('view-grid');
+                        
+                        if (viewListBtn && viewGridBtn) {
+                            viewListBtn.classList.toggle('active', filtros.viewMode === 'list');
+                            viewGridBtn.classList.toggle('active', filtros.viewMode === 'grid');
+                        }
+                    }
+                    
+                    // Atualizar aplicação após carregar
+                    setTimeout(() => {
+                        if (window.app && window.app.filtros) {
+                            window.app.filtros = {
+                                ...window.app.filtros,
+                                status: filtros.status || 'all',
+                                pendencia: filtros.pendencia || 'all',
+                                setor: filtros.setor || 'all',
+                                busca: filtros.busca || ''
+                            };
+                            
+                            if (filtros.viewMode && window.app.setViewMode) {
+                                window.app.setViewMode(filtros.viewMode);
+                            }
+                            
+                            if (window.app.renderizarEquipamentos) {
+                                window.app.renderizarEquipamentos();
+                            }
+                        }
+                    }, 1000);
+                } catch (e) {
+                    console.error('Erro ao carregar filtros salvos:', e);
+                }
+            }
+        });
+        
+        // Salvar filtros antes de sair
+        window.addEventListener('beforeunload', function() {
+            if (window.app && window.app.filtros) {
+                const filtrosParaSalvar = {
+                    status: window.app.filtros.status,
+                    pendencia: window.app.filtros.pendencia,
+                    setor: window.app.filtros.setor || 'all',
+                    busca: window.app.filtros.busca,
+                    viewMode: window.app.viewMode || 'grid'
+                };
+                
+                localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify(filtrosParaSalvar));
+            }
+        });
+    </script>
+</body>
+</html>
