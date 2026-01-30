@@ -407,33 +407,34 @@
     }
 }
             
+// NO: admin-usuarios.html - Atualize o método salvarUsuarios
 async salvarUsuarios() {
     try {
-        const data = {
-            usuarios: this.usuarios,
-            nextUserId: this.usuarios.length > 0 ? 
-                Math.max(...this.usuarios.map(u => u.id)) + 1 : 1
-        };
-        
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
-            {
-                method: 'PUT',
-                headers: JSONBIN_CONFIG.headers,
-                body: JSON.stringify(data)
-            }
-        );
-        
-        if (!response.ok) throw new Error('Erro ao salvar usuários');
-        
-        return true;
+        // Usar a função corrigida do config.js
+        if (window.salvarUsuariosNoJSONBin) {
+            const resultado = await salvarUsuariosNoJSONBin(this.usuarios);
+            return resultado !== null;
+        } else {
+            // Fallback local (usando a versão antiga)
+            const response = await fetch(
+                `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
+                {
+                    method: 'PUT',
+                    headers: JSONBIN_CONFIG.headers,
+                    body: JSON.stringify({ usuarios: this.usuarios })
+                }
+            );
+            
+            if (!response.ok) throw new Error('Erro ao salvar usuários');
+            
+            return true;
+        }
     } catch (error) {
         console.error('Erro ao salvar usuários:', error);
-        this.mostrarMensagem('Erro ao salvar usuários', 'error');
+        this.mostrarMensagem('Erro ao salvar usuários: ' + error.message, 'error');
         return false;
     }
-}
-            
+}            
             configurarEventos() {
                 // Eventos de filtro
                 document.getElementById('filtro-nivel').addEventListener('change', (e) => {
