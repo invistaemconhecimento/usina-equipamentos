@@ -671,6 +671,8 @@ async salvarUsuarios() {
                 // Resetar validação de senha
                 document.getElementById('senha-strength-bar').style.width = '0%';
                 document.getElementById('senha-strength-text').textContent = 'Fraca';
+                document.getElementById('usuario-username').placeholder = 'Ex: joao.silva';
+                document.getElementById('usuario-senha').placeholder = 'Mínimo 6 caracteres';
                 
                 modal.classList.add('active');
             }
@@ -683,6 +685,13 @@ async salvarUsuarios() {
                 const modal = document.getElementById('modal-usuario');
                 const titulo = document.getElementById('modal-usuario-titulo');
                 const form = document.getElementById('form-usuario');
+                // Adicionar no início do método
+                const senhaInput = document.getElementById('usuario-senha');
+                const confirmarSenhaInput = document.getElementById('usuario-confirmar-senha');
+
+                // Resetar validação visual
+                senhaInput.style.borderColor = '';
+                confirmarSenhaInput.style.borderColor = '';
                 
                 titulo.textContent = 'Editar Usuário';
                 
