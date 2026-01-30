@@ -370,42 +370,42 @@
             }
             
             async carregarUsuarios() {
-                try {
-                    // Usar o bin específico para usuários
-                    const response = await fetch(
-                        `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
-                        { headers: JSONBIN_CONFIG.headers }
-                    );
-                    
-                    if (!response.ok) throw new Error('Erro ao carregar usuários');
-                    
-                    const result = await response.json();
-                    
-                    if (result.record && result.record.usuarios) {
-                        this.usuarios = result.record.usuarios;
-                    } else {
-                        // Dados iniciais se o bin estiver vazio
-                        this.usuarios = [
-                            {
-                                id: 1,
-                                username: 'administrador',
-                                senha: 'admin789',
-                                nivel: 'administrador',
-                                nome: 'Administrador Sistema',
-                                email: 'admin@empresa.com',
-                                departamento: 'TI',
-                                ativo: true,
-                                dataCriacao: new Date().toISOString().split('T')[0],
-                                criadoPor: 'sistema'
-                            }
-                        ];
-                    }
-                    
-                } catch (error) {
-                    console.error('Erro ao carregar usuários:', error);
-                    this.mostrarMensagem('Erro ao carregar usuários', 'error');
+    try {
+        // Usar o bin específico para usuários
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
+            { headers: JSONBIN_CONFIG.headers }
+        );
+        
+        if (!response.ok) throw new Error('Erro ao carregar usuários');
+        
+        const result = await response.json();
+        
+        if (result.record && result.record.usuarios) {
+            this.usuarios = result.record.usuarios;
+        } else {
+            // Dados iniciais se o bin estiver vazio
+            this.usuarios = [
+                {
+                    id: 1,
+                    username: 'administrador',
+                    senha: 'admin789',
+                    nivel: 'administrador',
+                    nome: 'Administrador Sistema',
+                    email: 'admin@empresa.com',
+                    departamento: 'TI',
+                    ativo: true,
+                    dataCriacao: new Date().toISOString().split('T')[0],
+                    criadoPor: 'sistema'
                 }
-            }
+            ];
+        }
+        
+    } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+        this.mostrarMensagem('Erro ao carregar usuários', 'error');
+    }
+}
             
             async salvarUsuarios() {
                 try {
