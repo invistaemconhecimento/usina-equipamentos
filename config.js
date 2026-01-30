@@ -1001,7 +1001,7 @@ function getUsuariosDisponiveis() {
     }));
 }
 
-// Função para salvar usuários no JSONBin (para admin)
+// NO: config.js - linha 852
 async function salvarUsuariosNoJSONBin(usuarios) {
     try {
         const response = await fetch(
@@ -1009,20 +1009,9 @@ async function salvarUsuariosNoJSONBin(usuarios) {
             {
                 method: 'PUT',
                 headers: JSONBIN_CONFIG.headers,
-                body: JSON.stringify({ usuarios })
+                body: JSON.stringify({ usuarios }) // ← PROBLEMA: deve ser objeto completo
             }
         );
-        
-        if (!response.ok) {
-            throw new Error('Erro ao salvar usuários');
-        }
-        
-        const result = await response.json();
-        console.log('Usuários salvos com sucesso:', result);
-        return result;
-    } catch (error) {
-        console.error('Erro ao salvar usuários:', error);
-        throw error;
     }
 }
 
