@@ -407,8 +407,6 @@
     }
 }
             
-// NO: admin-usuarios.html - Atualize o método 
-// NO: admin-usuarios.html - Substitua COMPLETAMENTE o método salvarUsuarios()
 async salvarUsuarios() {
     console.log('DEBUG - Iniciando salvamento de usuários...');
     console.log('DEBUG - Usando Bin ID:', JSONBIN_CONFIG.BIN_USUARIOS.ID);
@@ -416,7 +414,14 @@ async salvarUsuarios() {
     try {
         // Criar objeto com a MESMA estrutura que está lendo
         const dadosParaSalvar = {
-            usuarios: this.usuarios
+            record: {  // ADICIONAR 'record' como container
+                usuarios: this.usuarios,
+                metadata: {
+                    ultimaAtualizacao: new Date().toISOString(),
+                    totalUsuarios: this.usuarios.length,
+                    atualizadoPor: localStorage.getItem('gestao_equipamentos_usuario') || 'administrador'
+                }
+            }
         };
         
         console.log('DEBUG - Dados para salvar:', dadosParaSalvar);
