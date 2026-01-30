@@ -1001,6 +1001,72 @@ function getUsuariosDisponiveis() {
     }));
 }
 
+// Função para salvar usuários no JSONBin (para admin)
+async function salvarUsuariosNoJSONBin(usuarios) {
+    try {
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
+            {
+                method: 'PUT',
+                headers: JSONBIN_CONFIG.headers,
+                body: JSON.stringify({ usuarios })
+            }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Erro ao salvar usuários');
+        }
+        
+        const result = await response.json();
+        console.log('Usuários salvos com sucesso:', result);
+        return result;
+    } catch (error) {
+        console.error('Erro ao salvar usuários:', error);
+        throw error;
+    }
+}
+
+// Função para adicionar novo usuário
+async function adicionarNovoUsuario(novoUsuario) {
+    try {
+        // 1. Carregar usuários existentes
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
+            { headers: JSONBIN_CONFIG.headers }
+        );
+        
+        if (!response.ok) throw new Error('Erro ao carregar usuários');
+        
+        const result = await response.json();
+        const usuariosAtuais = result.record?.usuarios || USUARIOS_AUTORIZADOS;
+        
+        // 2. Verificar se usuário já existe
+        if (usuariosAtuais.some(u => u.username === novoUsuario.username)) {
+            throw new Error('Usuário já existe');
+        }
+        
+        // 3. Adicionar novo usuário
+        novoUsuario.dataCriacao = new Date().toISOString().split('T')[0];
+        novoUsuario.ativo = true;
+        
+        const usuariosAtualizados = [...usuariosAtuais, novoUsuario];
+        
+        // 4. Salvar de volta no JSONBin
+        return await salvarUsuariosNoJSONBin(usuariosAtualizados);
+        
+    } catch (error) {
+        console.error('Erro ao adicionar usuário:', error);
+        throw error;
+    }
+}
+
+// Adicionar ao objeto window para acesso global
+if (typeof window !== 'undefined') {
+    window.salvarUsuariosNoJSONBin = salvarUsuariosNoJSONBin;
+    window.adicionarNovoUsuario = adicionarNovoUsuario;
+}
+
+
 // ===========================================
 // EXPORTAÇÃO PARA USO GLOBAL
 // ===========================================
