@@ -407,35 +407,49 @@
     }
 }
             
-// NO: admin-usuarios.html - Atualize o método salvarUsuarios
+// NO: admin-usuarios.html - Atualize o método 
+// NO: admin-usuarios.html - Substitua COMPLETAMENTE o método salvarUsuarios()
 async salvarUsuarios() {
-    console.log('DEBUG - Salvando usuários no JSONBin...');
-    console.log('DEBUG - URL:', `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`);
-    console.log('DEBUG - Total de usuários:', this.usuarios.length);
-    console.log('DEBUG - Primeiro usuário:', this.usuarios[0]);
+    console.log('DEBUG - Iniciando salvamento de usuários...');
+    console.log('DEBUG - Usando Bin ID:', JSONBIN_CONFIG.BIN_USUARIOS.ID);
+    
     try {
-        // Usar a função corrigida do config.js
-        if (window.salvarUsuariosNoJSONBin) {
-            const resultado = await salvarUsuariosNoJSONBin(this.usuarios);
-            return resultado !== null;
-        } else {
-            // Fallback local (usando a versão antiga)
-            const response = await fetch(
-                `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
-                {
-                    method: 'PUT',
-                    headers: JSONBIN_CONFIG.headers,
-                    body: JSON.stringify({ usuarios: this.usuarios })
-                }
-            );
-            
-            if (!response.ok) throw new Error('Erro ao salvar usuários');
-            
-            return true;
+        // Criar objeto com a MESMA estrutura que está lendo
+        const dadosParaSalvar = {
+            usuarios: this.usuarios
+        };
+        
+        console.log('DEBUG - Dados para salvar:', dadosParaSalvar);
+        
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
+            {
+                method: 'PUT',
+                headers: JSONBIN_CONFIG.headers,
+                body: JSON.stringify(dadosParaSalvar)
+            }
+        );
+        
+        console.log('DEBUG - Response status:', response.status);
+        console.log('DEBUG - Response ok:', response.ok);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('DEBUG - Erro response:', errorText);
+            throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
         }
+        
+        const result = await response.json();
+        console.log('DEBUG - Sucesso! Resultado:', result);
+        
+        // Mostrar mensagem de sucesso
+        this.mostrarMensagem('Usuários salvos com sucesso!', 'success');
+        
+        return true;
+        
     } catch (error) {
-        console.error('Erro ao salvar usuários:', error);
-        this.mostrarMensagem('Erro ao salvar usuários: ' + error.message, 'error');
+        console.error('DEBUG - Erro completo:', error);
+        this.mostrarMensagem(`Erro ao salvar: ${error.message}`, 'error');
         return false;
     }
 }            
