@@ -22,34 +22,41 @@ class EquipamentosApp {
     }
     
     async init() {
-        // 1. Verificar sessão
-        if (!this.verificarSessao()) {
-            return;
+        try {
+            // 1. Verificar sessão
+            if (!this.verificarSessao()) {
+                return;
+            }
+            
+            // 2. Carregar informações do usuário
+            this.carregarUsuario();
+            
+            // 3. Registrar login no sistema
+            this.registrarLogin();
+            
+            // 4. Configurar interface baseada nas permissões
+            this.configurarInterfacePorPermissao();
+            
+            // 5. Inicializar componentes
+            this.initModals();
+            this.initEvents();
+            
+            // 6. Carregar dados - AGORA COM TRY-CATCH MELHORADO
+            await this.carregarDados();
+            
+            // 7. Inicializar interface
+            this.renderizarEquipamentos();
+            this.atualizarEstatisticas();
+            this.atualizarStatusSincronizacao(true);
+            
+            // 8. Configurar atualizações automáticas
+            this.configurarAtualizacoes();
+            
+            console.log('Aplicação inicializada com sucesso');
+        } catch (error) {
+            console.error('Erro na inicialização da aplicação:', error);
+            this.mostrarMensagem('Erro ao inicializar aplicação. Recarregue a página.', 'error');
         }
-        
-        // 2. Carregar informações do usuário
-        this.carregarUsuario();
-        
-        // 3. Registrar login no sistema
-        this.registrarLogin();
-        
-        // 4. Configurar interface baseada nas permissões
-        this.configurarInterfacePorPermissao();
-        
-        // 5. Inicializar componentes
-        this.initModals();
-        this.initEvents();
-        
-        // 6. Carregar dados
-        await this.carregarDados();
-        
-        // 7. Inicializar interface
-        this.renderizarEquipamentos();
-        this.atualizarEstatisticas();
-        this.atualizarStatusSincronizacao(true);
-        
-        // 8. Configurar atualizações automáticas
-        this.configurarAtualizacoes();
     }
     
     // ================== SISTEMA DE SESSÃO E PERMISSÕES ==================
@@ -425,15 +432,23 @@ class EquipamentosApp {
         try {
             this.mostrarLoading(true);
             
-            const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}/latest`, {
-                headers: JSONBIN_CONFIG.headers
+            console.log('Carregando dados do JSONBin...');
+            
+            // Verificar se a configuração está disponível
+            if (!window.JSONBIN_CONFIG || !window.JSONBIN_CONFIG.BASE_URL) {
+                throw new Error('Configuração do JSONBin não encontrada');
+            }
+            
+            const response = await fetch(`${window.JSONBIN_CONFIG.BASE_URL}/${window.JSONBIN_CONFIG.BIN_ID}/latest`, {
+                headers: window.JSONBIN_CONFIG.headers
             });
             
             if (!response.ok) {
-                throw new Error('Erro ao carregar dados do servidor');
+                throw new Error(`Erro ao carregar dados do servidor: ${response.status} ${response.statusText}`);
             }
             
             const result = await response.json();
+            console.log('Dados recebidos do JSONBin:', result);
             
             if (result.record && result.record.equipamentos) {
                 this.data = result.record;
@@ -448,13 +463,21 @@ class EquipamentosApp {
                 if (window.registrarAtividade) {
                     window.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
                 }
-            } else {
-                this.data = INITIAL_DATA;
-                this.equipamentos = INITIAL_DATA.equipamentos;
                 
-                // Registrar atividade
-                if (window.registrarAtividade) {
-                    window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
+                console.log(`Carregados ${this.equipamentos.length} equipamentos do JSONBin`);
+            } else {
+                // Se não houver dados válidos, usar dados iniciais
+                console.log('Usando dados iniciais');
+                if (window.INITIAL_DATA) {
+                    this.data = window.INITIAL_DATA;
+                    this.equipamentos = window.INITIAL_DATA.equipamentos;
+                    
+                    // Registrar atividade
+                    if (window.registrarAtividade) {
+                        window.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
+                    }
+                } else {
+                    throw new Error('Dados iniciais não encontrados');
                 }
             }
             
@@ -466,15 +489,20 @@ class EquipamentosApp {
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             
-            this.data = INITIAL_DATA;
-            this.equipamentos = INITIAL_DATA.equipamentos;
-            
-            this.atualizarStatusSincronizacao(false);
-            this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
-            
-            // Registrar atividade
-            if (window.registrarAtividade) {
-                window.registrarAtividade('ERRO_CARREGAR', `Erro ao carregar dados: ${error.message}`);
+            // Fallback para dados iniciais
+            if (window.INITIAL_DATA) {
+                this.data = window.INITIAL_DATA;
+                this.equipamentos = window.INITIAL_DATA.equipamentos;
+                
+                this.atualizarStatusSincronizacao(false);
+                this.mostrarMensagem('Erro ao conectar com o servidor. Usando dados locais.', 'error');
+                
+                // Registrar atividade
+                if (window.registrarAtividade) {
+                    window.registrarAtividade('ERRO_CARREGAR', `Erro ao carregar dados: ${error.message}`);
+                }
+            } else {
+                throw error; // Relançar o erro se não houver dados iniciais
             }
         } finally {
             this.mostrarLoading(false);
@@ -485,9 +513,9 @@ class EquipamentosApp {
         try {
             this.atualizarNextIds();
             
-            const response = await fetch(`${JSONBIN_CONFIG.BASE_URL}/${JSONBIN_CONFIG.BIN_ID}`, {
+            const response = await fetch(`${window.JSONBIN_CONFIG.BASE_URL}/${window.JSONBIN_CONFIG.BIN_ID}`, {
                 method: 'PUT',
-                headers: JSONBIN_CONFIG.headers,
+                headers: window.JSONBIN_CONFIG.headers,
                 body: JSON.stringify(this.data)
             });
             
@@ -517,6 +545,10 @@ class EquipamentosApp {
     }
     
     atualizarNextIds() {
+        if (!this.data) {
+            this.data = {};
+        }
+        
         let maxEquipamentoId = 0;
         this.equipamentos.forEach(eqp => {
             if (eqp.id > maxEquipamentoId) maxEquipamentoId = eqp.id;
@@ -525,9 +557,11 @@ class EquipamentosApp {
         
         let maxPendenciaId = 0;
         this.equipamentos.forEach(eqp => {
-            eqp.pendencias.forEach(pend => {
-                if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
-            });
+            if (eqp.pendencias) {
+                eqp.pendencias.forEach(pend => {
+                    if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
+                });
+            }
         });
         this.data.nextPendenciaId = maxPendenciaId + 1;
     }
@@ -557,7 +591,7 @@ class EquipamentosApp {
             
             // Filtrar por pendência
             if (this.filtros.pendencia !== 'all') {
-                const temPendenciasAtivas = equipamento.pendencias.some(p => 
+                const temPendenciasAtivas = equipamento.pendencias && equipamento.pendencias.some(p => 
                     p.status === 'aberta' || p.status === 'em-andamento'
                 );
                 
@@ -615,11 +649,11 @@ class EquipamentosApp {
         container.className = `equipamentos-container ${this.viewMode}-view`;
         
         container.innerHTML = equipamentosFiltrados.map(equipamento => {
-            const temPendenciasAtivas = equipamento.pendencias.some(p => 
+            const temPendenciasAtivas = equipamento.pendencias && equipamento.pendencias.some(p => 
                 p.status === 'aberta' || p.status === 'em-andamento'
             );
             
-            const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+            const temPendenciasCriticasAbertas = equipamento.pendencias && equipamento.pendencias.some(p => 
                 p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
             );
             
@@ -632,13 +666,16 @@ class EquipamentosApp {
                 this.formatarData(equipamento.ultimaInspecao) : 
                 'Não registrada';
             
-            const setorFormatado = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
+            const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
+                (window.APP_CONFIG.setores[equipamento.setor] || equipamento.setor) : 
+                equipamento.setor;
             
             // Contar pendencias
-            const pendenciasAbertas = equipamento.pendencias.filter(p => p.status === 'aberta').length;
-            const pendenciasAndamento = equipamento.pendencias.filter(p => p.status === 'em-andamento').length;
-            const pendenciasResolvidas = equipamento.pendencias.filter(p => p.status === 'resolvida').length;
-            const pendenciasCriticas = equipamento.pendencias.filter(p => 
+            const pendencias = equipamento.pendencias || [];
+            const pendenciasAbertas = pendencias.filter(p => p.status === 'aberta').length;
+            const pendenciasAndamento = pendencias.filter(p => p.status === 'em-andamento').length;
+            const pendenciasResolvidas = pendencias.filter(p => p.status === 'resolvida').length;
+            const pendenciasCriticas = pendencias.filter(p => 
                 p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
             ).length;
             
@@ -653,7 +690,9 @@ class EquipamentosApp {
                             <div class="equipamento-codigo">${equipamento.codigo}</div>
                         </div>
                         <div class="status-chip ${equipamento.status}">
-                            ${APP_CONFIG.statusEquipamento[equipamento.status]}
+                            ${window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
+                                window.APP_CONFIG.statusEquipamento[equipamento.status] : 
+                                equipamento.status}
                             ${temPendenciasCriticasAbertas ? ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>` : ''}
                         </div>
                     </div>
@@ -665,7 +704,7 @@ class EquipamentosApp {
                         <div><i class="fas fa-calendar"></i> ${dataInspecao}</div>
                     </div>
                     
-                    ${equipamento.pendencias.length > 0 ? `
+                    ${pendencias.length > 0 ? `
                         <div class="equipamento-pendencias">
                             <strong>Pendências:</strong>
                             ${pendenciasAbertas > 0 ? `<span class="pendencia-badge aberta">${pendenciasAbertas} Aberta(s)</span>` : ''}
@@ -715,13 +754,15 @@ class EquipamentosApp {
         let totalPendenciasCriticas = 0;
         
         this.equipamentos.forEach(equipamento => {
-            totalPendenciasAtivas += equipamento.pendencias.filter(p => 
-                p.status === 'aberta' || p.status === 'em-andamento'
-            ).length;
-            
-            totalPendenciasCriticas += equipamento.pendencias.filter(p => 
-                p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
-            ).length;
+            if (equipamento.pendencias) {
+                totalPendenciasAtivas += equipamento.pendencias.filter(p => 
+                    p.status === 'aberta' || p.status === 'em-andamento'
+                ).length;
+                
+                totalPendenciasCriticas += equipamento.pendencias.filter(p => 
+                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                ).length;
+            }
         });
         
         document.getElementById('total-equipamentos').textContent = totalEquipamentos;
@@ -830,7 +871,7 @@ class EquipamentosApp {
         if (!statusDisplay) return;
         
         if (equipamento) {
-            const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+            const temPendenciasCriticasAbertas = equipamento.pendencias && equipamento.pendencias.some(p => 
                 p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
             );
             
@@ -860,7 +901,7 @@ class EquipamentosApp {
     atualizarStatusEquipamentoPorPendencias(equipamentoIndex) {
         const equipamento = this.equipamentos[equipamentoIndex];
         
-        const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+        const temPendenciasCriticasAbertas = equipamento.pendencias && equipamento.pendencias.some(p => 
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         );
         
@@ -899,7 +940,7 @@ class EquipamentosApp {
             if (index !== -1) {
                 // Manter dados existentes
                 equipamento.id = id;
-                equipamento.pendencias = this.equipamentos[index].pendencias;
+                equipamento.pendencias = this.equipamentos[index].pendencias || [];
                 equipamento.dataCriacao = this.equipamentos[index].dataCriacao;
                 equipamento.criadoPor = this.equipamentos[index].criadoPor || this.usuarioAtual;
                 
@@ -920,11 +961,14 @@ class EquipamentosApp {
             }
         } else {
             // Criar novo equipamento
-            equipamento.id = this.data.nextEquipamentoId++;
+            equipamento.id = this.data.nextEquipamentoId || 1;
             equipamento.dataCriacao = new Date().toISOString().split('T')[0];
             equipamento.criadoPor = this.usuarioAtual;
             
             this.equipamentos.push(equipamento);
+            
+            // Atualizar próximo ID
+            this.data.nextEquipamentoId = (this.data.nextEquipamentoId || 1) + 1;
             
             // Registrar atividade
             if (window.registrarAtividade) {
@@ -992,11 +1036,19 @@ class EquipamentosApp {
             }
         } else {
             // Criar nova pendência
-            pendencia.id = this.data.nextPendenciaId++;
+            pendencia.id = this.data.nextPendenciaId || 1;
             pendencia.criadoPor = this.usuarioAtual;
             pendencia.criadoEm = new Date().toISOString();
             
+            // Garantir que o array de pendencias existe
+            if (!this.equipamentos[equipamentoIndex].pendencias) {
+                this.equipamentos[equipamentoIndex].pendencias = [];
+            }
+            
             this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
+            
+            // Atualizar próximo ID
+            this.data.nextPendenciaId = (this.data.nextPendenciaId || 1) + 1;
             
             // Registrar atividade
             if (window.registrarAtividade) {
@@ -1029,16 +1081,23 @@ class EquipamentosApp {
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
         document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo}`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
-        document.getElementById('detalhes-setor').textContent = APP_CONFIG.setores[equipamento.setor] || equipamento.setor;
+        
+        const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
+            (window.APP_CONFIG.setores[equipamento.setor] || equipamento.setor) : 
+            equipamento.setor;
+        document.getElementById('detalhes-setor').textContent = setorFormatado;
+        
         document.getElementById('detalhes-criacao').textContent = this.formatarData(equipamento.dataCriacao);
         
         // Status
         const statusChip = document.getElementById('detalhes-status');
-        statusChip.textContent = APP_CONFIG.statusEquipamento[equipamento.status];
+        statusChip.textContent = window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
+            window.APP_CONFIG.statusEquipamento[equipamento.status] : 
+            equipamento.status;
         statusChip.className = `status-chip ${equipamento.status}`;
         
         // Adicionar ícone de alerta se houver pendências críticas
-        const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
+        const temPendenciasCriticasAbertas = equipamento.pendencias && equipamento.pendencias.some(p => 
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         );
         if (temPendenciasCriticasAbertas) {
@@ -1055,7 +1114,7 @@ class EquipamentosApp {
         document.getElementById('detalhes-inspecao').textContent = dataInspecao;
         
         // Renderizar pendencias
-        this.renderizarPendenciasDetalhes(equipamento.pendencias);
+        this.renderizarPendenciasDetalhes(equipamento.pendencias || []);
         
         // Configurar botões de ação baseado nas permissões
         this.configurarBotoesDetalhes();
@@ -1089,7 +1148,7 @@ class EquipamentosApp {
     renderizarPendenciasDetalhes(pendencias) {
         const container = document.getElementById('detalhes-pendencias');
         
-        if (pendencias.length === 0) {
+        if (!pendencias || pendencias.length === 0) {
             container.innerHTML = `
                 <div class="no-pendencias">
                     <i class="fas fa-check-circle"></i>
@@ -1131,11 +1190,15 @@ class EquipamentosApp {
                             </div>
                             <div class="pendencia-data">
                                 <i class="far fa-calendar"></i> ${dataFormatada} 
-                                | Prioridade: ${APP_CONFIG.prioridades[pendencia.prioridade]}
+                                | Prioridade: ${window.APP_CONFIG && window.APP_CONFIG.prioridades ? 
+                                    window.APP_CONFIG.prioridades[pendencia.prioridade] : 
+                                    pendencia.prioridade}
                             </div>
                         </div>
                         <div class="pendencia-badge ${pendencia.status}">
-                            ${APP_CONFIG.statusPendencia[pendencia.status]}
+                            ${window.APP_CONFIG && window.APP_CONFIG.statusPendencia ? 
+                                window.APP_CONFIG.statusPendencia[pendencia.status] : 
+                                pendencia.status}
                         </div>
                     </div>
                     <p class="pendencia-descricao">${pendencia.descricao}</p>
@@ -1313,11 +1376,12 @@ class EquipamentosApp {
             
             // Adicionar dados dos equipamentos
             this.equipamentos.forEach(equipamento => {
-                const totalPendencias = equipamento.pendencias.length;
-                const pendenciasAbertas = equipamento.pendencias.filter(p => p.status === 'aberta').length;
-                const pendenciasAndamento = equipamento.pendencias.filter(p => p.status === 'em-andamento').length;
-                const pendenciasResolvidas = equipamento.pendencias.filter(p => p.status === 'resolvida').length;
-                const pendenciasCriticas = equipamento.pendencias.filter(p => 
+                const pendencias = equipamento.pendencias || [];
+                const totalPendencias = pendencias.length;
+                const pendenciasAbertas = pendencias.filter(p => p.status === 'aberta').length;
+                const pendenciasAndamento = pendencias.filter(p => p.status === 'em-andamento').length;
+                const pendenciasResolvidas = pendencias.filter(p => p.status === 'resolvida').length;
+                const pendenciasCriticas = pendencias.filter(p => 
                     p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
                 ).length;
                 
@@ -1330,13 +1394,21 @@ class EquipamentosApp {
                     return string;
                 };
                 
+                const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
+                    (window.APP_CONFIG.setores[equipamento.setor] || equipamento.setor) : 
+                    equipamento.setor;
+                
+                const statusFormatado = window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
+                    window.APP_CONFIG.statusEquipamento[equipamento.status] : 
+                    equipamento.status;
+                
                 csvEquipamentos += [
                     equipamento.id,
                     escapeCSV(equipamento.codigo),
                     escapeCSV(equipamento.nome),
                     escapeCSV(equipamento.descricao),
-                    escapeCSV(APP_CONFIG.setores[equipamento.setor] || equipamento.setor),
-                    escapeCSV(APP_CONFIG.statusEquipamento[equipamento.status]),
+                    escapeCSV(setorFormatado),
+                    escapeCSV(statusFormatado),
                     equipamento.ultimaInspecao || '',
                     equipamento.dataCriacao || '',
                     equipamento.criadoPor || '',
@@ -1352,7 +1424,8 @@ class EquipamentosApp {
             let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em\n';
             
             this.equipamentos.forEach(equipamento => {
-                equipamento.pendencias.forEach(pendencia => {
+                const pendencias = equipamento.pendencias || [];
+                pendencias.forEach(pendencia => {
                     const escapeCSV = (str) => {
                         if (str === null || str === undefined) return '';
                         const string = String(str);
@@ -1362,6 +1435,14 @@ class EquipamentosApp {
                         return string;
                     };
                     
+                    const prioridadeFormatada = window.APP_CONFIG && window.APP_CONFIG.prioridades ? 
+                        window.APP_CONFIG.prioridades[pendencia.prioridade] : 
+                        pendencia.prioridade;
+                    
+                    const statusFormatado = window.APP_CONFIG && window.APP_CONFIG.statusPendencia ? 
+                        window.APP_CONFIG.statusPendencia[pendencia.status] : 
+                        pendencia.status;
+                    
                     csvPendencias += [
                         equipamento.id,
                         escapeCSV(equipamento.codigo),
@@ -1370,9 +1451,9 @@ class EquipamentosApp {
                         escapeCSV(pendencia.titulo),
                         escapeCSV(pendencia.descricao),
                         escapeCSV(pendencia.responsavel),
-                        escapeCSV(APP_CONFIG.prioridades[pendencia.prioridade]),
+                        escapeCSV(prioridadeFormatada),
                         pendencia.data,
-                        escapeCSV(APP_CONFIG.statusPendencia[pendencia.status]),
+                        escapeCSV(statusFormatado),
                         pendencia.criadoPor || '',
                         pendencia.criadoEm || ''
                     ].join(',') + '\n';
@@ -1384,7 +1465,7 @@ class EquipamentosApp {
             
             // Registrar atividade
             if (window.registrarAtividade) {
-                window.registrarAtividade('EXPORTAR_DADOS', `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + eqp.pendencias.length, 0)}`);
+                window.registrarAtividade('EXPORTAR_DADOS', `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + (eqp.pendencias ? eqp.pendencias.length : 0), 0)}`);
             }
             
             this.mostrarMensagem('Dados exportados para Excel com sucesso', 'success');
@@ -1584,11 +1665,18 @@ document.addEventListener('DOMContentLoaded', () => {
     configurarEventosGlobais();
     
     // Inicializar aplicação
-    const app = new EquipamentosApp();
-    window.app = app; // Para depuração
-    
-    // Configurar tema
-    configurarTema();
+    try {
+        const app = new EquipamentosApp();
+        window.app = app; // Para depuração
+        
+        // Configurar tema
+        configurarTema();
+        
+        console.log('Sistema carregado com sucesso');
+    } catch (error) {
+        console.error('Erro ao inicializar aplicação:', error);
+        alert('Erro ao carregar o sistema. Verifique o console para mais detalhes.');
+    }
 });
 
 function configurarEventosGlobais() {
@@ -1771,6 +1859,76 @@ if (!document.querySelector('#app-estilos-dinamicos')) {
         
         .equipamento-card {
             transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+        
+        /* Estilos para mensagens de carregamento */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .loading .fa-cog {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: var(--cor-primaria);
+        }
+        
+        /* Estilos para mensagens de erro */
+        .mensagem-flutuante {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            min-width: 300px;
+            max-width: 400px;
+        }
+        
+        .mensagem-flutuante.show {
+            transform: translateX(0);
+        }
+        
+        .mensagem-flutuante.success {
+            border-left: 4px solid var(--cor-sucesso);
+        }
+        
+        .mensagem-flutuante.error {
+            border-left: 4px solid var(--cor-erro);
+        }
+        
+        .mensagem-flutuante.info {
+            border-left: 4px solid var(--cor-primaria);
+        }
+        
+        .mensagem-conteudo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mensagem-conteudo i {
+            font-size: 20px;
+        }
+        
+        .mensagem-conteudo i.fa-check-circle {
+            color: var(--cor-sucesso);
+        }
+        
+        .mensagem-conteudo i.fa-exclamation-circle {
+            color: var(--cor-erro);
+        }
+        
+        .mensagem-conteudo i.fa-info-circle {
+            color: var(--cor-primaria);
         }
     `;
     document.head.appendChild(estilos);
