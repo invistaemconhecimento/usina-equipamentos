@@ -222,6 +222,8 @@ const PERMISSOES = {
     
     // Verificar se usuário tem permissão específica
     verificarPermissao: function(usuario, permissao) {
+        if (!usuario) return false;
+        
         const nivelUsuario = this.niveis[usuario];
         if (!nivelUsuario) {
             console.warn(`Usuário ${usuario} não encontrado nos níveis de permissão`);
@@ -268,6 +270,8 @@ const PERMISSOES = {
     
     // Verificar se usuário pode executar ação específica
     podeExecutarAcao: function(usuario, acao, recurso, donoRecurso = null) {
+        if (!usuario) return false;
+        
         const nivel = this.niveis[usuario];
         if (!nivel) return false;
         
@@ -1056,21 +1060,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // Aplicar tema imediatamente ao carregar
 aplicarTema();
 
-// Aplicar também quando a página carregar completamente
-document.addEventListener('DOMContentLoaded', function() {
-    aplicarTema();
-});
-
 // Inicializar configurações quando o script carregar
-if (typeof window !== 'undefined' && document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarConfiguracoes);
-} else {
+document.addEventListener('DOMContentLoaded', function() {
     inicializarConfiguracoes();
-}
-
-// Registrar inicialização do sistema
-setTimeout(() => {
-    if (typeof window !== 'undefined') {
-        registrarAtividade('SISTEMA_INICIADO', 'Sistema de gestão de equipamentos carregado');
-    }
-}, 1000);
+});
