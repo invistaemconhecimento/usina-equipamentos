@@ -18,6 +18,14 @@
         if (!sessao) window.location.href = 'login.html';
     </script>
 
+   <script>
+    // Verificação de sessão
+    (function() {
+        const sessao = localStorage.getItem('gestao_equipamentos_sessao');
+        if (!sessao) window.location.href = 'login.html';
+    })();
+</script>
+
     <div class="container">
         <header>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px;">
