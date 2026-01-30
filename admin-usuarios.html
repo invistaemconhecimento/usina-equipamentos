@@ -409,6 +409,10 @@
             
 // NO: admin-usuarios.html - Atualize o método salvarUsuarios
 async salvarUsuarios() {
+    console.log('DEBUG - Salvando usuários no JSONBin...');
+    console.log('DEBUG - URL:', `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`);
+    console.log('DEBUG - Total de usuários:', this.usuarios.length);
+    console.log('DEBUG - Primeiro usuário:', this.usuarios[0]);
     try {
         // Usar a função corrigida do config.js
         if (window.salvarUsuariosNoJSONBin) {
