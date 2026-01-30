@@ -6,6 +6,12 @@
 const JSONBIN_CONFIG = {
     // ID do bin que você criou no JSONBin.io
     BIN_ID: '696fa19fae596e708fe90a63',
+
+    // ID do bin para usuários (NOVO)
+    BIN_USUARIOS: {
+        ID: '6978e17b43b1c97be94efa1b',
+        BASE_URL: 'https://api.jsonbin.io/v3/b'
+    },
     
     // URL base da API
     BASE_URL: 'https://api.jsonbin.io/v3/b',
