@@ -767,84 +767,152 @@
         // ===========================================
 
         // Realizar login
-        function realizarLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('error-message');
-            const loginBtn = document.getElementById('loginBtn');
-            const loading = document.getElementById('loading');
-            
-            // Limpar mensagens de erro anteriores
-            limparErros();
-            
-            // Validações básicas
-            if (!username || !password) {
-                mostrarErro('Por favor, preencha todos os campos.');
-                destacarCamposVazios(username, password);
-                return;
-            }
-            
-            // Verificar se usuário existe
-            if (!USUARIOS_AUTORIZADOS[username]) {
-                mostrarErro('Usuário não encontrado. Verifique o nome de usuário.');
-                destacarCampoErro('username');
-                return;
-            }
-            
-            // Verificar senha
-            const userData = USUARIOS_AUTORIZADOS[username];
-            if (userData.senha !== password) {
-                mostrarErro('Senha incorreta. Tente novamente.');
-                destacarCampoErro('password');
-                return;
-            }
-            
-            // Desabilitar botão e mostrar carregamento
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...';
-            
-            // Simular delay de autenticação (em produção seria chamada a API)
-            setTimeout(() => {
-                // Criar dados da sessão
-                const sessionData = {
-                    usuario: username,
-                    nivel: userData.nivel,
-                    nome: userData.nome,
-                    timestamp: new Date().getTime(),
-                    expira: new Date().getTime() + (SISTEMA_CONFIG.tempoSessao * 60 * 60 * 1000)
-                };
-                
-                // Salvar dados da sessão
-                localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessionData));
-                localStorage.setItem('gestao_equipamentos_usuario', username);
-                localStorage.setItem('gestao_equipamentos_nivel', userData.nivel);
-                localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
-                
-                // Registrar log de login (em produção, enviaria para servidor)
-                const logEntry = {
-                    usuario: username,
-                    nivel: userData.nivel,
-                    acao: 'LOGIN',
-                    detalhes: 'Login realizado com sucesso',
-                    timestamp: new Date().toISOString(),
-                    ip: 'local'
-                };
-                
-                // Salvar log localmente
-                try {
-                    let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
-                    logs.unshift(logEntry);
-                    if (logs.length > 100) logs = logs.slice(0, 100);
-                    localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
-                } catch (e) {
-                    console.error('Erro ao salvar log:', e);
-                }
-                
-                // Redirecionar para aplicação principal
-                window.location.href = 'index.html';
-                
-            }, 1500); // Simula delay de rede
+ // Realizar login
+function realizarLogin() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorDiv = document.getElementById('error-message');
+    const loginBtn = document.getElementById('loginBtn');
+    const loading = document.getElementById('loading');
+    
+    // Limpar mensagens de erro anteriores
+    limparErros();
+    
+    // Validações básicas
+    if (!username || !password) {
+        mostrarErro('Por favor, preencha todos os campos.');
+        destacarCamposVazios(username, password);
+        return;
+    }
+    
+    // Desabilitar botão e mostrar carregamento
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...';
+    
+    // CARREGAR USUÁRIOS DO JSONBIN
+    carregarEValidarUsuario(username, password);
+}
+
+// Nova função para carregar usuários do JSONBin
+async function carregarEValidarUsuario(username, password) {
+    try {
+        // Carregar usuários do JSONBin
+        const response = await fetch(
+            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
+            { headers: JSONBIN_CONFIG.headers }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Erro ao conectar com o servidor de autenticação');
         }
+        
+        const result = await response.json();
+        const usuarios = result.record?.usuarios || USUARIOS_AUTORIZADOS;
+        
+        // Verificar se usuário existe
+        const usuarioEncontrado = usuarios.find(u => 
+            u.username === username && u.ativo !== false
+        );
+        
+        if (!usuarioEncontrado) {
+            mostrarErro('Usuário não encontrado ou desativado.');
+            reativarBotaoLogin();
+            return;
+        }
+        
+        // Verificar senha
+        if (usuarioEncontrado.senha !== password) {
+            mostrarErro('Senha incorreta. Tente novamente.');
+            reativarBotaoLogin();
+            return;
+        }
+        
+        // Login bem-sucedido
+        criarSessao(usuarioEncontrado);
+        
+    } catch (error) {
+        console.error('Erro de autenticação:', error);
+        
+        // Fallback para usuários locais
+        validarUsuarioLocal(username, password);
+    }
+}
+
+// Fallback para validação local
+function validarUsuarioLocal(username, password) {
+    // Verificar se usuário existe no backup local
+    if (!USUARIOS_AUTORIZADOS[username]) {
+        mostrarErro('Usuário não encontrado.');
+        reativarBotaoLogin();
+        return;
+    }
+    
+    const userData = USUARIOS_AUTORIZADOS[username];
+    if (userData.senha !== password) {
+        mostrarErro('Senha incorreta. Tente novamente.');
+        reativarBotaoLogin();
+        return;
+    }
+    
+    // Login bem-sucedido com dados locais
+    const usuarioCompleto = {
+        username: username,
+        senha: userData.senha,
+        nivel: userData.nivel,
+        nome: userData.nome,
+        email: userData.email || '',
+        departamento: userData.departamento || '',
+        ativo: true,
+        dataCriacao: new Date().toISOString().split('T')[0],
+        criadoPor: 'sistema'
+    };
+    
+    criarSessao(usuarioCompleto);
+}
+
+// Função para criar sessão
+function criarSessao(usuario) {
+    const sessionData = {
+        usuario: usuario.username,
+        nivel: usuario.nivel,
+        nome: usuario.nome,
+        timestamp: new Date().getTime(),
+        expira: new Date().getTime() + (SISTEMA_CONFIG.tempoSessao * 60 * 60 * 1000)
+    };
+    
+    // Salvar dados da sessão
+    localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessionData));
+    localStorage.setItem('gestao_equipamentos_usuario', usuario.username);
+    localStorage.setItem('gestao_equipamentos_nivel', usuario.nivel);
+    localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
+    
+    // Registrar log de login
+    try {
+        let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
+        logs.unshift({
+            usuario: usuario.username,
+            nivel: usuario.nivel,
+            acao: 'LOGIN',
+            detalhes: 'Login realizado com sucesso',
+            timestamp: new Date().toISOString(),
+            ip: 'local'
+        });
+        if (logs.length > 100) logs = logs.slice(0, 100);
+        localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
+    } catch (e) {
+        console.error('Erro ao salvar log:', e);
+    }
+    
+    // Redirecionar para aplicação principal
+    window.location.href = 'index.html';
+}
+
+// Função auxiliar para reativar botão de login
+function reativarBotaoLogin() {
+    const loginBtn = document.getElementById('loginBtn');
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
+}
 
         // ===========================================
         // FUNÇÕES AUXILIARES
