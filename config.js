@@ -344,6 +344,10 @@ const APP_CONFIG = {
     
     // Setores da usina
     setores: {
+
+        // BRITAGEM
+        "britagem-britagem": "BRITAGEM / BRITAGEM",
+        
         // MOAGEM
         "moagem-moagem": "MOAGEM / MOAGEM",
         
