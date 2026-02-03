@@ -788,6 +788,9 @@ VERSÃO: ${APP_CONFIG.versao}
 DATA DE GERAÇÃO: ${new Date().toLocaleDateString('pt-BR')}
 HORA: ${new Date().toLocaleTimeString('pt-BR')}
 
+Criação: Aline Suene & Alexandre Oliveira
+Programação: Alexandre Oliveira
+
 INFORMAÇÕES DO USUÁRIO
 ----------------------
 • Usuário: ${usuarioInfo?.nome || 'Não autenticado'}
