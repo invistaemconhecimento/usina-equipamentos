@@ -588,9 +588,9 @@ const USUARIOS_AUTORIZADOS = {
     'administrador': { 
         senha: 'admin789', 
         nivel: 'administrador',
-        nome: 'Carlos Oliveira',
-        email: 'carlos.oliveira@empresa.com',
-        departamento: 'TI'
+        nome: 'Alexandre Oliveira',
+        email: 'alexandre.oliveira@ero.com',
+        departamento: 'Beneficiamento'
     },
     'manutencao': { 
         senha: 'manutencao2024', 
