@@ -1,45 +1,167 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-tema="claro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Equipamentos - Usina</title>
+    
+    <!-- Estilos -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏭</text></svg>">
+    
     <style>
-        /* Estilos adicionais para o sistema de login */
+        /* Estilos específicos da página principal */
+        :root {
+            /* Cores do sistema */
+            --cor-primaria: #2c3e50;
+            --cor-secundaria: #3498db;
+            --cor-sucesso: #27ae60;
+            --cor-erro: #e74c3c;
+            --cor-alerta: #f39c12;
+            --cor-info: #3498db;
+            --cor-texto: #2c3e50;
+            --cor-texto-secundario: #7f8c8d;
+            --cor-fundo: #ecf0f1;
+            --cor-fundo-secundario: #f8f9fa;
+            --cor-borda: #bdc3c7;
+            
+            /* Transições */
+            --transicao-rapida: 0.2s ease;
+            --transicao-normal: 0.3s ease;
+            --transicao-lenta: 0.5s ease;
+            
+            /* Sombras */
+            --sombra-leve: 0 2px 4px rgba(0,0,0,0.1);
+            --sombra-media: 0 4px 8px rgba(0,0,0,0.15);
+            --sombra-forte: 0 8px 16px rgba(0,0,0,0.2);
+            
+            /* Bordas */
+            --raio-borda: 8px;
+            --raio-borda-pequeno: 4px;
+        }
+        
+        /* Tema escuro */
+        [data-tema="escuro"] {
+            --cor-primaria: #34495e;
+            --cor-secundaria: #3498db;
+            --cor-sucesso: #2ecc71;
+            --cor-erro: #e74c3c;
+            --cor-alerta: #f1c40f;
+            --cor-info: #3498db;
+            --cor-texto: #ecf0f1;
+            --cor-texto-secundario: #bdc3c7;
+            --cor-fundo: #2c3e50;
+            --cor-fundo-secundario: #34495e;
+            --cor-borda: #4a6572;
+        }
+        
+        /* Layout principal */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            margin: 0;
+            padding: 0;
+            transition: background-color var(--transicao-normal);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Cabeçalho */
+        header {
+            background: var(--cor-primaria);
+            color: white;
+            padding: 20px;
+            border-radius: var(--raio-borda);
+            margin-bottom: 20px;
+            box-shadow: var(--sombra-media);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .header-left {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .header-left h1 {
+            font-size: 28px;
+            margin: 0 0 8px 0;
+            color: white;
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        /* Controles do cabeçalho */
+        .header-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 250px;
+        }
+        
         .user-info-container {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             gap: 8px;
-            min-width: 200px;
         }
         
         .user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 14px;
+            gap: 10px;
             background: rgba(255, 255, 255, 0.1);
-            padding: 6px 12px;
+            padding: 8px 16px;
             border-radius: 20px;
+            color: white;
+            font-size: 14px;
         }
         
         .user-info i {
             font-size: 16px;
         }
         
-        .header-controls {
+        .user-level-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Botões de ação */
+        .action-buttons {
             display: flex;
-            align-items: center;
-            gap: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
         .theme-toggle {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
             width: 40px;
@@ -49,58 +171,772 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all var(--transicao-rapida);
         }
         
         .theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: rotate(30deg);
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
         }
         
         .logout-btn {
             background: rgba(231, 76, 60, 0.8);
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 20px;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 8px;
             font-size: 14px;
-            transition: all 0.3s;
+            font-weight: 500;
+            transition: all var(--transicao-rapida);
         }
         
         .logout-btn:hover {
             background: rgba(231, 76, 60, 1);
             transform: translateY(-2px);
+            box-shadow: var(--sombra-leve);
         }
         
+        .admin-btn {
+            background: rgba(155, 89, 182, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all var(--transicao-rapida);
+        }
+        
+        .admin-btn:hover {
+            background: rgba(155, 89, 182, 1);
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-leve);
+        }
+        
+        /* Barra de estatísticas */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: var(--raio-borda);
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--raio-borda);
+            transition: transform var(--transicao-rapida);
+        }
+        
+        .stat:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value.apto { color: #2ecc71; }
+        .stat-value.nao-apto { color: #e74c3c; }
+        .stat-value.pendente { color: #f39c12; }
+        
+        .stat-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Conteúdo principal */
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .sidebar-section {
+            background: var(--cor-fundo-secundario);
+            border-radius: var(--raio-borda);
+            padding: 20px;
+            box-shadow: var(--sombra-leve);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .sidebar-section h3 {
+            margin: 0 0 15px 0;
+            color: var(--cor-texto);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar-section h3 i {
+            color: var(--cor-secundaria);
+        }
+        
+        /* Filtros */
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda-pequeno);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: border-color var(--transicao-rapida);
+        }
+        
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--cor-secundaria);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn-secondary {
+            background: var(--cor-fundo-secundario);
+            color: var(--cor-texto);
+            border: 1px solid var(--cor-borda);
+            padding: 10px 20px;
+            border-radius: var(--raio-borda-pequeno);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all var(--transicao-rapida);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--cor-borda);
+            transform: translateY(-1px);
+        }
+        
+        /* Botões de ação */
+        .btn-primary {
+            background: var(--cor-secundaria);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--raio-borda-pequeno);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all var(--transicao-rapida);
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-leve);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        
+        /* Status de sincronização */
+        .sync-status {
+            padding-top: 15px;
+            border-top: 1px solid var(--cor-borda);
+            margin-top: 15px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #95a5a6;
+        }
+        
+        .status-dot.connected {
+            background: #2ecc71;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.disconnected {
+            background: #e74c3c;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Área de conteúdo */
+        .content {
+            background: var(--cor-fundo-secundario);
+            border-radius: var(--raio-borda);
+            padding: 20px;
+            box-shadow: var(--sombra-leve);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        
+        .content-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--cor-texto);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .content-header h2 span {
+            font-size: 16px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        /* Controles de visualização */
+        .view-controls {
+            display: flex;
+            gap: 5px;
+            background: var(--cor-fundo);
+            padding: 5px;
+            border-radius: var(--raio-borda-pequeno);
+        }
+        
+        .view-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: var(--cor-texto-secundario);
+            border-radius: var(--raio-borda-pequeno);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transicao-rapida);
+        }
+        
+        .view-btn.active {
+            background: var(--cor-secundaria);
+            color: white;
+        }
+        
+        .view-btn:hover:not(.active) {
+            background: var(--cor-borda);
+        }
+        
+        /* Container de equipamentos */
+        .equipamentos-container {
+            display: grid;
+            gap: 20px;
+            min-height: 400px;
+        }
+        
+        .equipamentos-container.grid-view {
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        }
+        
+        .equipamentos-container.list-view {
+            grid-template-columns: 1fr;
+        }
+        
+        /* Cards de equipamento */
+        .equipamento-card {
+            background: var(--cor-fundo);
+            border-radius: var(--raio-borda);
+            padding: 20px;
+            border: 1px solid var(--cor-borda);
+            transition: all var(--transicao-normal);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .equipamento-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--sombra-media);
+            border-color: var(--cor-secundaria);
+        }
+        
+        .equipamento-card.nao-apto {
+            border-left: 4px solid var(--cor-erro);
+        }
+        
+        .equipamento-card.apto {
+            border-left: 4px solid var(--cor-sucesso);
+        }
+        
+        .equipamento-card.com-pendencia {
+            border-left: 4px solid var(--cor-alerta);
+        }
+        
+        .equipamento-card.critica {
+            border-left: 4px solid #8b0000;
+            animation: critica-alert 2s infinite;
+        }
+        
+        @keyframes critica-alert {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(139, 0, 0, 0.4); }
+            50% { box-shadow: 0 0 0 5px rgba(139, 0, 0, 0); }
+        }
+        
+        .equipamento-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .equipamento-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: var(--cor-texto);
+        }
+        
+        .equipamento-codigo {
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+            font-weight: 500;
+            background: var(--cor-fundo-secundario);
+            padding: 3px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        
+        /* Status chips */
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-chip.apto {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .status-chip.nao-apto {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+        
+        .status-chip.aberta {
+            background: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+        
+        .status-chip.em-andamento {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        .status-chip.resolvida {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .status-chip.cancelada {
+            background: rgba(149, 165, 166, 0.1);
+            color: #95a5a6;
+            border: 1px solid rgba(149, 165, 166, 0.3);
+        }
+        
+        /* Descrição */
+        .equipamento-descricao {
+            color: var(--cor-texto-secundario);
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 15px 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Metadados */
+        .equipamento-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .equipamento-metadata div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .equipamento-metadata i {
+            font-size: 14px;
+            color: var(--cor-secundaria);
+        }
+        
+        /* Pendências */
+        .equipamento-pendencias {
+            margin: 15px 0;
+            padding: 10px;
+            background: var(--cor-fundo-secundario);
+            border-radius: var(--raio-borda-pequeno);
+        }
+        
+        .pendencia-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            margin: 3px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .pendencia-badge.aberta {
+            background: rgba(243, 156, 18, 0.1);
+            color: #f39c12;
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+        
+        .pendencia-badge.em-andamento {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+        
+        .pendencia-badge.resolvida {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .pendencia-badge.critica {
+            background: rgba(139, 0, 0, 0.1);
+            color: #8b0000;
+            border: 1px solid rgba(139, 0, 0, 0.3);
+        }
+        
+        /* Ações do card */
+        .equipamento-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--cor-borda);
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: var(--raio-borda-pequeno);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all var(--transicao-rapida);
+        }
+        
+        .action-btn.primary {
+            background: var(--cor-secundaria);
+            color: white;
+        }
+        
+        .action-btn.primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .action-btn.secondary {
+            background: var(--cor-fundo-secundario);
+            color: var(--cor-texto);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .action-btn.secondary:hover {
+            background: var(--cor-borda);
+            transform: translateY(-2px);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Sem resultados */
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .no-results i {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: var(--cor-borda);
+        }
+        
+        .no-results h3 {
+            margin: 0 0 10px 0;
+            color: var(--cor-texto);
+        }
+        
+        /* Loading */
+        .loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .loading .fa-cog {
+            font-size: 40px;
+            color: var(--cor-secundaria);
+            margin-bottom: 20px;
+        }
+        
+        /* Rodapé */
+        .footer-info {
+            background: var(--cor-fundo-secundario);
+            padding: 15px;
+            border-radius: var(--raio-borda);
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .footer-row div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Responsividade */
         @media (max-width: 768px) {
-            .header-controls {
+            .header-top {
                 flex-direction: column;
-                gap: 10px;
+            }
+            
+            .header-left, .header-controls {
                 width: 100%;
             }
             
             .user-info-container {
-                width: 100%;
                 align-items: center;
             }
             
-            .theme-toggle, .logout-btn {
-                width: 100%;
-                border-radius: 8px;
-                height: 40px;
+            .action-buttons {
+                justify-content: center;
             }
+            
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .equipamentos-container.grid-view {
+                grid-template-columns: 1fr;
+            }
+            
+            .equipamento-actions {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 15px;
+            }
+            
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar-section {
+                padding: 15px;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+        }
+        
+        /* Estilos para indicador de nível */
+        .nivel-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 9999;
+            box-shadow: var(--sombra-leve);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            transition: opacity var(--transicao-rapida);
+            backdrop-filter: blur(5px);
+        }
+        
+        .nivel-indicator:hover {
+            opacity: 1;
+        }
+        
+        /* Acessibilidade */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* Animações de entrada */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .equipamento-card {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--cor-fundo-secundario);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--cor-borda);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--cor-texto-secundario);
+        }
+        
+        /* Foco visível para acessibilidade */
+        *:focus {
+            outline: 2px solid var(--cor-secundaria);
+            outline-offset: 2px;
+        }
+        
+        /* Prevenir seleção de texto não desejada */
+        .no-select {
+            user-select: none;
         }
     </style>
 </head>
 <body>
-    <!-- Verificação de Sessão -->
+    <!-- Script de verificação de sessão -->
     <script>
         (function() {
-            // Verificar se há uma sessão válida
             const sessao = localStorage.getItem('gestao_equipamentos_sessao');
             
             if (!sessao) {
@@ -112,7 +948,6 @@
                 const sessaoData = JSON.parse(sessao);
                 const agora = new Date().getTime();
                 
-                // Verificar se a sessão expirou
                 if (agora > sessaoData.expira) {
                     localStorage.removeItem('gestao_equipamentos_sessao');
                     localStorage.removeItem('gestao_equipamentos_usuario');
@@ -120,11 +955,8 @@
                     return;
                 }
                 
-                // Renovar sessão (extender por mais 8 horas)
                 sessaoData.expira = agora + (8 * 60 * 60 * 1000);
                 localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessaoData));
-                
-                // Salvar último acesso
                 localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
                 
             } catch (e) {
@@ -139,18 +971,13 @@
     <div class="container">
         <!-- Cabeçalho Principal -->
         <header>
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 20px;">
-                <div style="flex: 1; min-width: 300px;">
-                    <h1>Gestão de Equipamentos - Usina</h1>
-                    <p class="subtitle">Sistema de gerenciamento de equipamentos | Status operacional e pendências</p>
+            <div class="header-top">
+                <div class="header-left">
+                    <h1><i class="fas fa-industry"></i> Gestão de Equipamentos - Usina</h1>
+                    <p class="subtitle">Sistema de gerenciamento de equipamentos industriais | Status operacional e controle de pendências</p>
                 </div>
                 
                 <div class="header-controls">
-                    <!-- Botão de Tema -->
-                    <button id="theme-toggle" class="theme-toggle" title="Alternar tema claro/escuro">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                    
                     <!-- Informações do Usuário -->
                     <div class="user-info-container">
                         <div class="user-info">
@@ -158,16 +985,23 @@
                             <span id="current-user">Carregando...</span>
                         </div>
                         
-                        <!-- Botão de Logout -->
-                        <button id="logout-btn" class="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i> Sair do Sistema
-                        </button>
+                        <!-- Botões de Ação -->
+                        <div class="action-buttons">
+                            <!-- Botão de Tema -->
+                            <button id="theme-toggle" class="theme-toggle" title="Alternar tema claro/escuro">
+                                <i class="fas fa-moon"></i>
+                            </button>
                             
-                        <button onclick="window.location.href='admin-usuarios.html'" 
-                        style="background: #e74c3c; color: white; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer;">
-                            <i class="fas fa-users-cog"></i> Admin Usuários
-                        </button>
-                        
+                            <!-- Botão de Logout -->
+                            <button id="logout-btn" class="logout-btn">
+                                <i class="fas fa-sign-out-alt"></i> Sair
+                            </button>
+                            
+                            <!-- Botão de Administração -->
+                            <button onclick="window.location.href='admin-usuarios.html'" class="admin-btn">
+                                <i class="fas fa-users-cog"></i> Admin
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -198,8 +1032,9 @@
             <!-- Sidebar com Filtros e Ações -->
             <div class="sidebar">
                 <!-- Filtros -->
-                <div class="filters">
+                <div class="sidebar-section">
                     <h3><i class="fas fa-filter"></i> Filtros</h3>
+                    
                     <div class="filter-group">
                         <label for="status-filter">Status Operacional:</label>
                         <select id="status-filter">
@@ -208,14 +1043,17 @@
                             <option value="nao-apto">Não Apto</option>
                         </select>
                     </div>
+                    
                     <div class="filter-group">
                         <label for="pendencia-filter">Status de Pendência:</label>
                         <select id="pendencia-filter">
                             <option value="all">Todas</option>
                             <option value="com-pendencia">Com Pendência</option>
                             <option value="sem-pendencia">Sem Pendência</option>
+                            <option value="com-criticas">Com Críticas</option>
                         </select>
                     </div>
+                    
                     <div class="filter-group">
                         <label for="setor-filter">Setor:</label>
                         <select id="setor-filter">
@@ -237,48 +1075,55 @@
                             <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
                         </select>
                     </div>
+                    
                     <div class="filter-group">
                         <label for="search">Buscar Equipamento:</label>
                         <input type="text" id="search" placeholder="Nome, código ou descrição...">
                     </div>
-                    <button id="reset-filters" class="btn-secondary">
+                    
+                    <button id="reset-filters" class="btn-secondary" style="width: 100%; margin-top: 10px;">
                         <i class="fas fa-redo"></i> Limpar Filtros
                     </button>
                 </div>
 
                 <!-- Ações Rápidas -->
-                <div class="actions">
+                <div class="sidebar-section">
                     <h3><i class="fas fa-tools"></i> Ações</h3>
-                    <button id="add-equipamento" class="btn-primary">
+                    
+                    <button id="add-equipamento" class="btn-primary" style="width: 100%; margin-bottom: 10px;">
                         <i class="fas fa-plus-circle"></i> Novo Equipamento
                     </button>
-                    <button id="add-pendencia" class="btn-secondary" disabled>
+                    
+                    <button id="add-pendencia" class="btn-secondary" style="width: 100%; margin-bottom: 10px;" disabled>
                         <i class="fas fa-exclamation-circle"></i> Nova Pendência
                     </button>
-                    <button id="export-data" class="btn-secondary">
+                    
+                    <button id="export-data" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
                         <i class="fas fa-file-export"></i> Exportar Dados
                     </button>
                     
-                    <!-- Status da Sincronização -->
+                    <!-- Status da Conexão -->
                     <div class="sync-status">
                         <p><i class="fas fa-database"></i> Status da Conexão:</p>
                         <div class="status-indicator" id="sync-status">
                             <span class="status-dot"></span>
                             <span class="status-text">Conectando...</span>
                         </div>
-                        <button id="manual-sync" class="btn-small">
-                            <i class="fas fa-sync"></i> Sincronizar
+                        <button id="manual-sync" class="btn-small btn-secondary" style="width: 100%;">
+                            <i class="fas fa-sync"></i> Sincronizar Agora
                         </button>
                     </div>
                 </div>
                 
                 <!-- Informações do Sistema -->
-                <div class="actions" style="margin-top: 20px; background: #f8f9fa;">
+                <div class="sidebar-section">
                     <h3><i class="fas fa-info-circle"></i> Sistema</h3>
-                    <button id="system-info" class="btn-small" style="width: 100%; margin-bottom: 10px;">
+                    
+                    <button id="system-info" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
                         <i class="fas fa-cog"></i> Informações do Sistema
                     </button>
-                    <button id="export-config" class="btn-small" style="width: 100%;">
+                    
+                    <button id="export-config" class="btn-secondary" style="width: 100%;">
                         <i class="fas fa-download"></i> Exportar Configurações
                     </button>
                 </div>
@@ -289,254 +1134,265 @@
                 <!-- Cabeçalho do Conteúdo -->
                 <div class="content-header">
                     <h2><i class="fas fa-list"></i> Equipamentos <span id="total-filtrado">(0)</span></h2>
+                    
                     <div class="view-controls">
-                        <button id="view-list" class="view-btn active" title="Visualização em Lista">
+                        <button id="view-list" class="view-btn" title="Visualização em Lista">
                             <i class="fas fa-list"></i>
                         </button>
-                        <button id="view-grid" class="view-btn" title="Visualização em Grade">
+                        <button id="view-grid" class="view-btn active" title="Visualização em Grade">
                             <i class="fas fa-th-large"></i>
                         </button>
                     </div>
                 </div>
 
                 <!-- Container dos Equipamentos -->
-                <div class="equipamentos-container" id="equipamentos-container">
+                <div class="equipamentos-container grid-view" id="equipamentos-container">
                     <div class="loading">
                         <i class="fas fa-cog fa-spin"></i>
                         <p>Carregando equipamentos...</p>
                     </div>
                 </div>
-                
-                <!-- Rodapé com informações -->
-                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 13px; color: #7f8c8d;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <div>
-                            <i class="fas fa-info-circle"></i> 
-                            <span id="last-sync">Última sincronização: --:--</span>
-                        </div>
-                        <div>
-                            <i class="fas fa-user"></i> 
-                            <span id="user-session">Sessão válida até: --:--</span>
-                        </div>
-                    </div>
+            </div>
+        </div>
+        
+        <!-- Rodapé com Informações -->
+        <div class="footer-info">
+            <div class="footer-row">
+                <div>
+                    <i class="fas fa-info-circle"></i> 
+                    <span id="last-sync">Última sincronização: --:--</span>
+                </div>
+                <div>
+                    <i class="fas fa-user"></i> 
+                    <span id="user-session">Sessão válida até: --:--</span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- ========== MODAIS ========== -->
+    <!-- ========== MODAIS DO SISTEMA ========== -->
 
-        <!-- Modal para Adicionar/Editar Equipamento -->
-        <div id="equipamento-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modal-title">Novo Equipamento</h3>
-                    <span class="close-modal">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <form id="equipamento-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="equipamento-codigo">Código *</label>
-                                <input type="text" id="equipamento-codigo" required 
-                                       placeholder="Ex: EQP-001" 
-                                       title="Código único do equipamento">
-                            </div>
-                            <div class="form-group">
-                                <label for="equipamento-nome">Nome *</label>
-                                <input type="text" id="equipamento-nome" required 
-                                       placeholder="Ex: Turbina Principal"
-                                       title="Nome descritivo do equipamento">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="equipamento-descricao">Descrição</label>
-                            <textarea id="equipamento-descricao" rows="3" 
-                                      placeholder="Descreva o equipamento, função, características..."
-                                      title="Descrição detalhada do equipamento"></textarea>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="equipamento-setor">Setor *</label>
-                                <select id="equipamento-setor" required>
-                                    <option value="">Selecione um setor</option>
-                                    <option value="britagem-britagem" selected>BRITAGEM / BRITAGEM</option>
-                                    <option value="moagem-moagem" selected>MOAGEM / MOAGEM</option>
-                                    <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
-                                    <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
-                                    <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
-                                    <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
-                                    <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
-                                    <option value="reagentes-pax">REAGENTES / PAX</option>
-                                    <option value="reagentes-dtf">REAGENTES / DTF</option>
-                                    <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
-                                    <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
-                                    <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
-                                    <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
-                                    <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
-                                    <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="equipamento-status">Status Operacional *</label>
-                                <select id="equipamento-status" required>
-                                    <option value="apto" selected>Apto a Operar</option>
-                                    <option value="nao-apto">Não Apto</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="equipamento-ultima-inspecao">Última Inspeção</label>
-                            <input type="date" id="equipamento-ultima-inspecao">
-                        </div>
-                        
-                        <!-- Display do Status Automático -->
-                        <div class="form-group" style="background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
-                            <label>Status Determinado por Pendências:</label>
-                            <div id="equipamento-status-display">
-                                <span class="status-chip apto">Apto a Operar</span>
-                                <small style="display: block; margin-top: 5px; color: #7f8c8d;">
-                                    <i class="fas fa-info-circle"></i> O status será automaticamente ajustado conforme as pendências críticas
-                                </small>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn-secondary close-modal">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                            <button type="submit" class="btn-primary">
-                                <i class="fas fa-save"></i> Salvar Equipamento
-                            </button>
-                        </div>
-                    </form>
-                </div>
+    <!-- Modal para Adicionar/Editar Equipamento -->
+    <div id="equipamento-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Novo Equipamento</h3>
+                <span class="close-modal">&times;</span>
             </div>
-        </div>
-
-        <!-- Modal para Adicionar/Editar Pendência -->
-        <div id="pendencia-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="pendencia-modal-title">Nova Pendência</h3>
-                    <span class="close-modal">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <form id="pendencia-form">
-                        <input type="hidden" id="pendencia-equipamento-id">
-                        <input type="hidden" id="pendencia-id">
-                        
+            <div class="modal-body">
+                <form id="equipamento-form">
+                    <div class="form-row">
                         <div class="form-group">
-                            <label for="pendencia-titulo">Título da Pendência *</label>
-                            <input type="text" id="pendencia-titulo" required 
-                                   placeholder="Ex: Vazamento identificado"
-                                   title="Título descritivo da pendência">
+                            <label for="equipamento-codigo">Código *</label>
+                            <input type="text" id="equipamento-codigo" required 
+                                   placeholder="Ex: EQP-001" 
+                                   title="Código único do equipamento">
                         </div>
-                        
                         <div class="form-group">
-                            <label for="pendencia-descricao">Descrição Detalhada *</label>
-                            <textarea id="pendencia-descricao" rows="4" required 
-                                      placeholder="Descreva detalhadamente o problema, localização, sintomas..."
-                                      title="Descrição completa da pendência"></textarea>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="pendencia-responsavel">Responsável *</label>
-                                <select id="pendencia-responsavel" required>
-                                    <option value="">Selecione um responsável</option>
-                                    <option value="Elétrica">Elétrica</option>
-                                    <option value="Instrumentação">Instrumentação</option>
-                                    <option value="Mecânica">Mecânica</option>
-                                    <option value="Preventiva_Engenharia">Preventiva Engenharia</option>
-                                    <option value="Automação">Automação</option>
-                                    <option value="Externo">Externo</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="pendencia-prioridade">Prioridade *</label>
-                                <select id="pendencia-prioridade" required>
-                                    <option value="baixa">Baixa</option>
-                                    <option value="media" selected>Média</option>
-                                    <option value="alta">Alta</option>
-                                    <option value="critica">Crítica</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="pendencia-data">Data da Ocorrência *</label>
-                                <input type="date" id="pendencia-data" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="pendencia-status">Status da Pendência *</label>
-                                <select id="pendencia-status" required>
-                                    <option value="aberta" selected>Aberta</option>
-                                    <option value="em-andamento">Em Andamento</option>
-                                    <option value="resolvida">Resolvida</option>
-                                    <option value="cancelada">Cancelada</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn-secondary close-modal">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                            <button type="submit" class="btn-primary">
-                                <i class="fas fa-save"></i> Salvar Pendência
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal para Visualizar Detalhes do Equipamento -->
-        <div id="detalhes-modal" class="modal">
-            <div class="modal-content large">
-                <div class="modal-header">
-                    <h3 id="detalhes-titulo">Detalhes do Equipamento</h3>
-                    <span class="close-modal">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <div class="detalhes-header">
-                        <div class="detalhes-info">
-                            <h4 id="detalhes-nome"></h4>
-                            <div class="status-chip" id="detalhes-status"></div>
-                            <p id="detalhes-codigo"></p>
-                            <p id="detalhes-descricao"></p>
-                            <div class="detalhes-metadata">
-                                <p><i class="fas fa-building"></i> <span id="detalhes-setor"></span></p>
-                                <p><i class="fas fa-calendar"></i> Última inspeção: <span id="detalhes-inspecao"></span></p>
-                                <p><i class="fas fa-calendar-plus"></i> Data de criação: <span id="detalhes-criacao"></span></p>
-                            </div>
-                        </div>
-                        <div class="detalhes-actions">
-                            <button id="editar-equipamento" class="btn-secondary">
-                                <i class="fas fa-edit"></i> Editar Equipamento
-                            </button>
-                            <button id="nova-pendencia-detalhes" class="btn-primary">
-                                <i class="fas fa-plus-circle"></i> Nova Pendência
-                            </button>
+                            <label for="equipamento-nome">Nome *</label>
+                            <input type="text" id="equipamento-nome" required 
+                                   placeholder="Ex: Turbina Principal"
+                                   title="Nome descritivo do equipamento">
                         </div>
                     </div>
                     
-                    <div class="pendencias-section">
-                        <h4><i class="fas fa-exclamation-triangle"></i> Histórico de Pendências</h4>
-                        <div class="pendencias-container" id="detalhes-pendencias">
-                            <!-- Pendencias serão carregadas aqui -->
+                    <div class="form-group">
+                        <label for="equipamento-descricao">Descrição</label>
+                        <textarea id="equipamento-descricao" rows="3" 
+                                  placeholder="Descreva o equipamento, função, características..."
+                                  title="Descrição detalhada do equipamento"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="equipamento-setor">Setor *</label>
+                            <select id="equipamento-setor" required>
+                                <option value="">Selecione um setor</option>
+                                <option value="britagem-britagem">BRITAGEM / BRITAGEM</option>
+                                <option value="moagem-moagem">MOAGEM / MOAGEM</option>
+                                <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
+                                <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
+                                <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
+                                <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
+                                <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
+                                <option value="reagentes-pax">REAGENTES / PAX</option>
+                                <option value="reagentes-dtf">REAGENTES / DTF</option>
+                                <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
+                                <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
+                                <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
+                                <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
+                                <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
+                                <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                            </select>
                         </div>
+                        <div class="form-group">
+                            <label for="equipamento-status">Status Operacional *</label>
+                            <select id="equipamento-status" required>
+                                <option value="apto" selected>Apto a Operar</option>
+                                <option value="nao-apto">Não Apto</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="equipamento-ultima-inspecao">Última Inspeção</label>
+                        <input type="date" id="equipamento-ultima-inspecao" max="2024-12-31">
+                    </div>
+                    
+                    <!-- Display do Status Automático -->
+                    <div class="form-group status-display">
+                        <label>Status Determinado por Pendências:</label>
+                        <div id="equipamento-status-display">
+                            <span class="status-chip apto">Apto a Operar</span>
+                            <small>
+                                <i class="fas fa-info-circle"></i> O status será automaticamente ajustado conforme as pendências críticas
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary close-modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Salvar Equipamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Pendência -->
+    <div id="pendencia-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="pendencia-modal-title">Nova Pendência</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="pendencia-form">
+                    <input type="hidden" id="pendencia-equipamento-id">
+                    <input type="hidden" id="pendencia-id">
+                    
+                    <div class="form-group">
+                        <label for="pendencia-titulo">Título da Pendência *</label>
+                        <input type="text" id="pendencia-titulo" required 
+                               placeholder="Ex: Vazamento identificado"
+                               title="Título descritivo da pendência">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pendencia-descricao">Descrição Detalhada *</label>
+                        <textarea id="pendencia-descricao" rows="4" required 
+                                  placeholder="Descreva detalhadamente o problema, localização, sintomas..."
+                                  title="Descrição completa da pendência"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pendencia-responsavel">Responsável *</label>
+                            <select id="pendencia-responsavel" required>
+                                <option value="">Selecione um responsável</option>
+                                <option value="Elétrica">Elétrica</option>
+                                <option value="Instrumentação">Instrumentação</option>
+                                <option value="Mecânica">Mecânica</option>
+                                <option value="Preventiva_Engenharia">Preventiva Engenharia</option>
+                                <option value="Automação">Automação</option>
+                                <option value="Externo">Externo</option>
+                                <option value="Química">Química</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pendencia-prioridade">Prioridade *</label>
+                            <select id="pendencia-prioridade" required>
+                                <option value="baixa">Baixa</option>
+                                <option value="media" selected>Média</option>
+                                <option value="alta">Alta</option>
+                                <option value="critica">Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pendencia-data">Data da Ocorrência *</label>
+                            <input type="date" id="pendencia-data" required max="2024-12-31">
+                        </div>
+                        <div class="form-group">
+                            <label for="pendencia-status">Status da Pendência *</label>
+                            <select id="pendencia-status" required>
+                                <option value="aberta" selected>Aberta</option>
+                                <option value="em-andamento">Em Andamento</option>
+                                <option value="resolvida">Resolvida</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- NOVO: Campo para comentário na edição -->
+                    <div class="form-group" id="pendencia-comentario-group" style="display: none;">
+                        <label for="pendencia-comentario">Comentário da Alteração (Opcional)</label>
+                        <textarea id="pendencia-comentario" rows="3" 
+                                  placeholder="Explique por que está fazendo esta alteração..."
+                                  title="Comentário sobre a alteração"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary close-modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Salvar Pendência
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Visualizar Detalhes do Equipamento -->
+    <div id="detalhes-modal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="detalhes-titulo">Detalhes do Equipamento</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="detalhes-header">
+                    <div class="detalhes-info">
+                        <h4 id="detalhes-nome"></h4>
+                        <div class="status-chip" id="detalhes-status"></div>
+                        <p id="detalhes-codigo"></p>
+                        <p id="detalhes-descricao"></p>
+                        <div class="detalhes-metadata">
+                            <p><i class="fas fa-building"></i> <span id="detalhes-setor"></span></p>
+                            <p><i class="fas fa-calendar"></i> Última inspeção: <span id="detalhes-inspecao"></span></p>
+                            <p><i class="fas fa-calendar-plus"></i> Data de criação: <span id="detalhes-criacao"></span></p>
+                            <p><i class="fas fa-user"></i> Criado por: <span id="detalhes-criador"></span></p>
+                        </div>
+                    </div>
+                    <div class="detalhes-actions">
+                        <button id="editar-equipamento" class="btn-secondary">
+                            <i class="fas fa-edit"></i> Editar Equipamento
+                        </button>
+                        <button id="nova-pendencia-detalhes" class="btn-primary">
+                            <i class="fas fa-plus-circle"></i> Nova Pendência
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="pendencias-section">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Histórico de Pendências</h4>
+                    <div class="pendencias-container" id="detalhes-pendencias">
+                        <!-- Pendencias serão carregadas aqui -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts de Configuração e Aplicação -->
+    <!-- Scripts do Sistema -->
     <script src="config.js"></script>
     <script src="app.js"></script>
     
@@ -544,19 +1400,40 @@
     <script>
         // Configuração de Eventos de Interface
         document.addEventListener('DOMContentLoaded', function() {
+            // ========== INICIALIZAÇÃO ==========
+            
+            // Aplicar tema salvo
+            if (window.aplicarTema) {
+                window.aplicarTema();
+            }
+            
             // ========== CONTROLES DE USUÁRIO ==========
             
             // Mostrar usuário atual
             const usuario = localStorage.getItem('gestao_equipamentos_usuario');
-            if (usuario) {
+            const nivel = localStorage.getItem('gestao_equipamentos_nivel');
+            
+            if (usuario && nivel) {
                 const usuarioFormatado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
-                document.getElementById('current-user').textContent = usuarioFormatado;
+                const nivelNome = window.PERMISSOES ? window.PERMISSOES.getNomeNivel(nivel) : nivel;
+                const nivelCor = window.PERMISSOES ? window.PERMISSOES.getCorNivel(nivel) : '#3498db';
+                
+                const userElement = document.getElementById('current-user');
+                if (userElement) {
+                    userElement.innerHTML = `
+                        <i class="fas ${window.PERMISSOES ? window.PERMISSOES.getIconeNivel(nivel) : 'fa-user'}"></i>
+                        <span>${usuarioFormatado}</span>
+                        <span class="user-level-badge" style="background: ${nivelCor}">${nivelNome}</span>
+                    `;
+                }
             }
             
             // Configurar botão de logout
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
                     if (confirm('Tem certeza que deseja sair do sistema?')) {
                         // Registrar atividade
                         if (window.registrarAtividade) {
@@ -566,6 +1443,7 @@
                         // Limpar sessão
                         localStorage.removeItem('gestao_equipamentos_sessao');
                         localStorage.removeItem('gestao_equipamentos_usuario');
+                        localStorage.removeItem('gestao_equipamentos_nivel');
                         
                         // Redirecionar para login
                         window.location.href = 'login.html';
@@ -573,29 +1451,39 @@
                 });
             }
             
-            // Configurar botão de tema
+            // ========== CONTROLES DE TEMA ==========
+            
             const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) {
-                themeToggle.addEventListener('click', function() {
-                    const novoTema = window.alternarTema ? window.alternarTema() : 'claro';
-                    const icon = this.querySelector('i');
+                themeToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
                     
-                    // Atualizar ícone
-                    if (novoTema === 'escuro') {
-                        icon.className = 'fas fa-sun';
-                        themeToggle.title = 'Alternar para tema claro';
-                    } else {
-                        icon.className = 'fas fa-moon';
-                        themeToggle.title = 'Alternar para tema escuro';
+                    // Alternar tema usando a função global
+                    if (window.alternarTema) {
+                        const novoTema = window.alternarTema();
+                        
+                        // Atualizar ícone
+                        const icon = this.querySelector('i');
+                        if (icon) {
+                            if (novoTema === 'escuro') {
+                                icon.className = 'fas fa-sun';
+                                this.title = 'Alternar para tema claro';
+                            } else {
+                                icon.className = 'fas fa-moon';
+                                this.title = 'Alternar para tema escuro';
+                            }
+                        }
                     }
                 });
                 
-                // Configurar ícone inicial
+                // Configurar título inicial
                 const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-                const icon = themeToggle.querySelector('i');
                 if (temaAtual === 'escuro') {
-                    icon.className = 'fas fa-sun';
+                    themeToggle.querySelector('i').className = 'fas fa-sun';
                     themeToggle.title = 'Alternar para tema claro';
+                } else {
+                    themeToggle.querySelector('i').className = 'fas fa-moon';
+                    themeToggle.title = 'Alternar para tema escuro';
                 }
             }
             
@@ -626,20 +1514,6 @@
                 });
             }
             
-            // ========== CONTROLES DE FILTRO ==========
-            
-            // Filtro por setor
-            const setorFilter = document.getElementById('setor-filter');
-            if (setorFilter) {
-                setorFilter.addEventListener('change', function() {
-                    if (window.app && window.app.filtros) {
-                        window.app.filtros.setor = this.value;
-                        window.app.renderizarEquipamentos();
-                        atualizarContadorFiltrado();
-                    }
-                });
-            }
-            
             // ========== ATUALIZAÇÕES AUTOMÁTICAS ==========
             
             // Atualizar informações de sessão
@@ -659,11 +1533,11 @@
                         const userSessionElement = document.getElementById('user-session');
                         if (userSessionElement) {
                             if (diffMs > 0) {
-                                userSessionElement.textContent = `Sessão válida por: ${diffHrs}h ${diffMins}m`;
-                                userSessionElement.style.color = diffHrs < 1 ? '#e74c3c' : '#27ae60';
+                                userSessionElement.textContent = `Sessão: ${diffHrs}h ${diffMins}m restantes`;
+                                userSessionElement.style.color = diffHrs < 1 ? 'var(--cor-erro)' : 'var(--cor-sucesso)';
                             } else {
                                 userSessionElement.textContent = 'Sessão expirada';
-                                userSessionElement.style.color = '#e74c3c';
+                                userSessionElement.style.color = 'var(--cor-erro)';
                             }
                         }
                     } catch (e) {
@@ -682,24 +1556,20 @@
                         try {
                             const syncDate = new Date(lastSync);
                             lastSyncElement.textContent = `Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
+                            
+                            // Destacar se faz mais de 10 minutos
+                            const agora = new Date();
+                            const diffMinutos = Math.floor((agora - syncDate) / (1000 * 60));
+                            if (diffMinutos > 10) {
+                                lastSyncElement.style.color = 'var(--cor-alerta)';
+                            } else {
+                                lastSyncElement.style.color = '';
+                            }
                         } catch (e) {
                             lastSyncElement.textContent = 'Última sincronização: N/A';
                         }
                     } else {
                         lastSyncElement.textContent = 'Última sincronização: N/A';
-                    }
-                }
-            }
-            
-            // Atualizar contador de equipamentos filtrados
-            function atualizarContadorFiltrado() {
-                if (window.app && window.app.equipamentos) {
-                    const equipamentosFiltrados = window.app.filtrarEquipamentos ? 
-                        window.app.filtrarEquipamentos() : window.app.equipamentos;
-                    
-                    const totalFiltradoElement = document.getElementById('total-filtrado');
-                    if (totalFiltradoElement) {
-                        totalFiltradoElement.textContent = `(${equipamentosFiltrados.length})`;
                     }
                 }
             }
@@ -711,7 +1581,6 @@
             // Executar inicialmente
             atualizarInfoSessao();
             atualizarUltimaSincronizacao();
-            atualizarContadorFiltrado();
             
             // ========== MELHORIAS DE USABILIDADE ==========
             
@@ -733,7 +1602,6 @@
                         if (window.app && window.app.filtros) {
                             window.app.filtros.busca = '';
                             window.app.renderizarEquipamentos();
-                            atualizarContadorFiltrado();
                         }
                     }
                 });
@@ -801,9 +1669,47 @@
                     }
                 }
             }, 60000); // Verificar a cada minuto
+            
+            // ========== INDICADOR DE NÍVEL ==========
+            
+            // Adicionar indicador visual do nível do usuário
+            function adicionarIndicadorNivel() {
+                if (!window.APP_CONFIG || !window.APP_CONFIG.appSettings.mostrarIndicadorNivel) {
+                    return;
+                }
+                
+                const usuarioNivel = localStorage.getItem('gestao_equipamentos_nivel');
+                if (!usuarioNivel || !window.PERMISSOES) return;
+                
+                const nivelNome = window.PERMISSOES.getNomeNivel(usuarioNivel);
+                const corNivel = window.PERMISSOES.getCorNivel(usuarioNivel);
+                
+                // Remover indicador anterior se existir
+                const indicadorAnterior = document.querySelector('.nivel-indicator');
+                if (indicadorAnterior) {
+                    indicadorAnterior.remove();
+                }
+                
+                // Criar indicador
+                const indicador = document.createElement('div');
+                indicador.className = 'nivel-indicator no-select';
+                indicador.style.cssText = `
+                    background: ${corNivel};
+                    color: white;
+                `;
+                indicador.textContent = nivelNome;
+                indicador.title = `Nível de acesso: ${nivelNome}`;
+                
+                document.body.appendChild(indicador);
+            }
+            
+            // Adicionar indicador após carregamento completo
+            setTimeout(adicionarIndicadorNivel, 1000);
         });
         
-        // Verificar se há dados de filtro salvos
+        // ========== GERENCIAMENTO DE FILTROS SALVOS ==========
+        
+        // Carregar filtros salvos
         window.addEventListener('load', function() {
             const filtrosSalvos = localStorage.getItem('gestao_equipamentos_filtros');
             if (filtrosSalvos) {
@@ -879,6 +1785,95 @@
                 };
                 
                 localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify(filtrosParaSalvar));
+            }
+        });
+        
+        // ========== TRATAMENTO DE ERROS ==========
+        
+        // Tratar erros não capturados
+        window.addEventListener('error', function(event) {
+            console.error('Erro não tratado:', event.error);
+            
+            // Mostrar mensagem amigável para o usuário
+            if (window.app && window.app.mostrarMensagem) {
+                window.app.mostrarMensagem('Ocorreu um erro inesperado. Recarregue a página se o problema persistir.', 'error');
+            }
+        });
+        
+        // Tratar promessas não tratadas
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Promise rejeitada não tratada:', event.reason);
+        });
+        
+        // ========== OFFLINE SUPPORT ==========
+        
+        // Verificar status de conexão
+        function atualizarStatusConexao() {
+            const statusIndicator = document.getElementById('sync-status');
+            if (!statusIndicator) return;
+            
+            const statusDot = statusIndicator.querySelector('.status-dot');
+            const statusText = statusIndicator.querySelector('.status-text');
+            
+            if (navigator.onLine) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Conectado';
+                statusText.style.color = '';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Offline';
+                statusText.style.color = 'var(--cor-erro)';
+                
+                if (window.app && window.app.mostrarMensagem) {
+                    window.app.mostrarMensagem('Você está offline. Algumas funcionalidades podem não estar disponíveis.', 'warning');
+                }
+            }
+        }
+        
+        // Monitorar mudanças de conexão
+        window.addEventListener('online', atualizarStatusConexao);
+        window.addEventListener('offline', atualizarStatusConexao);
+        
+        // Inicializar status da conexão
+        setTimeout(atualizarStatusConexao, 1000);
+        
+        // ========== SHORTCUTS DE TECLADO ==========
+        
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+E para novo equipamento (se permitido)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                const addEquipamentoBtn = document.getElementById('add-equipamento');
+                if (addEquipamentoBtn && !addEquipamentoBtn.disabled) {
+                    addEquipamentoBtn.click();
+                }
+            }
+            
+            // Ctrl+P para nova pendência (se permitido)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                const addPendenciaBtn = document.getElementById('add-pendencia');
+                if (addPendenciaBtn && !addPendenciaBtn.disabled) {
+                    addPendenciaBtn.click();
+                }
+            }
+            
+            // Ctrl+S para sincronizar
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                const syncBtn = document.getElementById('manual-sync');
+                if (syncBtn) {
+                    syncBtn.click();
+                }
+            }
+            
+            // Ctrl+L para logout
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.click();
+                }
             }
         });
     </script>
