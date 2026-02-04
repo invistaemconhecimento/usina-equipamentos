@@ -1,5 +1,5 @@
 // ===========================================
-// SISTEMA DE GESTÃO DE EQUIPAMENTOS COM PERMISSÕES
+// SISTEMA DE GESTÃO DE EQUIPAMENTOS - APP PRINCIPAL
 // ===========================================
 
 class EquipamentosApp {
@@ -41,7 +41,7 @@ class EquipamentosApp {
             this.initModals();
             this.initEvents();
             
-            // 6. Carregar dados - AGORA COM TRY-CATCH MELHORADO
+            // 6. Carregar dados
             await this.carregarDados();
             
             // 7. Inicializar interface
@@ -53,6 +53,10 @@ class EquipamentosApp {
             this.configurarAtualizacoes();
             
             console.log('Aplicação inicializada com sucesso');
+            
+            // 9. Adicionar indicador de nível
+            this.adicionarIndicadorNivel();
+            
         } catch (error) {
             console.error('Erro na inicialização da aplicação:', error);
             this.mostrarMensagem('Erro ao inicializar aplicação. Recarregue a página.', 'error');
@@ -103,9 +107,6 @@ class EquipamentosApp {
         
         // Atualizar display do usuário
         this.atualizarDisplayUsuario();
-        
-        // Adicionar indicador visual do nível
-        this.adicionarIndicadorNivel();
     }
     
     registrarLogin() {
@@ -122,24 +123,19 @@ class EquipamentosApp {
     
     verificarPermissao(permissao) {
         if (!this.nivelUsuario || !window.PERMISSOES) {
+            console.warn('Sistema de permissões não carregado');
             return false;
-        }
-        
-        // Permissões básicas que todos têm
-        const permissoesBasicas = ['visualizar_equipamentos', 'ver_detalhes'];
-        if (permissoesBasicas.includes(permissao)) {
-            return true;
         }
         
         return window.PERMISSOES.verificarPermissao(this.nivelUsuario, permissao);
     }
     
     podeExecutar(acao, recurso, donoRecurso = null) {
-        if (!this.nivelUsuario || !window.podeExecutar) {
+        if (!this.nivelUsuario || !window.PERMISSOES) {
             return false;
         }
         
-        return window.podeExecutar(acao, recurso, donoRecurso);
+        return window.PERMISSOES.podeExecutarAcao(this.nivelUsuario, acao, recurso, donoRecurso);
     }
     
     getNomeNivel() {
@@ -173,18 +169,12 @@ class EquipamentosApp {
             const nivelNome = this.getNomeNivel();
             userElement.innerHTML = `
                 <i class="fas ${this.getIconeNivel()}"></i>
-                <span>${nomeFormatado} <small>(${nivelNome})</small></span>
+                <span>${nomeFormatado}</span>
             `;
         }
     }
     
     adicionarIndicadorNivel() {
-        // Remover indicador anterior se existir
-        const indicadorAnterior = document.querySelector('.nivel-indicator');
-        if (indicadorAnterior) {
-            indicadorAnterior.remove();
-        }
-        
         // Verificar se deve mostrar indicador
         if (!window.APP_CONFIG || !window.APP_CONFIG.appSettings.mostrarIndicadorNivel) {
             return;
@@ -193,25 +183,18 @@ class EquipamentosApp {
         const cor = this.getCorNivel();
         const nomeNivel = this.getNomeNivel();
         
+        // Remover indicador anterior se existir
+        const indicadorAnterior = document.querySelector('.nivel-indicator');
+        if (indicadorAnterior) {
+            indicadorAnterior.remove();
+        }
+        
         // Criar indicador
         const indicador = document.createElement('div');
-        indicador.className = 'nivel-indicator';
+        indicador.className = 'nivel-indicator no-select';
         indicador.style.cssText = `
-            position: fixed;
-            top: 10px;
-            left: 10px;
             background: ${cor};
             color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 9999;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            transition: opacity 0.3s;
         `;
         indicador.textContent = nomeNivel;
         indicador.title = `Nível de acesso: ${nomeNivel}`;
@@ -259,39 +242,6 @@ class EquipamentosApp {
             const podeConfigurar = this.verificarPermissao('configurar_sistema');
             exportConfigBtn.style.display = podeConfigurar ? 'flex' : 'none';
             exportConfigBtn.title = podeConfigurar ? 'Exportar configurações' : 'Sem permissão para exportar configurações';
-        }
-        
-        // Adicionar badge de nível no cabeçalho
-        this.adicionarBadgeNivel();
-    }
-    
-    adicionarBadgeNivel() {
-        const userInfo = document.querySelector('.user-info');
-        if (userInfo) {
-            // Remover badge anterior se existir
-            const badgeAnterior = userInfo.querySelector('.user-level-badge');
-            if (badgeAnterior) {
-                badgeAnterior.remove();
-            }
-            
-            const badge = document.createElement('span');
-            badge.className = 'user-level-badge';
-            badge.style.cssText = `
-                display: inline-block;
-                background: ${this.getCorNivel()};
-                color: white;
-                padding: 2px 8px;
-                border-radius: 10px;
-                font-size: 11px;
-                font-weight: bold;
-                margin-left: 8px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            `;
-            badge.textContent = this.getNomeNivel().substring(0, 3);
-            badge.title = `Nível: ${this.getNomeNivel()}`;
-            
-            userInfo.appendChild(badge);
         }
     }
     
@@ -486,6 +436,9 @@ class EquipamentosApp {
             // Atualizar última sincronização
             localStorage.setItem('gestao_equipamentos_ultima_sinc', new Date().toISOString());
             
+            // Atualizar estado do botão de pendência
+            this.atualizarEstadoBotaoPendencia();
+            
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             
@@ -595,11 +548,19 @@ class EquipamentosApp {
                     p.status === 'aberta' || p.status === 'em-andamento'
                 );
                 
+                const temPendenciasCriticas = equipamento.pendencias && equipamento.pendencias.some(p => 
+                    p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
+                );
+                
                 if (this.filtros.pendencia === 'com-pendencia' && !temPendenciasAtivas) {
                     return false;
                 }
                 
                 if (this.filtros.pendencia === 'sem-pendencia' && temPendenciasAtivas) {
+                    return false;
+                }
+                
+                if (this.filtros.pendencia === 'com-criticas' && !temPendenciasCriticas) {
                     return false;
                 }
             }
@@ -667,7 +628,7 @@ class EquipamentosApp {
                 'Não registrada';
             
             const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
-                (window.APP_CONFIG.setores[equipamento.setor] || equipamento.setor) : 
+                (window.APP_CONFIG.setores[equipamento.setor]?.nome || equipamento.setor) : 
                 equipamento.setor;
             
             // Contar pendencias
@@ -691,7 +652,7 @@ class EquipamentosApp {
                         </div>
                         <div class="status-chip ${equipamento.status}">
                             ${window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
-                                window.APP_CONFIG.statusEquipamento[equipamento.status] : 
+                                window.APP_CONFIG.statusEquipamento[equipamento.status]?.nome || equipamento.status : 
                                 equipamento.status}
                             ${temPendenciasCriticasAbertas ? ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>` : ''}
                         </div>
@@ -773,7 +734,7 @@ class EquipamentosApp {
         // Destacar se houver pendências críticas
         if (totalPendenciasCriticas > 0) {
             const pendenciasElement = document.getElementById('total-pendencias');
-            pendenciasElement.style.color = 'var(--cor-erro)';
+            pendenciasElement.style.color = '#8b0000';
             pendenciasElement.title = `${totalPendenciasCriticas} pendência(s) crítica(s)`;
         }
     }
@@ -788,9 +749,11 @@ class EquipamentosApp {
         if (conectado) {
             statusDot.className = 'status-dot connected';
             statusText.textContent = 'Conectado';
+            statusText.style.color = '';
         } else {
             statusDot.className = 'status-dot disconnected';
             statusText.textContent = 'Desconectado';
+            statusText.style.color = 'var(--cor-erro)';
         }
     }
     
@@ -853,15 +816,23 @@ class EquipamentosApp {
             return;
         }
         
-        titulo.textContent = 'Nova Pendência';
+        const isEdit = form.dataset.editId;
+        
+        if (isEdit) {
+            titulo.textContent = 'Editar Pendência';
+            // Mostrar campo de comentário para edição
+            document.getElementById('pendencia-comentario-group').style.display = 'block';
+        } else {
+            titulo.textContent = 'Nova Pendência';
+            // Ocultar campo de comentário para nova pendência
+            document.getElementById('pendencia-comentario-group').style.display = 'none';
+        }
+        
         form.reset();
         
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('pendencia-data').value = hoje;
-        document.getElementById('pendencia-responsavel').value = '';
         document.getElementById('pendencia-equipamento-id').value = equipamentoId;
-        
-        delete form.dataset.editId;
         
         modal.classList.add('active');
     }
@@ -993,6 +964,9 @@ class EquipamentosApp {
         const equipamentoId = parseInt(document.getElementById('pendencia-equipamento-id').value);
         const isEdit = form.dataset.editId;
         
+        const usuarioAtual = this.usuarioAtual;
+        const timestamp = new Date().toISOString();
+        
         const pendencia = {
             titulo: document.getElementById('pendencia-titulo').value.trim(),
             descricao: document.getElementById('pendencia-descricao').value.trim(),
@@ -1016,29 +990,113 @@ class EquipamentosApp {
         }
         
         if (isEdit) {
-            // Atualizar pendência existente
+            // ATUALIZADO: Modo edição com histórico
             const pendenciaId = parseInt(isEdit);
             const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
             
             if (pendenciaIndex !== -1) {
+                const pendenciaAntiga = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
+                
+                // Verificar se houve alteração de status
+                const statusAlterado = pendenciaAntiga.status !== pendencia.status;
+                
+                // Inicializar histórico se não existir
+                if (!pendenciaAntiga.historico) {
+                    pendenciaAntiga.historico = [];
+                }
+                
+                // Registrar alteração no histórico
+                const alteracoes = this.detectarAlteracoesPendencia(pendenciaAntiga, pendencia);
+                
+                if (Object.keys(alteracoes).length > 0) {
+                    const entradaHistorico = {
+                        timestamp: timestamp,
+                        usuario: usuarioAtual,
+                        acao: 'ATUALIZAR_PENDENCIA',
+                        alteracoes: alteracoes,
+                        comentario: document.getElementById('pendencia-comentario')?.value || ''
+                    };
+                    
+                    pendenciaAntiga.historico.push(entradaHistorico);
+                    
+                    // Se houve alteração de status, registrar separadamente
+                    if (statusAlterado) {
+                        const historicoStatus = {
+                            timestamp: timestamp,
+                            usuario: usuarioAtual,
+                            acao: 'ALTERAR_STATUS',
+                            de: pendenciaAntiga.status,
+                            para: pendencia.status,
+                            comentario: document.getElementById('pendencia-comentario')?.value || 'Alteração de status'
+                        };
+                        
+                        if (!pendenciaAntiga.historicoStatus) {
+                            pendenciaAntiga.historicoStatus = [];
+                        }
+                        pendenciaAntiga.historicoStatus.push(historicoStatus);
+                        
+                        // Registrar quem concluiu se status for "resolvida"
+                        if (pendencia.status === 'resolvida') {
+                            pendenciaAntiga.resolvidoPor = usuarioAtual;
+                            pendenciaAntiga.dataResolucao = timestamp;
+                            
+                            // Registrar no histórico principal também
+                            pendenciaAntiga.historico.push({
+                                timestamp: timestamp,
+                                usuario: usuarioAtual,
+                                acao: 'RESOLVER_PENDENCIA',
+                                comentario: `Pendência resolvida por ${usuarioAtual}`
+                            });
+                        }
+                    }
+                }
+                
+                // Atualizar dados da pendência
                 pendencia.id = pendenciaId;
-                pendencia.criadoPor = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex].criadoPor || this.usuarioAtual;
-                pendencia.criadoEm = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex].criadoEm;
+                pendencia.criadoPor = pendenciaAntiga.criadoPor;
+                pendencia.criadoEm = pendenciaAntiga.criadoEm;
+                pendencia.historico = pendenciaAntiga.historico;
+                pendencia.historicoStatus = pendenciaAntiga.historicoStatus;
+                pendencia.ultimaAtualizacao = timestamp;
+                pendencia.atualizadoPor = usuarioAtual;
+                
+                // Manter dados de resolução se existirem
+                if (pendenciaAntiga.resolvidoPor) pendencia.resolvidoPor = pendenciaAntiga.resolvidoPor;
+                if (pendenciaAntiga.dataResolucao) pendencia.dataResolucao = pendenciaAntiga.dataResolucao;
                 
                 this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
                 
                 // Registrar atividade
                 if (window.registrarAtividade) {
-                    window.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].codigo}`);
+                    window.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} (${Object.keys(alteracoes).length} alterações)`);
                 }
                 
                 this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
             }
         } else {
-            // Criar nova pendência
+            // Modo criação - NOVO: Já inclui primeira entrada no histórico
             pendencia.id = this.data.nextPendenciaId || 1;
-            pendencia.criadoPor = this.usuarioAtual;
-            pendencia.criadoEm = new Date().toISOString();
+            pendencia.criadoPor = usuarioAtual;
+            pendencia.criadoEm = timestamp;
+            pendencia.ultimaAtualizacao = timestamp;
+            pendencia.atualizadoPor = usuarioAtual;
+            
+            // Inicializar histórico
+            pendencia.historico = [{
+                timestamp: timestamp,
+                usuario: usuarioAtual,
+                acao: 'CRIAR_PENDENCIA',
+                alteracoes: {},
+                comentario: 'Pendência criada'
+            }];
+            
+            pendencia.historicoStatus = [{
+                timestamp: timestamp,
+                usuario: usuarioAtual,
+                acao: 'CRIAR_PENDENCIA',
+                status: 'aberta',
+                comentario: 'Status inicial: Aberta'
+            }];
             
             // Garantir que o array de pendencias existe
             if (!this.equipamentos[equipamentoIndex].pendencias) {
@@ -1070,6 +1128,84 @@ class EquipamentosApp {
         this.atualizarEstatisticas();
     }
     
+    // NOVO: Função para detectar alterações em pendências
+    detectarAlteracoesPendencia(pendenciaAntiga, pendenciaNova) {
+        const alteracoes = {};
+        
+        // Comparar cada campo
+        const campos = ['titulo', 'descricao', 'responsavel', 'prioridade', 'data', 'status'];
+        
+        campos.forEach(campo => {
+            if (pendenciaAntiga[campo] !== pendenciaNova[campo]) {
+                alteracoes[campo] = {
+                    anterior: pendenciaAntiga[campo],
+                    novo: pendenciaNova[campo],
+                    data: new Date().toISOString()
+                };
+            }
+        });
+        
+        return alteracoes;
+    }
+    
+    // NOVO: Método para adicionar comentário à pendência
+    async adicionarComentarioPendencia(pendenciaId, comentario, equipamentoId = null) {
+        if (!equipamentoId && this.equipamentoSelecionado) {
+            equipamentoId = this.equipamentoSelecionado.id;
+        }
+        
+        if (!equipamentoId || !pendenciaId || !comentario.trim()) {
+            this.mostrarMensagem('Dados incompletos para adicionar comentário', 'error');
+            return false;
+        }
+        
+        const equipamentoIndex = this.equipamentos.findIndex(e => e.id === equipamentoId);
+        if (equipamentoIndex === -1) {
+            this.mostrarMensagem('Equipamento não encontrado', 'error');
+            return false;
+        }
+        
+        const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
+        if (pendenciaIndex === -1) {
+            this.mostrarMensagem('Pendência não encontrada', 'error');
+            return false;
+        }
+        
+        const pendencia = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
+        const timestamp = new Date().toISOString();
+        
+        // Inicializar histórico se não existir
+        if (!pendencia.historico) {
+            pendencia.historico = [];
+        }
+        
+        // Adicionar entrada de comentário
+        pendencia.historico.push({
+            timestamp: timestamp,
+            usuario: this.usuarioAtual,
+            acao: 'ADICIONAR_COMENTARIO',
+            comentario: comentario.trim()
+        });
+        
+        pendencia.ultimaAtualizacao = timestamp;
+        pendencia.atualizadoPor = this.usuarioAtual;
+        
+        // Salvar dados
+        const salvou = await this.salvarDados();
+        
+        if (salvou) {
+            // Registrar atividade
+            if (window.registrarAtividade) {
+                window.registrarAtividade('COMENTAR_PENDENCIA', `Comentou na pendência: ${pendencia.titulo}`);
+            }
+            
+            this.mostrarMensagem('Comentário adicionado com sucesso', 'success');
+            return true;
+        }
+        
+        return false;
+    }
+    
     verDetalhesEquipamento(id) {
         const equipamento = this.equipamentos.find(e => e.id === id);
         if (!equipamento) return;
@@ -1083,17 +1219,25 @@ class EquipamentosApp {
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         
         const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
-            (window.APP_CONFIG.setores[equipamento.setor] || equipamento.setor) : 
+            (window.APP_CONFIG.setores[equipamento.setor]?.nome || equipamento.setor) : 
             equipamento.setor;
         document.getElementById('detalhes-setor').textContent = setorFormatado;
         
         document.getElementById('detalhes-criacao').textContent = this.formatarData(equipamento.dataCriacao);
+        document.getElementById('detalhes-criador').textContent = equipamento.criadoPor || 'N/A';
+        
+        // Data de inspeção
+        const dataInspecao = equipamento.ultimaInspecao ? 
+            this.formatarData(equipamento.ultimaInspecao) : 
+            'Não registrada';
+        document.getElementById('detalhes-inspecao').textContent = dataInspecao;
         
         // Status
         const statusChip = document.getElementById('detalhes-status');
-        statusChip.textContent = window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
-            window.APP_CONFIG.statusEquipamento[equipamento.status] : 
+        const statusNome = window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
+            window.APP_CONFIG.statusEquipamento[equipamento.status]?.nome || equipamento.status : 
             equipamento.status;
+        statusChip.textContent = statusNome;
         statusChip.className = `status-chip ${equipamento.status}`;
         
         // Adicionar ícone de alerta se houver pendências críticas
@@ -1106,12 +1250,6 @@ class EquipamentosApp {
             ).length;
             statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
         }
-        
-        // Data de inspeção
-        const dataInspecao = equipamento.ultimaInspecao ? 
-            this.formatarData(equipamento.ultimaInspecao) : 
-            'Não registrada';
-        document.getElementById('detalhes-inspecao').textContent = dataInspecao;
         
         // Renderizar pendencias
         this.renderizarPendenciasDetalhes(equipamento.pendencias || []);
@@ -1175,9 +1313,23 @@ class EquipamentosApp {
         
         container.innerHTML = pendenciasOrdenadas.map(pendencia => {
             const dataFormatada = this.formatarData(pendencia.data);
+            const criadoEmFormatado = pendencia.criadoEm ? this.formatarDataHora(pendencia.criadoEm) : 'Data não registrada';
+            const atualizadoEmFormatado = pendencia.ultimaAtualizacao ? this.formatarDataHora(pendencia.ultimaAtualizacao) : 'Nunca atualizado';
+            
             const isCritica = pendencia.prioridade === 'critica';
             const podeEditar = this.podeExecutar('editar', 'pendencia', pendencia.criadoPor);
             const podeExcluir = this.podeExecutar('excluir', 'pendencia', pendencia.criadoPor);
+            const podeComentar = this.verificarPermissao('adicionar_comentarios');
+            const podeVerHistorico = this.verificarPermissao('ver_historico_completo');
+            
+            // Contar histórico
+            const totalHistorico = pendencia.historico ? pendencia.historico.length : 0;
+            const historicoStatus = pendencia.historicoStatus ? pendencia.historicoStatus.length : 0;
+            
+            // Verificar se foi resolvida
+            const foiResolvida = pendencia.status === 'resolvida';
+            const resolvidoPor = pendencia.resolvidoPor || 'Não resolvida';
+            const dataResolucao = pendencia.dataResolucao ? this.formatarDataHora(pendencia.dataResolucao) : '';
             
             return `
                 <div class="pendencia-item ${pendencia.status} ${isCritica ? 'critica' : ''}">
@@ -1186,18 +1338,27 @@ class EquipamentosApp {
                             <div class="pendencia-titulo">
                                 ${isCritica ? '<i class="fas fa-exclamation-triangle"></i> ' : ''}
                                 ${pendencia.titulo}
-                                ${pendencia.criadoPor ? `<small style="color: var(--cor-texto-secundario); margin-left: 8px;">Criada por: ${pendencia.criadoPor}</small>` : ''}
+                                <small style="color: var(--cor-texto-secundario); margin-left: 8px;">
+                                    Criada por: ${pendencia.criadoPor || 'N/A'} em ${criadoEmFormatado}
+                                </small>
                             </div>
                             <div class="pendencia-data">
                                 <i class="far fa-calendar"></i> ${dataFormatada} 
                                 | Prioridade: ${window.APP_CONFIG && window.APP_CONFIG.prioridades ? 
-                                    window.APP_CONFIG.prioridades[pendencia.prioridade] : 
+                                    window.APP_CONFIG.prioridades[pendencia.prioridade]?.nome || pendencia.prioridade : 
                                     pendencia.prioridade}
+                                ${foiResolvida ? `| Resolvida por: ${resolvidoPor} em ${dataResolucao}` : ''}
+                            </div>
+                            <div class="pendencia-metadata">
+                                <small>
+                                    <i class="fas fa-history"></i> ${totalHistorico} alterações 
+                                    | Última atualização: ${atualizadoEmFormatado} por ${pendencia.atualizadoPor || pendencia.criadoPor}
+                                </small>
                             </div>
                         </div>
                         <div class="pendencia-badge ${pendencia.status}">
                             ${window.APP_CONFIG && window.APP_CONFIG.statusPendencia ? 
-                                window.APP_CONFIG.statusPendencia[pendencia.status] : 
+                                window.APP_CONFIG.statusPendencia[pendencia.status]?.nome || pendencia.status : 
                                 pendencia.status}
                         </div>
                     </div>
@@ -1212,11 +1373,36 @@ class EquipamentosApp {
                                     <i class="fas fa-edit"></i> Editar
                                 </button>
                             ` : ''}
+                            ${podeComentar ? `
+                                <button class="btn-comentar-pendencia" data-id="${pendencia.id}">
+                                    <i class="fas fa-comment"></i> Comentar
+                                </button>
+                            ` : ''}
                             ${podeExcluir ? `
                                 <button class="btn-excluir-pendencia" data-id="${pendencia.id}">
                                     <i class="fas fa-trash"></i> Excluir
                                 </button>
                             ` : ''}
+                            ${podeVerHistorico && totalHistorico > 0 ? `
+                                <button class="btn-historico-pendencia" data-id="${pendencia.id}">
+                                    <i class="fas fa-history"></i> Histórico
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <!-- Seção para adicionar comentário (inicialmente oculta) -->
+                    <div class="comentario-section" id="comentario-${pendencia.id}" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                        <textarea class="comentario-textarea" id="comentario-text-${pendencia.id}" 
+                                  placeholder="Adicione um comentário sobre a alteração..." 
+                                  rows="3" style="width: 100%; margin-bottom: 10px;"></textarea>
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button class="btn-cancelar-comentario" data-id="${pendencia.id}">
+                                Cancelar
+                            </button>
+                            <button class="btn-enviar-comentario" data-id="${pendencia.id}">
+                                Enviar Comentário
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1224,6 +1410,12 @@ class EquipamentosApp {
         }).join('');
         
         // Adicionar eventos
+        this.configurarEventosPendencias(container);
+    }
+    
+    // NOVO: Configurar eventos das pendências
+    configurarEventosPendencias(container) {
+        // Evento para editar
         container.querySelectorAll('.btn-editar-pendencia').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-editar-pendencia').dataset.id);
@@ -1231,10 +1423,70 @@ class EquipamentosApp {
             });
         });
         
+        // Evento para excluir
         container.querySelectorAll('.btn-excluir-pendencia').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-excluir-pendencia').dataset.id);
                 this.excluirPendencia(pendenciaId);
+            });
+        });
+        
+        // Evento para comentar
+        container.querySelectorAll('.btn-comentar-pendencia').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const pendenciaId = parseInt(e.target.closest('.btn-comentar-pendencia').dataset.id);
+                const comentarioSection = document.getElementById(`comentario-${pendenciaId}`);
+                
+                // Alternar visibilidade
+                if (comentarioSection.style.display === 'none') {
+                    comentarioSection.style.display = 'block';
+                    document.getElementById(`comentario-text-${pendenciaId}`).focus();
+                } else {
+                    comentarioSection.style.display = 'none';
+                }
+            });
+        });
+        
+        // Evento para enviar comentário
+        container.querySelectorAll('.btn-enviar-comentario').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const pendenciaId = parseInt(e.target.closest('.btn-enviar-comentario').dataset.id);
+                const textarea = document.getElementById(`comentario-text-${pendenciaId}`);
+                const comentario = textarea.value.trim();
+                
+                if (!comentario) {
+                    this.mostrarMensagem('Digite um comentário antes de enviar', 'error');
+                    return;
+                }
+                
+                const sucesso = await this.adicionarComentarioPendencia(pendenciaId, comentario);
+                
+                if (sucesso) {
+                    textarea.value = '';
+                    document.getElementById(`comentario-${pendenciaId}`).style.display = 'none';
+                    
+                    // Atualizar a visualização
+                    if (this.equipamentoSelecionado) {
+                        this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
+                    }
+                }
+            });
+        });
+        
+        // Evento para cancelar comentário
+        container.querySelectorAll('.btn-cancelar-comentario').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const pendenciaId = parseInt(e.target.closest('.btn-cancelar-comentario').dataset.id);
+                document.getElementById(`comentario-${pendenciaId}`).style.display = 'none';
+                document.getElementById(`comentario-text-${pendenciaId}`).value = '';
+            });
+        });
+        
+        // Evento para ver histórico
+        container.querySelectorAll('.btn-historico-pendencia').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const pendenciaId = parseInt(e.target.closest('.btn-historico-pendencia').dataset.id);
+                this.mostrarHistoricoPendencia(pendenciaId);
             });
         });
     }
@@ -1265,6 +1517,13 @@ class EquipamentosApp {
         document.getElementById('pendencia-prioridade').value = pendencia.prioridade;
         document.getElementById('pendencia-data').value = pendencia.data;
         document.getElementById('pendencia-status').value = pendencia.status;
+        
+        // Mostrar campo de comentário
+        const comentarioGroup = document.getElementById('pendencia-comentario-group');
+        if (comentarioGroup) {
+            comentarioGroup.style.display = 'block';
+            document.getElementById('pendencia-comentario').value = '';
+        }
         
         // Armazenar IDs
         document.getElementById('pendencia-equipamento-id').value = this.equipamentoSelecionado.id;
@@ -1319,6 +1578,148 @@ class EquipamentosApp {
         this.atualizarEstatisticas();
         
         this.mostrarMensagem('Pendência excluída com sucesso', 'success');
+    }
+    
+    // NOVO: Método para mostrar histórico completo da pendência
+    mostrarHistoricoPendencia(pendenciaId) {
+        if (!this.equipamentoSelecionado) return;
+        
+        const pendencia = this.equipamentoSelecionado.pendencias.find(p => p.id === pendenciaId);
+        if (!pendencia) return;
+        
+        const historico = pendencia.historico || [];
+        const historicoStatus = pendencia.historicoStatus || [];
+        
+        // Criar modal para histórico
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 800px; max-height: 80vh;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-history"></i> Histórico da Pendência: ${pendencia.titulo}</h3>
+                    <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+                </div>
+                <div class="modal-body" style="overflow-y: auto;">
+                    <div class="info-resumo" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <p><strong>Criada por:</strong> ${pendencia.criadoPor} em ${this.formatarDataHora(pendencia.criadoEm)}</p>
+                        <p><strong>Status atual:</strong> ${pendencia.status}</p>
+                        <p><strong>Total de alterações:</strong> ${historico.length}</p>
+                        ${pendencia.resolvidoPor ? `<p><strong>Resolvida por:</strong> ${pendencia.resolvidoPor} em ${this.formatarDataHora(pendencia.dataResolucao)}</p>` : ''}
+                    </div>
+                    
+                    <div class="historico-timeline">
+                        <h4><i class="fas fa-stream"></i> Linha do Tempo de Alterações</h4>
+                        
+                        <div class="timeline-container" style="position: relative; padding-left: 30px;">
+                            <div style="position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: var(--cor-primaria); opacity: 0.3;"></div>
+                            
+                            ${historico.map((item, index) => `
+                                <div class="timeline-item" style="position: relative; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--cor-borda);">
+                                    <div class="timeline-marker" style="position: absolute; left: -30px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--cor-primaria); border: 2px solid white; box-shadow: 0 0 0 2px var(--cor-primaria);"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <strong>${this.getNomeAcao(item.acao)}</strong>
+                                            <small>${this.formatarDataHora(item.timestamp)} por ${item.usuario}</small>
+                                        </div>
+                                        ${item.alteracoes && Object.keys(item.alteracoes).length > 0 ? `
+                                            <div class="timeline-alteracoes" style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 3px solid var(--cor-primaria);">
+                                                <strong>Alterações:</strong>
+                                                <ul style="margin: 5px 0 0 0; padding-left: 20px;">
+                                                    ${Object.entries(item.alteracoes).map(([campo, alteracao]) => `
+                                                        <li style="margin-bottom: 5px; font-size: 13px;"><strong>${this.getNomeCampo(campo)}:</strong> 
+                                                            ${alteracao.anterior || '(vazio)'} → ${alteracao.novo || '(vazio)'}
+                                                        </li>
+                                                    `).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
+                                        ${item.comentario ? `
+                                            <div class="timeline-comentario" style="background: #e8f4fd; padding: 10px; border-radius: 5px; font-style: italic; border-left: 3px solid #3498db;">
+                                                <strong>Comentário:</strong> ${item.comentario}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    ${historicoStatus.length > 0 ? `
+                        <div class="historico-status" style="margin-top: 30px;">
+                            <h4><i class="fas fa-exchange-alt"></i> Histórico de Status</h4>
+                            <table class="status-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
+                                <thead>
+                                    <tr>
+                                        <th style="padding: 8px; border: 1px solid var(--cor-borda); background: var(--cor-fundo-secundario); font-weight: 600;">Data/Hora</th>
+                                        <th style="padding: 8px; border: 1px solid var(--cor-borda); background: var(--cor-fundo-secundario); font-weight: 600;">Usuário</th>
+                                        <th style="padding: 8px; border: 1px solid var(--cor-borda); background: var(--cor-fundo-secundario); font-weight: 600;">Status Anterior</th>
+                                        <th style="padding: 8px; border: 1px solid var(--cor-borda); background: var(--cor-fundo-secundario); font-weight: 600;">Status Novo</th>
+                                        <th style="padding: 8px; border: 1px solid var(--cor-borda); background: var(--cor-fundo-secundario); font-weight: 600;">Comentário</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${historicoStatus.map(item => `
+                                        <tr style="border: 1px solid var(--cor-borda); ${item.para === 'resolvida' ? 'background: rgba(46, 204, 113, 0.1);' : ''}">
+                                            <td style="padding: 8px; border: 1px solid var(--cor-borda);">${this.formatarDataHora(item.timestamp)}</td>
+                                            <td style="padding: 8px; border: 1px solid var(--cor-borda);">${item.usuario}</td>
+                                            <td style="padding: 8px; border: 1px solid var(--cor-borda);">${item.de || '-'}</td>
+                                            <td style="padding: 8px; border: 1px solid var(--cor-borda);">${item.para || '-'}</td>
+                                            <td style="padding: 8px; border: 1px solid var(--cor-borda);">${item.comentario || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="form-actions" style="margin-top: 20px;">
+                        <button onclick="this.closest('.modal').remove()" class="btn-primary">
+                            <i class="fas fa-times"></i> Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Fechar ao clicar fora
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.remove();
+            }
+        });
+        
+        // Registrar atividade
+        if (window.registrarAtividade) {
+            window.registrarAtividade('VISUALIZAR_HISTORICO', `Visualizou histórico da pendência: ${pendencia.titulo}`);
+        }
+    }
+    
+    // NOVO: Métodos auxiliares para histórico
+    getNomeAcao(acao) {
+        const nomes = {
+            'CRIAR_PENDENCIA': 'Criação da Pendência',
+            'ATUALIZAR_PENDENCIA': 'Atualização',
+            'ALTERAR_STATUS': 'Alteração de Status',
+            'RESOLVER_PENDENCIA': 'Resolução',
+            'ADICIONAR_COMENTARIO': 'Comentário Adicionado'
+        };
+        
+        return nomes[acao] || acao;
+    }
+    
+    getNomeCampo(campo) {
+        const nomes = {
+            'titulo': 'Título',
+            'descricao': 'Descrição',
+            'responsavel': 'Responsável',
+            'prioridade': 'Prioridade',
+            'data': 'Data',
+            'status': 'Status'
+        };
+        
+        return nomes[campo] || campo;
     }
     
     fecharModal(modal) {
@@ -1395,11 +1796,11 @@ class EquipamentosApp {
                 };
                 
                 const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
-                    (window.APP_CONFIG.setores[equipamento.setor] || equipamento.setor) : 
+                    (window.APP_CONFIG.setores[equipamento.setor]?.nome || equipamento.setor) : 
                     equipamento.setor;
                 
                 const statusFormatado = window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
-                    window.APP_CONFIG.statusEquipamento[equipamento.status] : 
+                    window.APP_CONFIG.statusEquipamento[equipamento.status]?.nome || equipamento.status : 
                     equipamento.status;
                 
                 csvEquipamentos += [
@@ -1421,7 +1822,7 @@ class EquipamentosApp {
             });
             
             // Criar arquivo de pendências
-            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em\n';
+            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em,Última Atualização,Atualizado Por,Resolvido Por,Data Resolução\n';
             
             this.equipamentos.forEach(equipamento => {
                 const pendencias = equipamento.pendencias || [];
@@ -1436,11 +1837,11 @@ class EquipamentosApp {
                     };
                     
                     const prioridadeFormatada = window.APP_CONFIG && window.APP_CONFIG.prioridades ? 
-                        window.APP_CONFIG.prioridades[pendencia.prioridade] : 
+                        window.APP_CONFIG.prioridades[pendencia.prioridade]?.nome || pendencia.prioridade : 
                         pendencia.prioridade;
                     
                     const statusFormatado = window.APP_CONFIG && window.APP_CONFIG.statusPendencia ? 
-                        window.APP_CONFIG.statusPendencia[pendencia.status] : 
+                        window.APP_CONFIG.statusPendencia[pendencia.status]?.nome || pendencia.status : 
                         pendencia.status;
                     
                     csvPendencias += [
@@ -1455,7 +1856,11 @@ class EquipamentosApp {
                         pendencia.data,
                         escapeCSV(statusFormatado),
                         pendencia.criadoPor || '',
-                        pendencia.criadoEm || ''
+                        pendencia.criadoEm || '',
+                        pendencia.ultimaAtualizacao || '',
+                        pendencia.atualizadoPor || '',
+                        pendencia.resolvidoPor || '',
+                        pendencia.dataResolucao || ''
                     ].join(',') + '\n';
                 });
             });
@@ -1543,12 +1948,44 @@ class EquipamentosApp {
             mensagemAnterior.remove();
         }
         
+        // Cores para diferentes tipos
+        const cores = {
+            success: '#27ae60',
+            error: '#e74c3c',
+            warning: '#f39c12',
+            info: '#3498db'
+        };
+        
+        // Ícones para diferentes tipos
+        const icones = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle'
+        };
+        
         // Criar nova mensagem
         const mensagem = document.createElement('div');
         mensagem.className = `mensagem-flutuante ${tipo}`;
+        mensagem.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            min-width: 300px;
+            max-width: 400px;
+            border-left: 4px solid ${cores[tipo]};
+        `;
+        
         mensagem.innerHTML = `
-            <div class="mensagem-conteudo">
-                <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <div class="mensagem-conteudo" style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-${icones[tipo]}" style="font-size: 20px; color: ${cores[tipo]}"></i>
                 <span>${texto}</span>
             </div>
         `;
@@ -1556,12 +1993,12 @@ class EquipamentosApp {
         document.body.appendChild(mensagem);
         
         setTimeout(() => {
-            mensagem.classList.add('show');
+            mensagem.style.transform = 'translateX(0)';
         }, 10);
         
         // Remover após 5 segundos
         setTimeout(() => {
-            mensagem.classList.remove('show');
+            mensagem.style.transform = 'translateX(120%)';
             setTimeout(() => {
                 if (mensagem.parentNode) {
                     mensagem.remove();
@@ -1581,6 +2018,27 @@ class EquipamentosApp {
                 year: 'numeric'
             });
         } catch (e) {
+            return dataString;
+        }
+    }
+    
+    formatarDataHora(dataString) {
+        if (!dataString) return 'Não informada';
+        
+        try {
+            const data = new Date(dataString);
+            if (isNaN(data.getTime())) return dataString;
+            
+            return data.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        } catch (e) {
+            console.warn('Erro ao formatar data/hora:', dataString, e);
             return dataString;
         }
     }
@@ -1667,10 +2125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar aplicação
     try {
         const app = new EquipamentosApp();
-        window.app = app; // Para depuração
-        
-        // Configurar tema
-        configurarTema();
+        window.app = app; // Para acesso global
         
         console.log('Sistema carregado com sucesso');
     } catch (error) {
@@ -1704,7 +2159,7 @@ function configurarEventosGlobais() {
         });
     }
     
-    // Botão de tema - ATUALIZADO
+    // Botão de tema
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', function(e) {
@@ -1722,14 +2177,6 @@ function configurarEventosGlobais() {
                 }
             }
         });
-        
-        // Configurar título inicial
-        const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-        if (temaAtual === 'escuro') {
-            themeToggle.title = 'Alternar para tema claro';
-        } else {
-            themeToggle.title = 'Alternar para tema escuro';
-        }
     }
     
     // Atalhos de teclado
@@ -1764,172 +2211,4 @@ function configurarEventosGlobais() {
             }
         }
     });
-}
-
-function configurarTema() {
-    // Aplicar tema salvo - simplificado para usar a função global
-    if (window.aplicarTema) {
-        window.aplicarTema();
-    } else {
-        const tema = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-        document.documentElement.setAttribute('data-tema', tema);
-        
-        // Configurar ícone do botão de tema
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            const icon = themeToggle.querySelector('i');
-            if (icon) {
-                if (tema === 'escuro') {
-                    icon.className = 'fas fa-sun';
-                    themeToggle.title = 'Alternar para tema claro';
-                } else {
-                    icon.className = 'fas fa-moon';
-                    themeToggle.title = 'Alternar para tema escuro';
-                }
-            }
-        }
-    }
-}
-
-// Adicionar estilos CSS dinâmicos se necessário
-if (!document.querySelector('#app-estilos-dinamicos')) {
-    const estilos = document.createElement('style');
-    estilos.id = 'app-estilos-dinamicos';
-    estilos.textContent = `
-        .user-level-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .nivel-indicator {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            z-index: 9999;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            transition: opacity 0.3s;
-        }
-        
-        .nivel-indicator:hover {
-            opacity: 1;
-        }
-        
-        /* Estilos para o botão de tema */
-        #theme-toggle {
-            background: var(--cor-primaria);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            font-size: 18px;
-        }
-        
-        #theme-toggle:hover {
-            background: var(--cor-primaria);
-            opacity: 0.9;
-            transform: scale(1.1);
-        }
-        
-        #theme-toggle:active {
-            transform: scale(0.95);
-        }
-        
-        /* Animações para transição de tema */
-        body {
-            transition: background-color 0.5s ease, color 0.5s ease;
-        }
-        
-        .equipamento-card {
-            transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
-        }
-        
-        /* Estilos para mensagens de carregamento */
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            color: var(--cor-texto-secundario);
-        }
-        
-        .loading .fa-cog {
-            font-size: 40px;
-            margin-bottom: 20px;
-            color: var(--cor-primaria);
-        }
-        
-        /* Estilos para mensagens de erro */
-        .mensagem-flutuante {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            background: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            transform: translateX(120%);
-            transition: transform 0.3s ease;
-            min-width: 300px;
-            max-width: 400px;
-        }
-        
-        .mensagem-flutuante.show {
-            transform: translateX(0);
-        }
-        
-        .mensagem-flutuante.success {
-            border-left: 4px solid var(--cor-sucesso);
-        }
-        
-        .mensagem-flutuante.error {
-            border-left: 4px solid var(--cor-erro);
-        }
-        
-        .mensagem-flutuante.info {
-            border-left: 4px solid var(--cor-primaria);
-        }
-        
-        .mensagem-conteudo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .mensagem-conteudo i {
-            font-size: 20px;
-        }
-        
-        .mensagem-conteudo i.fa-check-circle {
-            color: var(--cor-sucesso);
-        }
-        
-        .mensagem-conteudo i.fa-exclamation-circle {
-            color: var(--cor-erro);
-        }
-        
-        .mensagem-conteudo i.fa-info-circle {
-            color: var(--cor-primaria);
-        }
-    `;
-    document.head.appendChild(estilos);
 }
