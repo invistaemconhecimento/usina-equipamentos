@@ -454,6 +454,65 @@ const APP_CONFIG = {
         ALTERAR_TEMA: "ALTERAR_TEMA",
         CONFIGURAR_SISTEMA: "CONFIGURAR_SISTEMA"
     }
+    // Tipos de ações registradas nos logs (ATUALIZADO)
+    tiposAcao: {
+        LOGIN: "LOGIN",
+        LOGOUT: "LOGOUT",
+        CRIAR_EQUIPAMENTO: "CRIAR_EQUIPAMENTO",
+        EDITAR_EQUIPAMENTO: "EDITAR_EQUIPAMENTO",
+        CRIAR_PENDENCIA: "CRIAR_PENDENCIA",
+        EDITAR_PENDENCIA: "EDITAR_PENDENCIA",
+        EXCLUIR_PENDENCIA: "EXCLUIR_PENDENCIA",
+        EXPORTAR_DADOS: "EXPORTAR_DADOS",
+        ALTERAR_TEMA: "ALTERAR_TEMA",
+        CONFIGURAR_SISTEMA: "CONFIGURAR_SISTEMA",
+        // NOVOS
+        ALTERAR_STATUS_PENDENCIA: "ALTERAR_STATUS_PENDENCIA",
+        ATUALIZAR_PENDENCIA: "ATUALIZAR_PENDENCIA",
+        ADICIONAR_COMENTARIO: "ADICIONAR_COMENTARIO"
+    },
+    
+    // Configurações para histórico
+    historicoConfig: {
+        manterHistoricoCompleto: true,
+        diasRetencaoHistorico: 365, // Manter histórico por 1 ano
+        maxAlteracoesPorPendencia: 50 // Limitar para não ficar muito grande
+    }
+};
+
+// Adicionar funções utilitárias para histórico
+const APP_UTILS = {
+    // ... funções existentes
+    
+    // Nova função para criar entrada de histórico
+    criarEntradaHistorico: function(acao, usuario, alteracoes = {}, comentario = '') {
+        return {
+            timestamp: new Date().toISOString(),
+            usuario: usuario,
+            acao: acao,
+            alteracoes: alteracoes,
+            comentario: comentario,
+            ip: 'local' // Em produção, pegar do servidor
+        };
+    },
+    
+    // Comparar objetos para detectar alterações
+    compararObjetos: function(obj1, obj2) {
+        const alteracoes = {};
+        
+        // Verificar todas as propriedades do novo objeto
+        for (const key in obj2) {
+            if (obj1[key] !== obj2[key]) {
+                alteracoes[key] = {
+                    anterior: obj1[key],
+                    novo: obj2[key],
+                    data: new Date().toISOString()
+                };
+            }
+        }
+        
+        return alteracoes;
+    }
 };
 
 // Funções utilitárias para a aplicação
