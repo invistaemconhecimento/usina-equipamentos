@@ -1418,3 +1418,26 @@ table tr:hover {
     margin-left: 8px;
     text-transform: uppercase;
 }
+/* Tags de filtro ativo - usando variáveis do tema */
+.filter-tag {
+    background: var(--cor-secundaria); /* #3498db */
+    color: white;                       /* BRANCO */
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #2980b9;
+}
+
+.filter-tag i {
+    color: white;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.filter-tag i:hover {
+    color: #ffebee;
+}
