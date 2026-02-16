@@ -22,38 +22,60 @@
             gap: 20px;
         }
         
-        .usuarios-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .usuario-card {
-            background: var(--cor-card);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: var(--sombra);
-            border-left: 5px solid #3498db;
-            transition: all 0.3s;
-        }
-        
-        .usuario-card.administrador { border-left-color: #e74c3c; }
-        .usuario-card.engenharia { border-left-color: #2ecc71; }
-        .usuario-card.supervisor { border-left-color: #f39c12; }
-        .usuario-card.manutencao { border-left-color: #9b59b6; }
-        .usuario-card.operador { border-left-color: #3498db; }
-        
-        .usuario-header {
+        .admin-header h1 {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
+            align-items: center;
+            gap: 10px;
+            color: var(--cor-texto);
         }
         
-        .usuario-acoes {
+        .admin-header h1 i {
+            color: var(--cor-secundaria);
+        }
+        
+        .admin-header-buttons {
             display: flex;
             gap: 10px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cor-secundaria), #2980b9);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--cor-fundo-secundario);
+            color: var(--cor-texto);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--cor-borda);
+            transform: translateY(-2px);
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 6px;
         }
         
         .btn-icone {
@@ -74,46 +96,52 @@
             box-shadow: var(--sombra);
         }
         
-        .btn-icone.editar:hover { background: #3498db; color: white; }
-        .btn-icone.excluir:hover { background: #e74c3c; color: white; }
-        .btn-icone.bloquear:hover { background: #f39c12; color: white; }
-        
-        .usuario-info {
-            margin-bottom: 15px;
+        .btn-icone.editar:hover { 
+            background: #3498db; 
+            color: white; 
+            border-color: #3498db;
         }
         
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        
-        .badge-nivel {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
+        .btn-icone.excluir:hover { 
+            background: #e74c3c; 
             color: white;
+            border-color: #e74c3c;
         }
         
-        .badge-ativo {
-            background: #2ecc71;
+        .btn-icone.bloquear:hover { 
+            background: #f39c12; 
+            color: white;
+            border-color: #f39c12;
         }
         
-        .badge-inativo {
-            background: #95a5a6;
+        .btn-icone:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
+        .btn-icone:disabled:hover {
+            transform: none;
+            background: var(--cor-fundo-secundario);
+            color: inherit;
+        }
+        
+        /* Filtros */
         .filtros-usuarios {
             background: var(--cor-card);
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
             box-shadow: var(--sombra);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .filtros-usuarios h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: var(--cor-texto);
+            font-size: 18px;
         }
         
         .filtros-row {
@@ -127,11 +155,573 @@
             min-width: 200px;
         }
         
+        .filtro-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .filtro-group select,
+        .filtro-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--cor-borda);
+            border-radius: 5px;
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            font-size: 14px;
+        }
+        
+        .filtro-group select:focus,
+        .filtro-group input:focus {
+            outline: none;
+            border-color: var(--cor-secundaria);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
         .acoes-em-lote {
             display: flex;
             gap: 10px;
             margin-top: 20px;
             flex-wrap: wrap;
+            padding-top: 20px;
+            border-top: 1px solid var(--cor-borda);
+        }
+        
+        /* Grid de Usuários */
+        .usuarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .usuario-card {
+            background: var(--cor-card);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--sombra);
+            border-left: 5px solid #3498db;
+            transition: all 0.3s;
+            border: 1px solid var(--cor-borda);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .usuario-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--sombra-forte);
+        }
+        
+        .usuario-card.administrador { border-left-color: #e74c3c; }
+        .usuario-card.engenharia { border-left-color: #2ecc71; }
+        .usuario-card.supervisor { border-left-color: #f39c12; }
+        .usuario-card.manutencao { border-left-color: #9b59b6; }
+        .usuario-card.operador { border-left-color: #3498db; }
+        
+        .usuario-card.system-admin {
+            background: linear-gradient(135deg, var(--cor-card), rgba(142, 68, 173, 0.1));
+            border: 2px solid #8e44ad;
+        }
+        
+        .usuario-card.system-admin::before {
+            content: '🔰 ADMIN DO SISTEMA';
+            position: absolute;
+            top: 10px;
+            right: -30px;
+            background: #8e44ad;
+            color: white;
+            padding: 5px 30px;
+            font-size: 11px;
+            font-weight: bold;
+            transform: rotate(45deg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        
+        .usuario-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .usuario-info-header {
+            flex: 1;
+        }
+        
+        .usuario-info-header h4 {
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: var(--cor-texto);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .usuario-info-header h4 i {
+            font-size: 16px;
+            color: var(--cor-secundaria);
+        }
+        
+        .usuario-acoes {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .usuario-info {
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--cor-texto);
+        }
+        
+        .info-item i {
+            width: 16px;
+            color: var(--cor-secundaria);
+        }
+        
+        .badge-nivel {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: white;
+            margin-left: 5px;
+        }
+        
+        .badge-ativo {
+            background: #2ecc71;
+        }
+        
+        .badge-inativo {
+            background: #95a5a6;
+        }
+        
+        .badge-system {
+            background: #8e44ad;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .usuario-metadata {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--cor-borda);
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .usuario-metadata span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Barra de estatísticas */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: var(--cor-card);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--sombra);
+            border: 1px solid var(--cor-borda);
+            margin-top: 30px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: var(--cor-fundo-secundario);
+            border-radius: 8px;
+            transition: transform 0.3s;
+        }
+        
+        .stat:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--cor-secundaria);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: var(--cor-card);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--cor-card);
+            z-index: 10;
+        }
+        
+        .modal-header h3 {
+            color: var(--cor-texto);
+            font-size: 20px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--cor-texto-secundario);
+            transition: color 0.3s;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .close-modal:hover {
+            color: var(--cor-erro);
+            background: rgba(231, 76, 60, 0.1);
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        /* Formulário */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            flex: 1;
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--cor-texto);
+            font-size: 14px;
+        }
+        
+        .form-group label i {
+            margin-right: 5px;
+            color: var(--cor-secundaria);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--cor-borda);
+            border-radius: 5px;
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--cor-secundaria);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .form-group input:disabled,
+        .form-group select:disabled {
+            background: var(--cor-fundo-secundario);
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .form-group input[readonly] {
+            background: var(--cor-fundo-secundario);
+            cursor: default;
+        }
+        
+        .form-group .input-hint {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            margin-top: 5px;
+        }
+        
+        /* Força da senha */
+        .senha-strength {
+            margin-top: 10px;
+        }
+        
+        .strength-bar {
+            height: 5px;
+            background: var(--cor-fundo-secundario);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        
+        .strength-text {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--cor-borda);
+        }
+        
+        /* Loading */
+        .loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .loading i {
+            font-size: 40px;
+            color: var(--cor-secundaria);
+            margin-bottom: 15px;
+        }
+        
+        /* Sem resultados */
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .no-results i {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: var(--cor-borda);
+        }
+        
+        .no-results h3 {
+            margin-bottom: 10px;
+            color: var(--cor-texto);
+        }
+        
+        /* Mensagem flutuante */
+        .mensagem-flutuante {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: var(--cor-card);
+            box-shadow: var(--sombra-forte);
+            z-index: 10000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            min-width: 300px;
+            max-width: 400px;
+            border-left: 4px solid var(--cor-info);
+        }
+        
+        .mensagem-flutuante.show {
+            transform: translateX(0);
+        }
+        
+        .mensagem-flutuante.success { border-left-color: #2ecc71; }
+        .mensagem-flutuante.error { border-left-color: #e74c3c; }
+        .mensagem-flutuante.warning { border-left-color: #f39c12; }
+        .mensagem-flutuante.info { border-left-color: #3498db; }
+        
+        .mensagem-conteudo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mensagem-conteudo i {
+            font-size: 20px;
+        }
+        
+        .mensagem-flutuante.success i { color: #2ecc71; }
+        .mensagem-flutuante.error i { color: #e74c3c; }
+        .mensagem-flutuante.warning i { color: #f39c12; }
+        .mensagem-flutuante.info i { color: #3498db; }
+        
+        /* Tooltips */
+        [title] {
+            position: relative;
+            cursor: help;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 15px;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .admin-header-buttons {
+                flex-direction: column;
+            }
+            
+            .filtros-row {
+                flex-direction: column;
+            }
+            
+            .filtro-group {
+                min-width: 100%;
+            }
+            
+            .acoes-em-lote {
+                flex-direction: column;
+            }
+            
+            .usuarios-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+            }
+            
+            .usuario-card.system-admin::before {
+                font-size: 9px;
+                padding: 4px 25px;
+                right: -35px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .admin-header h1 {
+                font-size: 20px;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            
+            .usuario-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .usuario-acoes {
+                justify-content: flex-end;
+            }
+            
+            .stat-value {
+                font-size: 24px;
+            }
+        }
+        
+        /* Animações */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
         }
     </style>
 </head>
@@ -149,12 +739,15 @@
     
     <div class="admin-container">
         <div class="admin-header">
-            <h1><i class="fas fa-users-cog"></i> Gerenciamento de Usuários</h1>
-            <div>
+            <h1>
+                <i class="fas fa-users-cog"></i> 
+                Gerenciamento de Usuários
+            </h1>
+            <div class="admin-header-buttons">
                 <button onclick="window.location.href='index.html'" class="btn-secondary">
                     <i class="fas fa-arrow-left"></i> Voltar
                 </button>
-                <button onclick="abrirModalNovoUsuario()" class="btn-primary">
+                <button onclick="gerenciador.abrirModalNovoUsuario()" class="btn-primary">
                     <i class="fas fa-user-plus"></i> Novo Usuário
                 </button>
             </div>
@@ -165,7 +758,9 @@
             <h3><i class="fas fa-filter"></i> Filtros</h3>
             <div class="filtros-row">
                 <div class="filtro-group">
-                    <label for="filtro-nivel">Nível de Acesso:</label>
+                    <label for="filtro-nivel">
+                        <i class="fas fa-tag"></i> Nível de Acesso:
+                    </label>
                     <select id="filtro-nivel">
                         <option value="all">Todos os níveis</option>
                         <option value="administrador">Administrador</option>
@@ -177,7 +772,9 @@
                 </div>
                 
                 <div class="filtro-group">
-                    <label for="filtro-status">Status:</label>
+                    <label for="filtro-status">
+                        <i class="fas fa-circle"></i> Status:
+                    </label>
                     <select id="filtro-status">
                         <option value="all">Todos</option>
                         <option value="ativo">Ativos</option>
@@ -186,24 +783,29 @@
                 </div>
                 
                 <div class="filtro-group">
-                    <label for="filtro-busca">Buscar:</label>
+                    <label for="filtro-busca">
+                        <i class="fas fa-search"></i> Buscar:
+                    </label>
                     <input type="text" id="filtro-busca" placeholder="Nome, usuário ou e-mail...">
                 </div>
                 
                 <div class="filtro-group">
                     <label style="visibility: hidden;">.</label>
-                    <button onclick="aplicarFiltros()" class="btn-secondary">
+                    <button onclick="gerenciador.aplicarFiltros()" class="btn-secondary">
                         <i class="fas fa-search"></i> Filtrar
                     </button>
                 </div>
             </div>
             
             <div class="acoes-em-lote">
-                <button onclick="exportarUsuarios()" class="btn-small">
+                <button onclick="gerenciador.exportarUsuarios()" class="btn-small btn-secondary">
                     <i class="fas fa-file-export"></i> Exportar Lista
                 </button>
-                <button onclick="reenviarSenhas()" class="btn-small">
+                <button onclick="gerenciador.reenviarSenhas()" class="btn-small btn-secondary">
                     <i class="fas fa-envelope"></i> Reenviar Acesso
+                </button>
+                <button onclick="gerenciador.recarregarUsuarios()" class="btn-small btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Recarregar
                 </button>
             </div>
         </div>
@@ -221,19 +823,27 @@
         <div class="stats-bar">
             <div class="stat">
                 <span class="stat-value" id="total-usuarios">0</span>
-                <span class="stat-label">Total de Usuários</span>
+                <span class="stat-label">
+                    <i class="fas fa-users"></i> Total de Usuários
+                </span>
             </div>
             <div class="stat">
                 <span class="stat-value" id="usuarios-ativos">0</span>
-                <span class="stat-label">Usuários Ativos</span>
+                <span class="stat-label">
+                    <i class="fas fa-user-check"></i> Usuários Ativos
+                </span>
             </div>
             <div class="stat">
-                <span class="stat-value" id="ultimo-acesso">0</span>
-                <span class="stat-label">Último Login (h)</span>
+                <span class="stat-value" id="usuarios-inativos">0</span>
+                <span class="stat-label">
+                    <i class="fas fa-user-slash"></i> Usuários Inativos
+                </span>
             </div>
             <div class="stat">
                 <span class="stat-value" id="admins-total">0</span>
-                <span class="stat-label">Administradores</span>
+                <span class="stat-label">
+                    <i class="fas fa-user-shield"></i> Administradores
+                </span>
             </div>
         </div>
     </div>
@@ -242,39 +852,63 @@
     <div id="modal-usuario" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-usuario-titulo">Novo Usuário</h3>
-                <span class="close-modal" onclick="fecharModalUsuario()">&times;</span>
+                <h3 id="modal-usuario-titulo">
+                    <i class="fas fa-user-plus"></i> 
+                    <span>Novo Usuário</span>
+                </h3>
+                <span class="close-modal" onclick="gerenciador.fecharModalUsuario()">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="form-usuario" onsubmit="salvarUsuario(event)">
+                <form id="form-usuario" onsubmit="gerenciador.salvarUsuario(event)">
                     <input type="hidden" id="usuario-id">
+                    <input type="hidden" id="usuario-is-system-admin" value="false">
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="usuario-nome">Nome Completo *</label>
-                            <input type="text" id="usuario-nome" required>
+                            <label for="usuario-nome">
+                                <i class="fas fa-user"></i> Nome Completo *
+                            </label>
+                            <input type="text" id="usuario-nome" required 
+                                   placeholder="Ex: João da Silva"
+                                   maxlength="100">
                         </div>
                         <div class="form-group">
-                            <label for="usuario-username">Nome de Usuário *</label>
+                            <label for="usuario-username">
+                                <i class="fas fa-at"></i> Nome de Usuário *
+                            </label>
                             <input type="text" id="usuario-username" required 
-                                   pattern="[a-z0-9_]+" title="Apenas letras minúsculas, números e underscore">
+                                   pattern="[a-z0-9_]+" 
+                                   title="Apenas letras minúsculas, números e underscore"
+                                   placeholder="Ex: joao.silva"
+                                   maxlength="30">
+                            <div class="input-hint">Apenas letras minúsculas, números e _</div>
                         </div>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="usuario-email">E-mail *</label>
-                            <input type="email" id="usuario-email" required>
+                            <label for="usuario-email">
+                                <i class="fas fa-envelope"></i> E-mail *
+                            </label>
+                            <input type="email" id="usuario-email" required 
+                                   placeholder="Ex: joao@empresa.com"
+                                   maxlength="100">
                         </div>
                         <div class="form-group">
-                            <label for="usuario-departamento">Departamento</label>
-                            <input type="text" id="usuario-departamento">
+                            <label for="usuario-departamento">
+                                <i class="fas fa-building"></i> Departamento
+                            </label>
+                            <input type="text" id="usuario-departamento" 
+                                   placeholder="Ex: TI, Operações..."
+                                   maxlength="50">
                         </div>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="usuario-nivel">Nível de Acesso *</label>
+                            <label for="usuario-nivel">
+                                <i class="fas fa-tag"></i> Nível de Acesso *
+                            </label>
                             <select id="usuario-nivel" required>
                                 <option value="">Selecione...</option>
                                 <option value="operador">Operador</option>
@@ -285,7 +919,9 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="usuario-status">Status</label>
+                            <label for="usuario-status">
+                                <i class="fas fa-toggle-on"></i> Status
+                            </label>
                             <select id="usuario-status">
                                 <option value="ativo">Ativo</option>
                                 <option value="inativo">Inativo</option>
@@ -295,14 +931,21 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="usuario-senha">Senha *</label>
-                            <input type="password" id="usuario-senha" required 
+                            <label for="usuario-senha">
+                                <i class="fas fa-lock"></i> Senha *
+                            </label>
+                            <input type="password" id="usuario-senha" 
                                    minlength="6" 
-                                   title="Mínimo 6 caracteres">
+                                   title="Mínimo 6 caracteres"
+                                   placeholder="Mínimo 6 caracteres">
+                            <div class="input-hint" id="senha-hint">Mínimo 6 caracteres</div>
                         </div>
                         <div class="form-group">
-                            <label for="usuario-confirmar-senha">Confirmar Senha *</label>
-                            <input type="password" id="usuario-confirmar-senha" required>
+                            <label for="usuario-confirmar-senha">
+                                <i class="fas fa-lock"></i> Confirmar Senha *
+                            </label>
+                            <input type="password" id="usuario-confirmar-senha"
+                                   placeholder="Digite a senha novamente">
                         </div>
                     </div>
                     
@@ -317,11 +960,11 @@
                     </div>
                     
                     <div class="form-actions">
-                        <button type="button" class="btn-secondary" onclick="fecharModalUsuario()">
-                            Cancelar
+                        <button type="button" class="btn-secondary" onclick="gerenciador.fecharModalUsuario()">
+                            <i class="fas fa-times"></i> Cancelar
                         </button>
-                        <button type="submit" class="btn-primary">
-                            Salvar Usuário
+                        <button type="submit" class="btn-primary" id="btn-salvar-usuario">
+                            <i class="fas fa-save"></i> <span>Salvar Usuário</span>
                         </button>
                     </div>
                 </form>
@@ -329,18 +972,46 @@
         </div>
     </div>
     
+    <!-- Modal de Confirmação -->
+    <div id="modal-confirmacao" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="modal-confirmacao-titulo">
+                    <i class="fas fa-question-circle"></i> Confirmar Ação
+                </h3>
+                <span class="close-modal" onclick="gerenciador.fecharModalConfirmacao()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-confirmacao-mensagem" style="margin-bottom: 20px;"></p>
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="gerenciador.fecharModalConfirmacao()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button class="btn-primary" id="modal-confirmacao-confirmar">
+                        <i class="fas fa-check"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="config.js"></script>
     <script>
-        // Configuração do Gerenciador de Usuários
+        // ===========================================
+        // GERENCIADOR DE USUÁRIOS
+        // ===========================================
+
         class GerenciadorUsuarios {
             constructor() {
                 this.usuarios = [];
                 this.usuarioEditando = null;
+                this.nextUserId = 1;
                 this.filtros = {
                     nivel: 'all',
                     status: 'all',
                     busca: ''
                 };
+                this.modalConfirmacaoCallback = null;
                 this.init();
             }
             
@@ -361,78 +1032,117 @@
             
             verificarPermissaoAdmin() {
                 const nivel = localStorage.getItem('gestao_equipamentos_nivel');
+                const isSystemAdmin = localStorage.getItem('gestao_equipamentos_is_system_admin') === 'true';
+                
                 if (nivel !== 'administrador') {
                     alert('Acesso negado. Apenas administradores.');
                     window.location.href = 'index.html';
                     return false;
                 }
+                
+                // Adicionar badge de admin do sistema se for
+                if (isSystemAdmin) {
+                    console.log('Bem-vindo, Administrador do Sistema');
+                }
+                
                 return true;
             }
             
             async carregarUsuarios() {
-    try {
-        // Usar o bin específico para usuários
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
-            { headers: JSONBIN_CONFIG.headers }
-        );
-        
-        if (!response.ok) throw new Error('Erro ao carregar usuários');
-        
-        const result = await response.json();
-        
-        if (result.record && result.record.usuarios) {
-            this.usuarios = result.record.usuarios;
-        } else {
-            // Dados iniciais se o bin estiver vazio
-            this.usuarios = [
-                {
-                    id: 1,
-                    username: 'administrador',
-                    senha: 'admin789',
-                    nivel: 'administrador',
-                    nome: 'Administrador Sistema',
-                    email: 'admin@empresa.com',
-                    departamento: 'TI',
-                    ativo: true,
-                    dataCriacao: new Date().toISOString().split('T')[0],
-                    criadoPor: 'sistema'
+                try {
+                    // Mostrar loading
+                    this.mostrarLoading(true);
+                    
+                    // Usar o bin específico para usuários
+                    const response = await fetch(
+                        `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
+                        { headers: JSONBIN_CONFIG.headers }
+                    );
+                    
+                    if (!response.ok) throw new Error('Erro ao carregar usuários');
+                    
+                    const result = await response.json();
+                    
+                    if (result.record && result.record.usuarios) {
+                        this.usuarios = result.record.usuarios;
+                        this.nextUserId = result.record.nextUserId || 
+                                         (this.usuarios.length > 0 ? 
+                                          Math.max(...this.usuarios.map(u => u.id)) + 1 : 1);
+                        
+                        this.mostrarMensagem('Usuários carregados com sucesso', 'success');
+                    } else {
+                        // Dados iniciais se o bin estiver vazio - usar array do config.js
+                        this.usuarios = window.USUARIOS_AUTORIZADOS || [
+                            {
+                                id: 1,
+                                username: 'administrador',
+                                senha: 'admin789',
+                                nivel: 'administrador',
+                                nome: 'Administrador Sistema',
+                                email: 'admin@empresa.com',
+                                departamento: 'TI',
+                                ativo: true,
+                                isSystemAdmin: true,
+                                dataCriacao: new Date().toISOString().split('T')[0],
+                                criadoPor: 'sistema'
+                            }
+                        ];
+                        this.nextUserId = Math.max(...this.usuarios.map(u => u.id)) + 1;
+                        
+                        // Salvar dados iniciais
+                        await this.salvarUsuarios();
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro ao carregar usuários:', error);
+                    
+                    // Fallback para dados locais
+                    this.usuarios = window.USUARIOS_AUTORIZADOS || [];
+                    this.nextUserId = this.usuarios.length > 0 ? 
+                                     Math.max(...this.usuarios.map(u => u.id)) + 1 : 1;
+                    
+                    this.mostrarMensagem('Usando dados locais (offline)', 'warning');
+                } finally {
+                    this.mostrarLoading(false);
                 }
-            ];
-        }
-        
-    } catch (error) {
-        console.error('Erro ao carregar usuários:', error);
-        this.mostrarMensagem('Erro ao carregar usuários', 'error');
-    }
-}
-            
-async salvarUsuarios() {
-    try {
-        const data = {
-            usuarios: this.usuarios,
-            nextUserId: this.usuarios.length > 0 ? 
-                Math.max(...this.usuarios.map(u => u.id)) + 1 : 1
-        };
-        
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
-            {
-                method: 'PUT',
-                headers: JSONBIN_CONFIG.headers,
-                body: JSON.stringify(data)
             }
-        );
-        
-        if (!response.ok) throw new Error('Erro ao salvar usuários');
-        
-        return true;
-    } catch (error) {
-        console.error('Erro ao salvar usuários:', error);
-        this.mostrarMensagem('Erro ao salvar usuários', 'error');
-        return false;
-    }
-}
+            
+            async recarregarUsuarios() {
+                await this.carregarUsuarios();
+                this.renderizarUsuarios();
+                this.atualizarEstatisticas();
+            }
+            
+            async salvarUsuarios() {
+                try {
+                    const data = {
+                        usuarios: this.usuarios,
+                        nextUserId: this.nextUserId,
+                        ultimaAtualizacao: new Date().toISOString(),
+                        atualizadoPor: localStorage.getItem('gestao_equipamentos_usuario') || 'sistema'
+                    };
+                    
+                    const response = await fetch(
+                        `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}`,
+                        {
+                            method: 'PUT',
+                            headers: JSONBIN_CONFIG.headers,
+                            body: JSON.stringify(data)
+                        }
+                    );
+                    
+                    if (!response.ok) throw new Error('Erro ao salvar usuários');
+                    
+                    // Registrar atividade
+                    this.registrarAtividade('SALVAR_USUARIOS', 'Dados de usuários salvos');
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Erro ao salvar usuários:', error);
+                    this.mostrarMensagem('Erro ao salvar usuários no servidor', 'error');
+                    return false;
+                }
+            }
             
             configurarEventos() {
                 // Eventos de filtro
@@ -454,9 +1164,10 @@ async salvarUsuarios() {
                 // Validação de senha em tempo real
                 document.getElementById('usuario-senha')?.addEventListener('input', (e) => {
                     this.validarForcaSenha(e.target.value);
+                    this.validarConfirmacaoSenha();
                 });
                 
-                document.getElementById('usuario-confirmar-senha')?.addEventListener('input', (e) => {
+                document.getElementById('usuario-confirmar-senha')?.addEventListener('input', () => {
                     this.validarConfirmacaoSenha();
                 });
             }
@@ -478,9 +1189,9 @@ async salvarUsuarios() {
                     // Filtrar por busca
                     if (this.filtros.busca) {
                         const busca = this.filtros.busca;
-                        const nomeMatch = usuario.nome.toLowerCase().includes(busca);
-                        const usernameMatch = usuario.username.toLowerCase().includes(busca);
-                        const emailMatch = usuario.email.toLowerCase().includes(busca);
+                        const nomeMatch = usuario.nome?.toLowerCase().includes(busca) || false;
+                        const usernameMatch = usuario.username?.toLowerCase().includes(busca) || false;
+                        const emailMatch = usuario.email?.toLowerCase().includes(busca) || false;
                         
                         if (!nomeMatch && !usernameMatch && !emailMatch) {
                             return false;
@@ -497,29 +1208,40 @@ async salvarUsuarios() {
                 
                 if (usuariosFiltrados.length === 0) {
                     container.innerHTML = `
-                        <div class="no-results" style="grid-column: 1 / -1;">
+                        <div class="no-results">
                             <i class="fas fa-user-slash"></i>
                             <h3>Nenhum usuário encontrado</h3>
-                            <p>Tente ajustar os filtros</p>
+                            <p>Tente ajustar os filtros de busca</p>
                         </div>
                     `;
                     return;
                 }
                 
                 container.innerHTML = usuariosFiltrados.map(usuario => {
-                    const corNivel = PERMISSOES.getCorNivel(usuario.nivel);
-                    const nomeNivel = PERMISSOES.getNomeNivel(usuario.nivel);
-                    const iconeNivel = PERMISSOES.getIconeNivel(usuario.nivel);
+                    const nivelInfo = this.getNivelInfo(usuario.nivel);
                     const isAtivo = usuario.ativo === true || usuario.ativo === undefined;
+                    const isSystemAdmin = usuario.isSystemAdmin === true;
+                    
+                    // Determinar classes do card
+                    let cardClasses = `usuario-card ${usuario.nivel}`;
+                    if (isSystemAdmin) cardClasses += ' system-admin';
+                    
+                    // Formatar datas
+                    const dataCriacao = this.formatarData(usuario.dataCriacao);
+                    const ultimoAcesso = usuario.ultimoAcesso ? this.formatarDataHora(usuario.ultimoAcesso) : 'Nunca';
                     
                     return `
-                        <div class="usuario-card ${usuario.nivel}">
+                        <div class="${cardClasses}">
                             <div class="usuario-header">
-                                <div>
-                                    <h4>${usuario.nome}</h4>
+                                <div class="usuario-info-header">
+                                    <h4>
+                                        <i class="fas ${nivelInfo.icone}" style="color: ${nivelInfo.cor};"></i>
+                                        ${this.escapeHTML(usuario.nome)}
+                                        ${isSystemAdmin ? '<span class="badge-system"><i class="fas fa-shield-alt"></i> SISTEMA</span>' : ''}
+                                    </h4>
                                     <div class="info-item">
-                                        <i class="fas ${iconeNivel}" style="color: ${corNivel};"></i>
-                                        <span>${nomeNivel}</span>
+                                        <i class="fas fa-tag" style="color: ${nivelInfo.cor};"></i>
+                                        <span>${nivelInfo.nome}</span>
                                         <span class="badge-nivel ${isAtivo ? 'badge-ativo' : 'badge-inativo'}">
                                             ${isAtivo ? 'Ativo' : 'Inativo'}
                                         </span>
@@ -527,15 +1249,18 @@ async salvarUsuarios() {
                                 </div>
                                 <div class="usuario-acoes">
                                     <button class="btn-icone editar" onclick="gerenciador.editarUsuario(${usuario.id})" 
-                                            title="Editar usuário">
+                                            title="${isSystemAdmin ? 'Administrador do sistema - edição limitada' : 'Editar usuário'}"
+                                            ${isSystemAdmin && !this.isCurrentUserSystemAdmin() ? 'disabled' : ''}>
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn-icone bloquear" onclick="gerenciador.toggleStatusUsuario(${usuario.id})" 
-                                            title="${isAtivo ? 'Desativar' : 'Ativar'} usuário">
+                                            title="${isAtivo ? 'Desativar usuário' : 'Ativar usuário'}"
+                                            ${isSystemAdmin ? 'disabled' : ''}>
                                         <i class="fas ${isAtivo ? 'fa-user-slash' : 'fa-user-check'}"></i>
                                     </button>
                                     <button class="btn-icone excluir" onclick="gerenciador.excluirUsuario(${usuario.id})" 
-                                            title="Excluir usuário">
+                                            title="Excluir usuário"
+                                            ${isSystemAdmin ? 'disabled' : ''}>
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -544,20 +1269,28 @@ async salvarUsuarios() {
                             <div class="usuario-info">
                                 <div class="info-item">
                                     <i class="fas fa-user"></i>
-                                    <strong>Usuário:</strong> ${usuario.username}
+                                    <strong>Usuário:</strong> ${this.escapeHTML(usuario.username)}
                                 </div>
                                 <div class="info-item">
                                     <i class="fas fa-envelope"></i>
-                                    <strong>E-mail:</strong> ${usuario.email}
+                                    <strong>E-mail:</strong> ${this.escapeHTML(usuario.email || 'Não informado')}
                                 </div>
                                 <div class="info-item">
                                     <i class="fas fa-building"></i>
-                                    <strong>Departamento:</strong> ${usuario.departamento || 'Não informado'}
+                                    <strong>Departamento:</strong> ${this.escapeHTML(usuario.departamento || 'Não informado')}
                                 </div>
-                                <div class="info-item">
-                                    <i class="fas fa-calendar"></i>
-                                    <strong>Criado em:</strong> ${this.formatarData(usuario.dataCriacao)}
-                                </div>
+                            </div>
+                            
+                            <div class="usuario-metadata">
+                                <span title="Data de criação">
+                                    <i class="fas fa-calendar-plus"></i> ${dataCriacao}
+                                </span>
+                                <span title="Último acesso">
+                                    <i class="fas fa-clock"></i> ${ultimoAcesso}
+                                </span>
+                                <span title="Criado por">
+                                    <i class="fas fa-user-cog"></i> ${this.escapeHTML(usuario.criadoPor || 'sistema')}
+                                </span>
                             </div>
                         </div>
                     `;
@@ -567,10 +1300,12 @@ async salvarUsuarios() {
             atualizarEstatisticas() {
                 const totalUsuarios = this.usuarios.length;
                 const usuariosAtivos = this.usuarios.filter(u => u.ativo === true || u.ativo === undefined).length;
+                const usuariosInativos = this.usuarios.filter(u => u.ativo === false).length;
                 const adminsTotal = this.usuarios.filter(u => u.nivel === 'administrador').length;
                 
                 document.getElementById('total-usuarios').textContent = totalUsuarios;
                 document.getElementById('usuarios-ativos').textContent = usuariosAtivos;
+                document.getElementById('usuarios-inativos').textContent = usuariosInativos;
                 document.getElementById('admins-total').textContent = adminsTotal;
             }
             
@@ -584,28 +1319,43 @@ async salvarUsuarios() {
                 // Validar senhas
                 const senha = document.getElementById('usuario-senha').value;
                 const confirmarSenha = document.getElementById('usuario-confirmar-senha').value;
+                const isSystemAdmin = document.getElementById('usuario-is-system-admin').value === 'true';
                 
-                if (senha !== confirmarSenha) {
-                    this.mostrarMensagem('As senhas não coincidem', 'error');
-                    return;
-                }
-                
-                // Verificar força da senha
-                const forcaSenha = this.validarForcaSenha(senha);
-                if (forcaSenha.nivel === 'fraca') {
-                    if (!confirm('A senha é considerada fraca. Deseja continuar?')) {
+                // Validação de senha para novo usuário ou se senha foi fornecida na edição
+                if (!isEdit || senha) {
+                    if (!senha || !confirmarSenha) {
+                        this.mostrarMensagem('Preencha os campos de senha', 'error');
                         return;
+                    }
+                    
+                    if (senha !== confirmarSenha) {
+                        this.mostrarMensagem('As senhas não coincidem', 'error');
+                        return;
+                    }
+                    
+                    if (senha.length < 6) {
+                        this.mostrarMensagem('A senha deve ter no mínimo 6 caracteres', 'error');
+                        return;
+                    }
+                    
+                    // Verificar força da senha
+                    const forcaSenha = this.validarForcaSenha(senha);
+                    if (forcaSenha.nivel === 'fraca' && senha.length > 0) {
+                        const confirmar = await this.mostrarConfirmacao(
+                            'Senha Fraca',
+                            'A senha é considerada fraca. Deseja continuar mesmo assim?'
+                        );
+                        if (!confirmar) return;
                     }
                 }
                 
                 const usuario = {
-                    username: document.getElementById('usuario-username').value.trim(),
+                    username: document.getElementById('usuario-username').value.trim().toLowerCase(),
                     nome: document.getElementById('usuario-nome').value.trim(),
-                    email: document.getElementById('usuario-email').value.trim(),
+                    email: document.getElementById('usuario-email').value.trim().toLowerCase(),
                     departamento: document.getElementById('usuario-departamento').value.trim(),
                     nivel: document.getElementById('usuario-nivel').value,
-                    ativo: document.getElementById('usuario-status').value === 'ativo',
-                    senha: senha  // Em produção, isso seria criptografado!
+                    ativo: document.getElementById('usuario-status').value === 'ativo'
                 };
                 
                 // Validações
@@ -614,8 +1364,73 @@ async salvarUsuarios() {
                     return;
                 }
                 
-                // Verificar se username já existe (exceto no modo edição)
-                if (!isEdit) {
+                // Validar formato do username
+                if (!/^[a-z0-9_]+$/.test(usuario.username)) {
+                    this.mostrarMensagem('Nome de usuário deve conter apenas letras minúsculas, números e underscore', 'error');
+                    return;
+                }
+                
+                // Validar email
+                if (!this.validarEmail(usuario.email)) {
+                    this.mostrarMensagem('E-mail inválido', 'error');
+                    return;
+                }
+                
+                if (isEdit) {
+                    // Editar usuário existente
+                    const index = this.usuarios.findIndex(u => u.id === parseInt(usuarioId));
+                    if (index !== -1) {
+                        // Verificar se é admin do sistema e se o usuário atual pode editar
+                        if (this.usuarios[index].isSystemAdmin && !this.isCurrentUserSystemAdmin()) {
+                            this.mostrarMensagem('Você não tem permissão para editar o administrador do sistema', 'error');
+                            return;
+                        }
+                        
+                        // Verificar se username já existe (exceto para o mesmo usuário)
+                        const usernameExistente = this.usuarios.find(u => 
+                            u.username.toLowerCase() === usuario.username.toLowerCase() && 
+                            u.id !== parseInt(usuarioId)
+                        );
+                        if (usernameExistente) {
+                            this.mostrarMensagem('Nome de usuário já existe', 'error');
+                            return;
+                        }
+                        
+                        // Verificar se email já existe (exceto para o mesmo usuário)
+                        const emailExistente = this.usuarios.find(u => 
+                            u.email.toLowerCase() === usuario.email.toLowerCase() && 
+                            u.id !== parseInt(usuarioId)
+                        );
+                        if (emailExistente) {
+                            this.mostrarMensagem('E-mail já está em uso', 'error');
+                            return;
+                        }
+                        
+                        // Manter flags importantes
+                        usuario.id = parseInt(usuarioId);
+                        usuario.isSystemAdmin = this.usuarios[index].isSystemAdmin || false;
+                        usuario.dataCriacao = this.usuarios[index].dataCriacao;
+                        usuario.criadoPor = this.usuarios[index].criadoPor;
+                        
+                        // Atualizar senha apenas se fornecida
+                        if (senha) {
+                            usuario.senha = senha;
+                        } else {
+                            usuario.senha = this.usuarios[index].senha;
+                        }
+                        
+                        usuario.ultimaAtualizacao = new Date().toISOString();
+                        usuario.atualizadoPor = localStorage.getItem('gestao_equipamentos_usuario') || 'sistema';
+                        
+                        this.usuarios[index] = usuario;
+                        
+                        this.mostrarMensagem('Usuário atualizado com sucesso!', 'success');
+                        this.registrarAtividade('EDITAR_USUARIO', `Editou usuário: ${usuario.username}`);
+                    }
+                } else {
+                    // Criar novo usuário
+                    
+                    // Verificar se username já existe
                     const usernameExistente = this.usuarios.find(u => 
                         u.username.toLowerCase() === usuario.username.toLowerCase()
                     );
@@ -623,34 +1438,33 @@ async salvarUsuarios() {
                         this.mostrarMensagem('Nome de usuário já existe', 'error');
                         return;
                     }
-                }
-                
-                if (isEdit) {
-                    // Editar usuário existente
-                    const index = this.usuarios.findIndex(u => u.id === parseInt(usuarioId));
-                    if (index !== -1) {
-                        usuario.id = parseInt(usuarioId);
-                        usuario.dataCriacao = this.usuarios[index].dataCriacao;
-                        usuario.criadoPor = this.usuarios[index].criadoPor;
-                        this.usuarios[index] = usuario;
+                    
+                    // Verificar se email já existe
+                    const emailExistente = this.usuarios.find(u => 
+                        u.email.toLowerCase() === usuario.email.toLowerCase()
+                    );
+                    if (emailExistente) {
+                        this.mostrarMensagem('E-mail já está em uso', 'error');
+                        return;
                     }
-                } else {
-                    // Criar novo usuário
-                    usuario.id = this.usuarios.length > 0 ? 
-                        Math.max(...this.usuarios.map(u => u.id)) + 1 : 1;
+                    
+                    usuario.id = this.nextUserId++;
+                    usuario.senha = senha;
+                    usuario.isSystemAdmin = false; // Apenas o sistema pode criar admins do sistema
                     usuario.dataCriacao = new Date().toISOString().split('T')[0];
                     usuario.criadoPor = localStorage.getItem('gestao_equipamentos_usuario') || 'administrador';
+                    usuario.ultimaAtualizacao = new Date().toISOString();
+                    usuario.atualizadoPor = localStorage.getItem('gestao_equipamentos_usuario') || 'sistema';
+                    
                     this.usuarios.push(usuario);
+                    
+                    this.mostrarMensagem('Usuário criado com sucesso!', 'success');
+                    this.registrarAtividade('CRIAR_USUARIO', `Criou usuário: ${usuario.username}`);
                 }
                 
                 // Salvar no JSONBin
                 const salvou = await this.salvarUsuarios();
                 if (salvou) {
-                    this.mostrarMensagem(
-                        isEdit ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!',
-                        'success'
-                    );
-                    
                     // Fechar modal e atualizar lista
                     this.fecharModalUsuario();
                     this.renderizarUsuarios();
@@ -664,14 +1478,25 @@ async salvarUsuarios() {
                 const titulo = document.getElementById('modal-usuario-titulo');
                 const form = document.getElementById('form-usuario');
                 
-                titulo.textContent = 'Novo Usuário';
+                titulo.querySelector('span').textContent = 'Novo Usuário';
                 form.reset();
                 document.getElementById('usuario-id').value = '';
+                document.getElementById('usuario-is-system-admin').value = 'false';
                 
                 // Resetar validação de senha
                 document.getElementById('senha-strength-bar').style.width = '0%';
                 document.getElementById('senha-strength-text').textContent = 'Fraca';
-                document.getElementById('usuario-username').placeholder = 'Ex: joao.silva';
+                document.getElementById('usuario-senha').placeholder = 'Mínimo 6 caracteres';
+                document.getElementById('senha-hint').textContent = 'Mínimo 6 caracteres';
+                
+                // Habilitar campos
+                document.getElementById('usuario-username').disabled = false;
+                document.getElementById('usuario-nivel').disabled = false;
+                document.getElementById('usuario-status').disabled = false;
+                
+                // Senha obrigatória
+                document.getElementById('usuario-senha').required = true;
+                document.getElementById('usuario-confirmar-senha').required = true;
                 document.getElementById('usuario-senha').placeholder = 'Mínimo 6 caracteres';
                 
                 modal.classList.add('active');
@@ -684,19 +1509,12 @@ async salvarUsuarios() {
                 this.usuarioEditando = usuario;
                 const modal = document.getElementById('modal-usuario');
                 const titulo = document.getElementById('modal-usuario-titulo');
-                const form = document.getElementById('form-usuario');
-                // Adicionar no início do método
-                const senhaInput = document.getElementById('usuario-senha');
-                const confirmarSenhaInput = document.getElementById('usuario-confirmar-senha');
-
-                // Resetar validação visual
-                senhaInput.style.borderColor = '';
-                confirmarSenhaInput.style.borderColor = '';
                 
-                titulo.textContent = 'Editar Usuário';
+                titulo.querySelector('span').textContent = 'Editar Usuário';
                 
                 // Preencher formulário
                 document.getElementById('usuario-id').value = usuario.id;
+                document.getElementById('usuario-is-system-admin').value = usuario.isSystemAdmin || false;
                 document.getElementById('usuario-username').value = usuario.username;
                 document.getElementById('usuario-nome').value = usuario.nome;
                 document.getElementById('usuario-email').value = usuario.email;
@@ -705,12 +1523,31 @@ async salvarUsuarios() {
                 document.getElementById('usuario-status').value = 
                     (usuario.ativo === true || usuario.ativo === undefined) ? 'ativo' : 'inativo';
                 
+                // Desabilitar campos para admin do sistema (se não for o próprio admin do sistema editando)
+                const isCurrentUserSystemAdmin = this.isCurrentUserSystemAdmin();
+                
+                if (usuario.isSystemAdmin && !isCurrentUserSystemAdmin) {
+                    document.getElementById('usuario-username').disabled = true;
+                    document.getElementById('usuario-nivel').disabled = true;
+                    document.getElementById('usuario-status').disabled = true;
+                    this.mostrarMensagem('Algumas informações do administrador do sistema não podem ser alteradas', 'info');
+                } else {
+                    document.getElementById('usuario-username').disabled = false;
+                    document.getElementById('usuario-nivel').disabled = false;
+                    document.getElementById('usuario-status').disabled = false;
+                }
+                
                 // Senha em branco (não mostrar a atual por segurança)
                 document.getElementById('usuario-senha').value = '';
                 document.getElementById('usuario-confirmar-senha').value = '';
                 document.getElementById('usuario-senha').placeholder = 'Deixe em branco para não alterar';
-                document.getElementById('usuario-senha').removeAttribute('required');
-                document.getElementById('usuario-confirmar-senha').removeAttribute('required');
+                document.getElementById('usuario-senha').required = false;
+                document.getElementById('usuario-confirmar-senha').required = false;
+                document.getElementById('senha-hint').textContent = 'Deixe em branco para manter a senha atual';
+                
+                // Resetar força da senha
+                document.getElementById('senha-strength-bar').style.width = '0%';
+                document.getElementById('senha-strength-text').textContent = 'Fraca';
                 
                 modal.classList.add('active');
             }
@@ -719,22 +1556,33 @@ async salvarUsuarios() {
                 const modal = document.getElementById('modal-usuario');
                 modal.classList.remove('active');
                 
-                // Resetar validação de senha
-                document.getElementById('usuario-senha').setAttribute('required', 'true');
-                document.getElementById('usuario-confirmar-senha').setAttribute('required', 'true');
-                document.getElementById('usuario-senha').placeholder = '';
+                // Resetar validação de senha para o padrão
+                document.getElementById('usuario-senha').required = true;
+                document.getElementById('usuario-confirmar-senha').required = true;
+                document.getElementById('usuario-senha').placeholder = 'Mínimo 6 caracteres';
+                document.getElementById('senha-hint').textContent = 'Mínimo 6 caracteres';
+                
+                // Habilitar campos
+                document.getElementById('usuario-username').disabled = false;
+                document.getElementById('usuario-nivel').disabled = false;
+                document.getElementById('usuario-status').disabled = false;
             }
             
             async excluirUsuario(id) {
-                if (id === 1) {
-                    this.mostrarMensagem('Não é possível excluir o usuário administrador principal', 'error');
-                    return;
-                }
-                
                 const usuario = this.usuarios.find(u => u.id === id);
                 if (!usuario) return;
                 
-                const confirmar = confirm(`Tem certeza que deseja excluir o usuário "${usuario.nome}"?`);
+                // Verificar se é admin do sistema
+                if (usuario.isSystemAdmin) {
+                    this.mostrarMensagem('Não é possível excluir o administrador do sistema', 'error');
+                    return;
+                }
+                
+                const confirmar = await this.mostrarConfirmacao(
+                    'Confirmar Exclusão',
+                    `Tem certeza que deseja excluir o usuário "${usuario.nome}"?`
+                );
+                
                 if (!confirmar) return;
                 
                 this.usuarios = this.usuarios.filter(u => u.id !== id);
@@ -742,27 +1590,36 @@ async salvarUsuarios() {
                 
                 if (salvou) {
                     this.mostrarMensagem('Usuário excluído com sucesso', 'success');
+                    this.registrarAtividade('EXCLUIR_USUARIO', `Excluiu usuário: ${usuario.username}`);
                     this.renderizarUsuarios();
                     this.atualizarEstatisticas();
                 }
             }
             
             async toggleStatusUsuario(id) {
-                if (id === 1) {
-                    this.mostrarMensagem('Não é possível desativar o administrador principal', 'error');
-                    return;
-                }
-                
                 const usuario = this.usuarios.find(u => u.id === id);
                 if (!usuario) return;
+                
+                // Verificar se é admin do sistema
+                if (usuario.isSystemAdmin) {
+                    this.mostrarMensagem('Não é possível desativar o administrador do sistema', 'error');
+                    return;
+                }
                 
                 const isAtivo = usuario.ativo === true || usuario.ativo === undefined;
                 const acao = isAtivo ? 'desativar' : 'ativar';
                 
-                const confirmar = confirm(`Tem certeza que deseja ${acao} o usuário "${usuario.nome}"?`);
+                const confirmar = await this.mostrarConfirmacao(
+                    `Confirmar ${acao === 'desativar' ? 'Desativação' : 'Ativação'}`,
+                    `Tem certeza que deseja ${acao} o usuário "${usuario.nome}"?`
+                );
+                
                 if (!confirmar) return;
                 
                 usuario.ativo = !isAtivo;
+                usuario.ultimaAtualizacao = new Date().toISOString();
+                usuario.atualizadoPor = localStorage.getItem('gestao_equipamentos_usuario') || 'sistema';
+                
                 const salvou = await this.salvarUsuarios();
                 
                 if (salvou) {
@@ -770,9 +1627,17 @@ async salvarUsuarios() {
                         `Usuário ${acao === 'desativar' ? 'desativado' : 'ativado'} com sucesso`,
                         'success'
                     );
+                    this.registrarAtividade('ALTERAR_STATUS_USUARIO', `${acao} usuário: ${usuario.username}`);
                     this.renderizarUsuarios();
                     this.atualizarEstatisticas();
                 }
+            }
+            
+            // ========== FUNÇÕES DE VALIDAÇÃO ==========
+            
+            validarEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(String(email).toLowerCase());
             }
             
             validarForcaSenha(senha) {
@@ -781,7 +1646,10 @@ async salvarUsuarios() {
                     nivel: 'fraca'
                 };
                 
-                if (!senha) return forca;
+                if (!senha) {
+                    this.atualizarForcaSenhaUI(0, 'Fraca', '#e74c3c');
+                    return forca;
+                }
                 
                 // Verificar comprimento
                 if (senha.length >= 6) forca.pontos++;
@@ -800,29 +1668,27 @@ async salvarUsuarios() {
                 else if (forca.pontos <= 6) forca.nivel = 'forte';
                 else forca.nivel = 'muito forte';
                 
-                // Atualizar interface
+                // Cores baseadas na força
+                let cor = '#e74c3c';
+                if (forca.nivel === 'média') cor = '#f39c12';
+                else if (forca.nivel === 'forte') cor = '#2ecc71';
+                else if (forca.nivel === 'muito forte') cor = '#27ae60';
+                
+                const porcentagem = (forca.pontos / 7) * 100;
+                this.atualizarForcaSenhaUI(porcentagem, forca.nivel, cor);
+                
+                return forca;
+            }
+            
+            atualizarForcaSenhaUI(porcentagem, texto, cor) {
                 const bar = document.getElementById('senha-strength-bar');
                 const text = document.getElementById('senha-strength-text');
                 
                 if (bar && text) {
-                    const porcentagem = (forca.pontos / 7) * 100;
                     bar.style.width = `${porcentagem}%`;
-                    
-                    // Cores baseadas na força
-                    if (forca.nivel === 'fraca') {
-                        bar.style.backgroundColor = '#e74c3c';
-                    } else if (forca.nivel === 'média') {
-                        bar.style.backgroundColor = '#f39c12';
-                    } else if (forca.nivel === 'forte') {
-                        bar.style.backgroundColor = '#2ecc71';
-                    } else {
-                        bar.style.backgroundColor = '#27ae60';
-                    }
-                    
-                    text.textContent = forca.nivel.charAt(0).toUpperCase() + forca.nivel.slice(1);
+                    bar.style.backgroundColor = cor;
+                    text.textContent = texto.charAt(0).toUpperCase() + texto.slice(1);
                 }
-                
-                return forca;
             }
             
             validarConfirmacaoSenha() {
@@ -832,9 +1698,29 @@ async salvarUsuarios() {
                 
                 if (confirmar && senha !== confirmar) {
                     confirmarInput.style.borderColor = '#e74c3c';
+                } else if (confirmar && senha === confirmar) {
+                    confirmarInput.style.borderColor = '#2ecc71';
                 } else {
                     confirmarInput.style.borderColor = '';
                 }
+            }
+            
+            // ========== FUNÇÕES AUXILIARES ==========
+            
+            getNivelInfo(nivelKey) {
+                const niveis = {
+                    'operador': { nome: 'Operador', icone: 'fa-user', cor: '#3498db' },
+                    'supervisor': { nome: 'Supervisor', icone: 'fa-user-tie', cor: '#f39c12' },
+                    'manutencao': { nome: 'Manutenção', icone: 'fa-tools', cor: '#9b59b6' },
+                    'engenharia': { nome: 'Engenharia', icone: 'fa-user-cog', cor: '#2ecc71' },
+                    'administrador': { nome: 'Administrador', icone: 'fa-user-shield', cor: '#e74c3c' }
+                };
+                
+                return niveis[nivelKey] || { nome: nivelKey, icone: 'fa-user', cor: '#95a5a6' };
+            }
+            
+            isCurrentUserSystemAdmin() {
+                return localStorage.getItem('gestao_equipamentos_is_system_admin') === 'true';
             }
             
             formatarData(dataString) {
@@ -847,12 +1733,59 @@ async salvarUsuarios() {
                 }
             }
             
-            mostrarMensagem(texto, tipo) {
+            formatarDataHora(dataString) {
+                if (!dataString) return 'Não informada';
+                try {
+                    const data = new Date(dataString);
+                    return data.toLocaleDateString('pt-BR') + ' ' + 
+                           data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                } catch (e) {
+                    return dataString;
+                }
+            }
+            
+            escapeHTML(texto) {
+                if (!texto) return '';
+                const div = document.createElement('div');
+                div.textContent = texto;
+                return div.innerHTML;
+            }
+            
+            // ========== FUNÇÕES DE INTERFACE ==========
+            
+            mostrarLoading(mostrar) {
+                const container = document.getElementById('usuarios-container');
+                if (mostrar) {
+                    container.innerHTML = `
+                        <div class="loading">
+                            <i class="fas fa-cog fa-spin"></i>
+                            <p>Carregando usuários...</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            mostrarMensagem(texto, tipo = 'info') {
+                // Remover mensagem anterior
+                const mensagemAnterior = document.querySelector('.mensagem-flutuante');
+                if (mensagemAnterior) {
+                    mensagemAnterior.remove();
+                }
+                
+                // Criar nova mensagem
                 const mensagem = document.createElement('div');
                 mensagem.className = `mensagem-flutuante ${tipo}`;
+                
+                const icones = {
+                    success: 'check-circle',
+                    error: 'exclamation-circle',
+                    warning: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                
                 mensagem.innerHTML = `
                     <div class="mensagem-conteudo">
-                        <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                        <i class="fas fa-${icones[tipo] || 'info-circle'}"></i>
                         <span>${texto}</span>
                     </div>
                 `;
@@ -869,9 +1802,63 @@ async salvarUsuarios() {
                 }, 5000);
             }
             
+            mostrarConfirmacao(titulo, mensagem) {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('modal-confirmacao');
+                    document.getElementById('modal-confirmacao-titulo').innerHTML = 
+                        `<i class="fas fa-question-circle"></i> ${titulo}`;
+                    document.getElementById('modal-confirmacao-mensagem').textContent = mensagem;
+                    
+                    const confirmarBtn = document.getElementById('modal-confirmacao-confirmar');
+                    
+                    const handleConfirmar = () => {
+                        this.fecharModalConfirmacao();
+                        resolve(true);
+                    };
+                    
+                    const handleCancelar = () => {
+                        this.fecharModalConfirmacao();
+                        resolve(false);
+                    };
+                    
+                    // Remover eventos anteriores
+                    confirmarBtn.replaceWith(confirmarBtn.cloneNode(true));
+                    const novoConfirmarBtn = document.getElementById('modal-confirmacao-confirmar');
+                    
+                    novoConfirmarBtn.addEventListener('click', handleConfirmar);
+                    
+                    this.modalConfirmacaoCallback = {
+                        confirmar: handleConfirmar,
+                        cancelar: handleCancelar
+                    };
+                    
+                    modal.classList.add('active');
+                    
+                    // Fechar ao clicar no X
+                    const closeBtn = modal.querySelector('.close-modal');
+                    closeBtn.onclick = handleCancelar;
+                    
+                    // Fechar ao clicar fora
+                    modal.onclick = (e) => {
+                        if (e.target === modal) handleCancelar();
+                    };
+                });
+            }
+            
+            fecharModalConfirmacao() {
+                const modal = document.getElementById('modal-confirmacao');
+                modal.classList.remove('active');
+                this.modalConfirmacaoCallback = null;
+            }
+            
+            aplicarFiltros() {
+                // Filtros já são aplicados automaticamente via eventos
+                this.mostrarMensagem('Filtros aplicados', 'info');
+            }
+            
             async exportarUsuarios() {
                 try {
-                    let csv = 'ID,Usuário,Nome,E-mail,Departamento,Nível de Acesso,Status,Data Criação\n';
+                    let csv = 'ID,Usuário,Nome,E-mail,Departamento,Nível de Acesso,Status,Data Criação,Admin Sistema,Último Acesso\n';
                     
                     this.usuarios.forEach(usuario => {
                         const escapeCSV = (str) => {
@@ -884,21 +1871,25 @@ async salvarUsuarios() {
                         };
                         
                         const isAtivo = usuario.ativo === true || usuario.ativo === undefined;
+                        const nivelInfo = this.getNivelInfo(usuario.nivel);
+                        const ultimoAcesso = usuario.ultimoAcesso ? this.formatarDataHora(usuario.ultimoAcesso) : '';
                         
                         csv += [
                             usuario.id,
                             escapeCSV(usuario.username),
                             escapeCSV(usuario.nome),
-                            escapeCSV(usuario.email),
+                            escapeCSV(usuario.email || ''),
                             escapeCSV(usuario.departamento || ''),
-                            escapeCSV(PERMISSOES.getNomeNivel(usuario.nivel)),
+                            escapeCSV(nivelInfo.nome),
                             isAtivo ? 'Ativo' : 'Inativo',
-                            usuario.dataCriacao || ''
+                            usuario.dataCriacao || '',
+                            usuario.isSystemAdmin ? 'Sim' : 'Não',
+                            ultimoAcesso
                         ].join(',') + '\n';
                     });
                     
                     // Criar e baixar arquivo
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement('a');
                     
                     link.href = URL.createObjectURL(blob);
@@ -909,22 +1900,39 @@ async salvarUsuarios() {
                     document.body.removeChild(link);
                     
                     this.mostrarMensagem('Lista de usuários exportada com sucesso', 'success');
+                    this.registrarAtividade('EXPORTAR_USUARIOS', `Exportou ${this.usuarios.length} usuários`);
                     
                 } catch (error) {
                     console.error('Erro ao exportar usuários:', error);
                     this.mostrarMensagem('Erro ao exportar lista', 'error');
                 }
             }
+            
+            reenviarSenhas() {
+                this.mostrarMensagem('Funcionalidade em desenvolvimento', 'info');
+            }
+            
+            registrarAtividade(acao, detalhes) {
+                if (window.registrarAtividade) {
+                    window.registrarAtividade(acao, detalhes);
+                } else {
+                    console.log(`[${acao}] ${detalhes}`);
+                }
+            }
         }
         
-        // Inicializar gerenciador
+        // ===========================================
+        // INICIALIZAÇÃO
+        // ===========================================
+        
         let gerenciador;
+        
         document.addEventListener('DOMContentLoaded', () => {
             gerenciador = new GerenciadorUsuarios();
             window.gerenciador = gerenciador;
         });
         
-        // Funções globais para acesso dos botões
+        // Funções globais para compatibilidade
         function abrirModalNovoUsuario() {
             gerenciador?.abrirModalNovoUsuario();
         }
@@ -934,7 +1942,7 @@ async salvarUsuarios() {
         }
         
         function aplicarFiltros() {
-            // Filtros já são aplicados automaticamente via eventos
+            gerenciador?.aplicarFiltros();
         }
         
         function exportarUsuarios() {
@@ -942,8 +1950,28 @@ async salvarUsuarios() {
         }
         
         function reenviarSenhas() {
-            alert('Funcionalidade de reenvio de senhas em desenvolvimento');
+            gerenciador?.reenviarSenhas();
         }
+        
+        // ===========================================
+        // SEGURANÇA ADICIONAL
+        // ===========================================
+        
+        // Proteger contra cópia de texto sensível
+        document.addEventListener('copy', function(e) {
+            if (e.target.tagName === 'INPUT' && e.target.type === 'password') {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Prevenir inspeção de elementos sensíveis
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.closest('.usuario-card')) {
+                e.preventDefault();
+                return false;
+            }
+        });
     </script>
 </body>
 </html>
