@@ -378,6 +378,47 @@
             color: #7f8c8d;
         }
 
+        /* Indicador de força da senha */
+        .password-strength {
+            margin-top: 5px;
+            display: none;
+        }
+
+        .password-strength.show {
+            display: block;
+        }
+
+        .strength-bar {
+            height: 5px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background-color 0.3s;
+        }
+
+        .strength-text {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        /* Badge de admin do sistema */
+        .system-admin-badge {
+            display: inline-block;
+            background: #8e44ad;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
         /* Rodapé do login */
         .login-footer {
             text-align: center;
@@ -472,7 +513,7 @@
     <div class="login-container">
         <!-- Cabeçalho -->
         <div class="login-header">
-            <div class="version-badge">v2.1.0</div>
+            <div class="version-badge" id="version-badge">v2.2.0</div>
             <h1><i class="fas fa-industry"></i> Gestão de Equipamentos</h1>
             <p>Sistema de gerenciamento de equipamentos industriais</p>
         </div>
@@ -491,7 +532,7 @@
                     <label for="username"><i class="fas fa-user"></i> Usuário</label>
                     <div class="input-with-icon">
                         <i class="fas fa-user-circle"></i>
-                        <input type="text" id="username" placeholder="Digite seu nome de usuário" required autocomplete="username">
+                        <input type="text" id="username" placeholder="Digite seu nome de usuário" required autocomplete="username" autofocus>
                     </div>
                 </div>
 
@@ -500,9 +541,17 @@
                     <div class="input-with-icon">
                         <i class="fas fa-key"></i>
                         <input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password">
-                        <button type="button" class="toggle-password" id="togglePassword">
+                        <button type="button" class="toggle-password" id="togglePassword" tabindex="-1">
                             <i class="fas fa-eye"></i>
                         </button>
+                    </div>
+                    
+                    <!-- Indicador de força da senha (opcional) -->
+                    <div class="password-strength" id="password-strength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strength-fill"></div>
+                        </div>
+                        <span class="strength-text" id="strength-text"></span>
                     </div>
                 </div>
 
@@ -520,9 +569,12 @@
             <!-- Informações dos níveis de usuário -->
             <div class="login-info fade-in">
                 <div class="user-levels">
-                    <h4><i class="fas fa-users-cog"></i> Níveis de Acesso</h4>
+                    <h4><i class="fas fa-users-cog"></i> Usuários de Demonstração</h4>
                     <div class="levels-grid" id="levelsGrid">
                         <!-- Níveis serão preenchidos via JavaScript -->
+                        <div class="loading-mini">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando...
+                        </div>
                     </div>
                 </div>
 
@@ -542,71 +594,99 @@
         // CONFIGURAÇÃO DO SISTEMA DE LOGIN
         // ===========================================
 
-        // Banco de usuários autorizados com níveis de acesso
-        const USUARIOS_AUTORIZADOS = {
-            'operador': { 
-                senha: 'operador123', 
-                nivel: 'operador',
-                nome: 'Operador',
-                icone: 'fa-user',
-                cor: '#3498db',
-                descricao: 'Visualiza equipamentos e cria pendências'
+        // Configuração do JSONBin para usuários
+        const JSONBIN_CONFIG = {
+            BIN_USUARIOS: {
+                ID: '6978e17b43b1c97be94efa1b',
+                BASE_URL: 'https://api.jsonbin.io/v3/b'
             },
-            'supervisor': { 
-                senha: 'supervisor456', 
-                nivel: 'supervisor',
-                nome: 'Supervisor',
-                icone: 'fa-user-tie',
-                cor: '#f39c12',
-                descricao: 'Gerencia pendências e exporta relatórios'
-            },
-            'administrador': { 
-                senha: 'admin789', 
-                nivel: 'administrador',
-                nome: 'Administrador',
-                icone: 'fa-user-shield',
-                cor: '#e74c3c',
-                descricao: 'Acesso total ao sistema'
-            },
-            'manutencao': { 
-                senha: 'manutencao2024', 
-                nivel: 'manutencao',
-                nome: 'Manutenção',
-                icone: 'fa-tools',
-                cor: '#9b59b6',
-                descricao: 'Gerencia pendências técnicas'
-            },
-            'engenharia': { 
-                senha: 'engenharia789', 
-                nivel: 'engenharia',
-                nome: 'Engenharia',
-                icone: 'fa-user-cog',
-                cor: '#2ecc71',
-                descricao: 'Gerencia equipamentos e configurações'
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': '$2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i'
             }
         };
 
-// Configuração do JSONBin para usuários
-const JSONBIN_CONFIG = {
-    BIN_USUARIOS: {
-        ID: '6978e17b43b1c97be94efa1b', // MESMO ID DO PASSO 2
-        BASE_URL: 'https://api.jsonbin.io/v3/b'
-    },
-    headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': '$2a$10$gHdA8KAK/9HnnagDiMTlHeBUzNo9cWC0lR8EL0IaUpJg5ChpGiz/i'
-    }
-};
-
-
-        
         // Configurações do sistema
         const SISTEMA_CONFIG = {
             nome: 'Gestão de Equipamentos',
-            versao: '2.1.0',
+            versao: '2.2.0',
             empresa: 'Usina Industrial',
             tempoSessao: 8, // horas
         };
+
+        // Usuários locais para fallback (formato array - consistente com JSONBin)
+        const USUARIOS_LOCAIS = [
+            {
+                id: 1,
+                username: 'administrador',
+                senha: 'admin789',
+                nivel: 'administrador',
+                nome: 'Administrador Sistema',
+                email: 'admin@empresa.com',
+                departamento: 'TI',
+                ativo: true,
+                isSystemAdmin: true,
+                dataCriacao: '2024-01-01',
+                criadoPor: 'sistema'
+            },
+            {
+                id: 2,
+                username: 'supervisor',
+                senha: 'supervisor456',
+                nivel: 'supervisor',
+                nome: 'Maria Santos',
+                email: 'maria.santos@empresa.com',
+                departamento: 'Supervisão',
+                ativo: true,
+                isSystemAdmin: false,
+                dataCriacao: '2024-01-01',
+                criadoPor: 'sistema'
+            },
+            {
+                id: 3,
+                username: 'operador',
+                senha: 'operador123',
+                nivel: 'operador',
+                nome: 'João Silva',
+                email: 'joao.silva@empresa.com',
+                departamento: 'Operações',
+                ativo: true,
+                isSystemAdmin: false,
+                dataCriacao: '2024-01-01',
+                criadoPor: 'sistema'
+            },
+            {
+                id: 4,
+                username: 'manutencao',
+                senha: 'manutencao2024',
+                nivel: 'manutencao',
+                nome: 'Pedro Costa',
+                email: 'pedro.costa@empresa.com',
+                departamento: 'Manutenção',
+                ativo: true,
+                isSystemAdmin: false,
+                dataCriacao: '2024-01-01',
+                criadoPor: 'sistema'
+            },
+            {
+                id: 5,
+                username: 'engenharia',
+                senha: 'engenharia789',
+                nivel: 'engenharia',
+                nome: 'Ana Rodrigues',
+                email: 'ana.rodrigues@empresa.com',
+                departamento: 'Engenharia',
+                ativo: true,
+                isSystemAdmin: false,
+                dataCriacao: '2024-01-01',
+                criadoPor: 'sistema'
+            }
+        ];
+
+        // Configurações de segurança
+        let tentativasLogin = 0;
+        const maxTentativas = 5;
+        let bloqueadoAte = 0;
 
         // ===========================================
         // INICIALIZAÇÃO DA PÁGINA
@@ -627,6 +707,9 @@ const JSONBIN_CONFIG = {
             
             // Configurar eventos
             configurarEventos();
+            
+            // Verificar modo offline
+            verificarModoOffline();
             
             // Foco no campo de usuário
             setTimeout(() => {
@@ -667,29 +750,102 @@ const JSONBIN_CONFIG = {
 
         // Inicializar interface
         function inicializarInterface() {
+            // Atualizar versão
+            document.getElementById('version-badge').textContent = `v${SISTEMA_CONFIG.versao}`;
+            
             // Preencher grid de níveis de usuário
+            preencherGridUsuarios();
+        }
+
+        // Preencher grid de usuários
+        function preencherGridUsuarios() {
             const levelsGrid = document.getElementById('levelsGrid');
+            
+            // Usar usuários locais para demonstração
+            const usuariosExemplo = USUARIOS_LOCAIS;
+            
             levelsGrid.innerHTML = '';
             
-            Object.entries(USUARIOS_AUTORIZADOS).forEach(([username, info]) => {
+            usuariosExemplo.forEach(usuario => {
+                // Obter informações do nível baseado no usuário
+                const nivelInfo = getNivelInfo(usuario.nivel);
+                
                 const levelItem = document.createElement('div');
                 levelItem.className = 'level-item';
-                levelItem.title = `${info.nome}\nUsuário: ${username}\nSenha: ${info.senha}\n\n${info.descricao}`;
-                levelItem.style.borderLeft = `4px solid ${info.cor}`;
+                
+                // Criar tooltip com informações
+                const tooltipText = `${nivelInfo.nome}\nUsuário: ${usuario.username}\nSenha: ${usuario.senha}\n\n${nivelInfo.descricao}`;
+                levelItem.setAttribute('title', tooltipText);
+                
+                levelItem.style.borderLeft = `4px solid ${nivelInfo.cor}`;
+                
+                const systemAdminBadge = usuario.isSystemAdmin ? 
+                    '<span class="system-admin-badge"><i class="fas fa-shield-alt"></i> SISTEMA</span>' : '';
                 
                 levelItem.innerHTML = `
-                    <div class="level-icon" style="color: ${info.cor}">
-                        <i class="fas ${info.icone}"></i>
+                    <div class="level-icon" style="color: ${nivelInfo.cor}">
+                        <i class="fas ${nivelInfo.icone}"></i>
                     </div>
-                    <div class="level-name">${info.nome}</div>
-                    <div class="level-user">${username}</div>
+                    <div class="level-name">${nivelInfo.nome} ${systemAdminBadge}</div>
+                    <div class="level-user">${usuario.username}</div>
                 `;
                 
                 levelsGrid.appendChild(levelItem);
             });
+        }
+
+        // Função auxiliar para obter informações do nível
+        function getNivelInfo(nivelKey) {
+            const niveis = {
+                'operador': { 
+                    nome: 'Operador', 
+                    icone: 'fa-user', 
+                    cor: '#3498db', 
+                    descricao: 'Visualiza equipamentos e cria pendências' 
+                },
+                'supervisor': { 
+                    nome: 'Supervisor', 
+                    icone: 'fa-user-tie', 
+                    cor: '#f39c12', 
+                    descricao: 'Gerencia pendências e exporta relatórios' 
+                },
+                'manutencao': { 
+                    nome: 'Manutenção', 
+                    icone: 'fa-tools', 
+                    cor: '#9b59b6', 
+                    descricao: 'Gerencia pendências técnicas' 
+                },
+                'engenharia': { 
+                    nome: 'Engenharia', 
+                    icone: 'fa-user-cog', 
+                    cor: '#2ecc71', 
+                    descricao: 'Gerencia equipamentos e configurações' 
+                },
+                'administrador': { 
+                    nome: 'Administrador', 
+                    icone: 'fa-user-shield', 
+                    cor: '#e74c3c', 
+                    descricao: 'Acesso total ao sistema' 
+                }
+            };
             
-            // Mostrar versão do sistema
-            document.querySelector('.version-badge').textContent = `v${SISTEMA_CONFIG.versao}`;
+            return niveis[nivelKey] || { 
+                nome: nivelKey, 
+                icone: 'fa-user', 
+                cor: '#95a5a6', 
+                descricao: '' 
+            };
+        }
+
+        // Verificar modo offline
+        function verificarModoOffline() {
+            if (!navigator.onLine) {
+                mostrarErro('Modo offline: usando dados locais para demonstração');
+                
+                // Adicionar badge de modo offline
+                const versionBadge = document.getElementById('version-badge');
+                versionBadge.innerHTML = `v${SISTEMA_CONFIG.versao} <i class="fas fa-wifi-slash" style="margin-left: 5px;"></i>`;
+            }
         }
 
         // Verificar se há sessão expirada
@@ -708,6 +864,8 @@ const JSONBIN_CONFIG = {
             localStorage.removeItem('gestao_equipamentos_sessao');
             localStorage.removeItem('gestao_equipamentos_usuario');
             localStorage.removeItem('gestao_equipamentos_nivel');
+            localStorage.removeItem('gestao_equipamentos_user_id');
+            localStorage.removeItem('gestao_equipamentos_is_system_admin');
         }
 
         // Carregar último acesso
@@ -774,6 +932,17 @@ const JSONBIN_CONFIG = {
                     this.parentElement.classList.remove('focused');
                 });
             });
+            
+            // Monitorar mudanças de conexão
+            window.addEventListener('online', function() {
+                mostrarErro('Conexão restabelecida. Tentando modo online...');
+                document.getElementById('version-badge').textContent = `v${SISTEMA_CONFIG.versao}`;
+            });
+            
+            window.addEventListener('offline', function() {
+                mostrarErro('Modo offline: usando dados locais para demonstração');
+                document.getElementById('version-badge').innerHTML = `v${SISTEMA_CONFIG.versao} <i class="fas fa-wifi-slash" style="margin-left: 5px;"></i>`;
+            });
         }
 
         // ===========================================
@@ -781,156 +950,229 @@ const JSONBIN_CONFIG = {
         // ===========================================
 
         // Realizar login
- // Realizar login
-function realizarLogin() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    const errorDiv = document.getElementById('error-message');
-    const loginBtn = document.getElementById('loginBtn');
-    const loading = document.getElementById('loading');
-    
-    // Limpar mensagens de erro anteriores
-    limparErros();
-    
-    // Validações básicas
-    if (!username || !password) {
-        mostrarErro('Por favor, preencha todos os campos.');
-        destacarCamposVazios(username, password);
-        return;
-    }
-    
-    // Desabilitar botão e mostrar carregamento
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...';
-    
-    // CARREGAR USUÁRIOS DO JSONBIN
-    carregarEValidarUsuario(username, password);
-}
+        function realizarLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Verificar bloqueio
+            if (verificarBloqueio()) {
+                return;
+            }
+            
+            // Limpar mensagens de erro anteriores
+            limparErros();
+            
+            // Validações básicas
+            if (!username || !password) {
+                mostrarErro('Por favor, preencha todos os campos.');
+                destacarCamposVazios(username, password);
+                return;
+            }
+            
+            // Desabilitar botão e mostrar carregamento
+            desabilitarBotaoLogin(true);
+            
+            // Tentar login com JSONBin primeiro
+            carregarEValidarUsuario(username, password);
+        }
 
-// Nova função para carregar usuários do JSONBin
-async function carregarEValidarUsuario(username, password) {
-    try {
         // Carregar usuários do JSONBin
-        const response = await fetch(
-            `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
-            { headers: JSONBIN_CONFIG.headers }
-        );
-        
-        if (!response.ok) {
-            throw new Error('Erro ao conectar com o servidor de autenticação');
+        async function carregarEValidarUsuario(username, password) {
+            try {
+                // Verificar se está online
+                if (!navigator.onLine) {
+                    throw new Error('Offline');
+                }
+                
+                // Carregar usuários do JSONBin
+                const response = await fetch(
+                    `${JSONBIN_CONFIG.BIN_USUARIOS.BASE_URL}/${JSONBIN_CONFIG.BIN_USUARIOS.ID}/latest`,
+                    { headers: JSONBIN_CONFIG.headers }
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Erro ao conectar com o servidor de autenticação');
+                }
+                
+                const result = await response.json();
+                
+                // Extrair usuários do formato do JSONBin
+                let usuarios = [];
+                if (result.record && result.record.usuarios) {
+                    usuarios = result.record.usuarios;
+                } else if (Array.isArray(result.record)) {
+                    usuarios = result.record;
+                } else {
+                    throw new Error('Formato de dados inválido');
+                }
+                
+                // Verificar se usuário existe
+                const usuarioEncontrado = usuarios.find(u => 
+                    u.username.toLowerCase() === username.toLowerCase() && u.ativo !== false
+                );
+                
+                if (!usuarioEncontrado) {
+                    mostrarErro('Usuário não encontrado ou desativado.');
+                    desabilitarBotaoLogin(false);
+                    return;
+                }
+                
+                // Verificar senha
+                if (usuarioEncontrado.senha !== password) {
+                    registrarTentativaFalha();
+                    
+                    if (tentativasLogin >= maxTentativas) {
+                        mostrarErro(`Muitas tentativas falhas. Sistema bloqueado por 15 minutos.`);
+                    } else {
+                        mostrarErro(`Senha incorreta. Tentativa ${tentativasLogin} de ${maxTentativas}`);
+                    }
+                    
+                    desabilitarBotaoLogin(false);
+                    return;
+                }
+                
+                // Login bem-sucedido
+                resetarTentativas();
+                criarSessao(usuarioEncontrado);
+                
+            } catch (error) {
+                console.warn('Erro ao conectar com JSONBin, usando fallback local:', error);
+                
+                // Fallback para usuários locais
+                validarUsuarioLocal(username, password);
+            }
         }
-        
-        const result = await response.json();
-        const usuarios = result.record?.usuarios || USUARIOS_AUTORIZADOS;
-        
-        // Verificar se usuário existe
-        const usuarioEncontrado = usuarios.find(u => 
-            u.username === username && u.ativo !== false
-        );
-        
-        if (!usuarioEncontrado) {
-            mostrarErro('Usuário não encontrado ou desativado.');
-            reativarBotaoLogin();
-            return;
+
+        // Fallback para validação local
+        function validarUsuarioLocal(username, password) {
+            // Usar array de usuários local
+            const usuariosLocais = USUARIOS_LOCAIS;
+            
+            // Verificar se usuário existe
+            const usuarioEncontrado = usuariosLocais.find(u => 
+                u.username.toLowerCase() === username.toLowerCase() && u.ativo !== false
+            );
+            
+            if (!usuarioEncontrado) {
+                mostrarErro('Usuário não encontrado no modo offline.');
+                desabilitarBotaoLogin(false);
+                return;
+            }
+            
+            // Verificar senha
+            if (usuarioEncontrado.senha !== password) {
+                registrarTentativaFalha();
+                
+                if (tentativasLogin >= maxTentativas) {
+                    mostrarErro(`Muitas tentativas falhas. Sistema bloqueado por 15 minutos.`);
+                } else {
+                    mostrarErro(`Senha incorreta. Tentativa ${tentativasLogin} de ${maxTentativas}`);
+                }
+                
+                desabilitarBotaoLogin(false);
+                return;
+            }
+            
+            // Login bem-sucedido com dados locais
+            resetarTentativas();
+            criarSessao(usuarioEncontrado);
         }
-        
-        // Verificar senha
-        if (usuarioEncontrado.senha !== password) {
-            mostrarErro('Senha incorreta. Tente novamente.');
-            reativarBotaoLogin();
-            return;
+
+        // Função para criar sessão
+        function criarSessao(usuario) {
+            const sessionData = {
+                usuario: usuario.username,
+                nivel: usuario.nivel,
+                nome: usuario.nome,
+                userId: usuario.id,
+                isSystemAdmin: usuario.isSystemAdmin || false,
+                timestamp: new Date().getTime(),
+                expira: new Date().getTime() + (SISTEMA_CONFIG.tempoSessao * 60 * 60 * 1000)
+            };
+            
+            // Salvar dados da sessão
+            localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessionData));
+            localStorage.setItem('gestao_equipamentos_usuario', usuario.username);
+            localStorage.setItem('gestao_equipamentos_nivel', usuario.nivel);
+            localStorage.setItem('gestao_equipamentos_user_id', usuario.id);
+            localStorage.setItem('gestao_equipamentos_is_system_admin', usuario.isSystemAdmin || false);
+            localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
+            
+            // Registrar log de login
+            try {
+                let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
+                logs.unshift({
+                    usuario: usuario.username,
+                    nivel: usuario.nivel,
+                    acao: 'LOGIN',
+                    detalhes: `Login realizado com sucesso (ID: ${usuario.id})`,
+                    timestamp: new Date().toISOString(),
+                    ip: 'local',
+                    online: navigator.onLine ? 'online' : 'offline'
+                });
+                if (logs.length > 100) logs = logs.slice(0, 100);
+                localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
+            } catch (e) {
+                console.error('Erro ao salvar log:', e);
+            }
+            
+            // Redirecionar para aplicação principal
+            window.location.href = 'index.html';
         }
-        
-        // Login bem-sucedido
-        criarSessao(usuarioEncontrado);
-        
-    } catch (error) {
-        console.error('Erro de autenticação:', error);
-        
-        // Fallback para usuários locais
-        validarUsuarioLocal(username, password);
-    }
-}
-
-// Fallback para validação local
-function validarUsuarioLocal(username, password) {
-    // Verificar se usuário existe no backup local
-    if (!USUARIOS_AUTORIZADOS[username]) {
-        mostrarErro('Usuário não encontrado.');
-        reativarBotaoLogin();
-        return;
-    }
-    
-    const userData = USUARIOS_AUTORIZADOS[username];
-    if (userData.senha !== password) {
-        mostrarErro('Senha incorreta. Tente novamente.');
-        reativarBotaoLogin();
-        return;
-    }
-    
-    // Login bem-sucedido com dados locais
-    const usuarioCompleto = {
-        username: username,
-        senha: userData.senha,
-        nivel: userData.nivel,
-        nome: userData.nome,
-        email: userData.email || '',
-        departamento: userData.departamento || '',
-        ativo: true,
-        dataCriacao: new Date().toISOString().split('T')[0],
-        criadoPor: 'sistema'
-    };
-    
-    criarSessao(usuarioCompleto);
-}
-
-// Função para criar sessão
-function criarSessao(usuario) {
-    const sessionData = {
-        usuario: usuario.username,
-        nivel: usuario.nivel,
-        nome: usuario.nome,
-        timestamp: new Date().getTime(),
-        expira: new Date().getTime() + (SISTEMA_CONFIG.tempoSessao * 60 * 60 * 1000)
-    };
-    
-    // Salvar dados da sessão
-    localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessionData));
-    localStorage.setItem('gestao_equipamentos_usuario', usuario.username);
-    localStorage.setItem('gestao_equipamentos_nivel', usuario.nivel);
-    localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
-    
-    // Registrar log de login
-    try {
-        let logs = JSON.parse(localStorage.getItem('gestao_equipamentos_logs') || '[]');
-        logs.unshift({
-            usuario: usuario.username,
-            nivel: usuario.nivel,
-            acao: 'LOGIN',
-            detalhes: 'Login realizado com sucesso',
-            timestamp: new Date().toISOString(),
-            ip: 'local'
-        });
-        if (logs.length > 100) logs = logs.slice(0, 100);
-        localStorage.setItem('gestao_equipamentos_logs', JSON.stringify(logs));
-    } catch (e) {
-        console.error('Erro ao salvar log:', e);
-    }
-    
-    // Redirecionar para aplicação principal
-    window.location.href = 'index.html';
-}
-
-// Função auxiliar para reativar botão de login
-function reativarBotaoLogin() {
-    const loginBtn = document.getElementById('loginBtn');
-    loginBtn.disabled = false;
-    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
-}
 
         // ===========================================
         // FUNÇÕES AUXILIARES
         // ===========================================
+
+        // Desabilitar/habilitar botão de login
+        function desabilitarBotaoLogin(desabilitar) {
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+            
+            loginBtn.disabled = desabilitar;
+            
+            if (desabilitar) {
+                loginBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Autenticando...';
+                loading.style.display = 'block';
+            } else {
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
+                loading.style.display = 'none';
+            }
+        }
+
+        // Verificar bloqueio
+        function verificarBloqueio() {
+            const agora = Date.now();
+            
+            if (tentativasLogin >= maxTentativas && agora < bloqueadoAte) {
+                const minutosRestantes = Math.ceil((bloqueadoAte - agora) / 60000);
+                mostrarErro(`Muitas tentativas falhas. Tente novamente em ${minutosRestantes} minutos.`);
+                return true;
+            }
+            
+            // Resetar contador se bloqueio expirou
+            if (agora > bloqueadoAte) {
+                tentativasLogin = 0;
+            }
+            
+            return false;
+        }
+
+        // Registrar tentativa falha
+        function registrarTentativaFalha() {
+            tentativasLogin++;
+            
+            if (tentativasLogin >= maxTentativas) {
+                // Bloquear por 15 minutos
+                bloqueadoAte = Date.now() + (15 * 60 * 1000);
+            }
+        }
+
+        // Resetar tentativas
+        function resetarTentativas() {
+            tentativasLogin = 0;
+            bloqueadoAte = 0;
+        }
 
         // Mostrar mensagem de erro
         function mostrarErro(mensagem) {
@@ -939,6 +1181,9 @@ function reativarBotaoLogin() {
             
             errorText.textContent = mensagem;
             errorDiv.classList.add('show');
+            
+            // Registrar tentativa falha
+            console.warn('Erro de login:', mensagem);
             
             // Remover automaticamente após 5 segundos
             setTimeout(() => {
@@ -984,146 +1229,56 @@ function reativarBotaoLogin() {
             }
         }
 
-        // Validar força da senha (para futuro uso)
+        // Validar força da senha (opcional)
         function validarForcaSenha(senha) {
-            const forca = {
-                pontos: 0,
-                nivel: 'fraca'
-            };
+            const strengthFill = document.getElementById('strength-fill');
+            const strengthText = document.getElementById('strength-text');
+            const strengthContainer = document.getElementById('password-strength');
+            
+            if (!senha) {
+                strengthContainer.classList.remove('show');
+                return;
+            }
+            
+            strengthContainer.classList.add('show');
+            
+            let pontos = 0;
+            let nivel = 'fraca';
             
             // Verificar comprimento
-            if (senha.length >= 8) forca.pontos++;
-            if (senha.length >= 12) forca.pontos++;
+            if (senha.length >= 8) pontos++;
+            if (senha.length >= 12) pontos++;
             
             // Verificar caracteres especiais
-            if (/[A-Z]/.test(senha)) forca.pontos++;
-            if (/[0-9]/.test(senha)) forca.pontos++;
-            if (/[^A-Za-z0-9]/.test(senha)) forca.pontos++;
+            if (/[A-Z]/.test(senha)) pontos++;
+            if (/[0-9]/.test(senha)) pontos++;
+            if (/[^A-Za-z0-9]/.test(senha)) pontos++;
             
             // Determinar nível
-            if (forca.pontos <= 2) forca.nivel = 'fraca';
-            else if (forca.pontos <= 4) forca.nivel = 'média';
-            else forca.nivel = 'forte';
+            if (pontos <= 2) nivel = 'fraca';
+            else if (pontos <= 4) nivel = 'média';
+            else nivel = 'forte';
             
-            return forca;
-        }
-
-        // Gerar dica de senha (para futuro uso)
-        function gerarDicaSenha() {
-            const dicas = [
-                'Use pelo menos 8 caracteres',
-                'Combine letras maiúsculas e minúsculas',
-                'Adicione números e símbolos',
-                'Evite sequências óbvias (123456, abcdef)',
-                'Não use informações pessoais como senha'
-            ];
+            // Atualizar barra
+            const porcentagem = (pontos / 6) * 100;
+            strengthFill.style.width = `${porcentagem}%`;
             
-            return dicas[Math.floor(Math.random() * dicas.length)];
-        }
-
-        // ===========================================
-        // FUNÇÕES DE SEGURANÇA ADICIONAIS
-        // ===========================================
-
-        // Proteger contra brute force (simples)
-        let tentativasLogin = 0;
-        const maxTentativas = 5;
-        let bloqueadoAte = 0;
-
-        function verificarBloqueio() {
-            const agora = Date.now();
-            
-            if (tentativasLogin >= maxTentativas && agora < bloqueadoAte) {
-                const minutosRestantes = Math.ceil((bloqueadoAte - agora) / 60000);
-                mostrarErro(`Muitas tentativas falhas. Tente novamente em ${minutosRestantes} minutos.`);
-                return true;
+            // Cores
+            if (nivel === 'fraca') {
+                strengthFill.style.backgroundColor = '#e74c3c';
+            } else if (nivel === 'média') {
+                strengthFill.style.backgroundColor = '#f39c12';
+            } else {
+                strengthFill.style.backgroundColor = '#2ecc71';
             }
             
-            // Resetar contador se bloqueio expirou
-            if (agora > bloqueadoAte) {
-                tentativasLogin = 0;
-            }
-            
-            return false;
+            strengthText.textContent = `Força da senha: ${nivel.charAt(0).toUpperCase() + nivel.slice(1)}`;
         }
 
-        function registrarTentativaFalha() {
-            tentativasLogin++;
-            
-            if (tentativasLogin >= maxTentativas) {
-                // Bloquear por 15 minutos
-                bloqueadoAte = Date.now() + (15 * 60 * 1000);
-                mostrarErro('Muitas tentativas falhas. Sistema bloqueado por 15 minutos.');
-            }
-        }
-
-        // Em caso de login bem-sucedido
-        function resetarTentativas() {
-            tentativasLogin = 0;
-            bloqueadoAte = 0;
-        }
-
-        // ===========================================
-        // ANIMAÇÕES E EFEITOS VISUAIS
-        // ===========================================
-
-        // Efeito de digitação no título (opcional)
-        function efeitoDigitacao(elemento, texto, velocidade = 50) {
-            let i = 0;
-            elemento.textContent = '';
-            
-            function digitar() {
-                if (i < texto.length) {
-                    elemento.textContent += texto.charAt(i);
-                    i++;
-                    setTimeout(digitar, velocidade);
-                }
-            }
-            
-            digitar();
-        }
-
-        // Inicializar efeitos visuais
-        function inicializarEfeitosVisuais() {
-            // Efeito de onda nos botões
-            const botoes = document.querySelectorAll('.login-btn, .level-item');
-            botoes.forEach(botao => {
-                botao.addEventListener('click', function(e) {
-                    const x = e.clientX - e.target.getBoundingClientRect().left;
-                    const y = e.clientY - e.target.getBoundingClientRect().top;
-                    
-                    const onda = document.createElement('span');
-                    onda.style.position = 'absolute';
-                    onda.style.borderRadius = '50%';
-                    onda.style.background = 'rgba(255, 255, 255, 0.5)';
-                    onda.style.transform = 'translate(-50%, -50%) scale(0)';
-                    onda.style.animation = 'onda 0.5s linear';
-                    onda.style.left = `${x}px`;
-                    onda.style.top = `${y}px`;
-                    
-                    this.appendChild(onda);
-                    
-                    setTimeout(() => {
-                        onda.remove();
-                    }, 500);
-                });
-            });
-            
-            // Adicionar estilo para animação de onda
-            const estilo = document.createElement('style');
-            estilo.textContent = `
-                @keyframes onda {
-                    to {
-                        transform: translate(-50%, -50%) scale(4);
-                        opacity: 0;
-                    }
-                }
-            `;
-            document.head.appendChild(estilo);
-        }
-
-        // Inicializar efeitos quando a página carregar
-        window.addEventListener('load', inicializarEfeitosVisuais);
+        // Adicionar evento para validação de senha (opcional)
+        document.getElementById('password').addEventListener('input', function(e) {
+            validarForcaSenha(e.target.value);
+        });
 
         // ===========================================
         // ACESSIBILIDADE
@@ -1171,6 +1326,28 @@ function reativarBotaoLogin() {
         
         .alto-contraste .error-message {
             border-width: 3px;
+        }
+        
+        .system-admin-badge {
+            display: inline-block;
+            background: #8e44ad;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        
+        .loading-mini {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            grid-column: 1 / -1;
+        }
+        
+        .loading-mini i {
+            margin-right: 8px;
         }
     </style>
 </body>
