@@ -1426,6 +1426,7 @@ table tr:hover {
     border-radius: 20px;
     font-size: 12px;
     font-weight: 500;      /* Um pouco mais de peso para melhor legibilidade */
+    font-color: #ffffff
     display: inline-flex;
     align-items: center;
     gap: 5px;
