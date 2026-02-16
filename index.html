@@ -14,7 +14,10 @@
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏭</text></svg>">
     
     <style>
-        /* Estilos específicos da página principal */
+        /* ===========================================
+           ESTILOS ESPECÍFICOS DA PÁGINA PRINCIPAL
+           =========================================== */
+        
         :root {
             /* Cores do sistema */
             --cor-primaria: #2c3e50;
@@ -28,6 +31,7 @@
             --cor-fundo: #ecf0f1;
             --cor-fundo-secundario: #f8f9fa;
             --cor-borda: #bdc3c7;
+            --cor-card: #ffffff;
             
             /* Transições */
             --transicao-rapida: 0.2s ease;
@@ -57,6 +61,7 @@
             --cor-fundo: #2c3e50;
             --cor-fundo-secundario: #34495e;
             --cor-borda: #4a6572;
+            --cor-card: #34495e;
         }
         
         /* Layout principal */
@@ -77,12 +82,17 @@
         
         /* Cabeçalho */
         header {
-            background: var(--cor-primaria);
+            background: linear-gradient(135deg, #2c3e50, #34495e);
             color: white;
             padding: 20px;
             border-radius: var(--raio-borda);
             margin-bottom: 20px;
             box-shadow: var(--sombra-media);
+            transition: all var(--transicao-normal);
+        }
+        
+        [data-tema="escuro"] header {
+            background: linear-gradient(135deg, #1a2634, #2c3e50);
         }
         
         .header-top {
@@ -103,6 +113,13 @@
             font-size: 28px;
             margin: 0 0 8px 0;
             color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-left h1 i {
+            color: var(--cor-secundaria);
         }
         
         .subtitle {
@@ -135,6 +152,7 @@
             border-radius: 20px;
             color: white;
             font-size: 14px;
+            backdrop-filter: blur(5px);
         }
         
         .user-info i {
@@ -153,11 +171,23 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
+        .system-admin-badge {
+            display: inline-block;
+            background: #8e44ad;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        
         /* Botões de ação */
         .action-buttons {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            justify-content: flex-end;
         }
         
         .theme-toggle {
@@ -176,7 +206,7 @@
         
         .theme-toggle:hover {
             background: rgba(255, 255, 255, 0.25);
-            transform: scale(1.1);
+            transform: scale(1.1) rotate(30deg);
         }
         
         .logout-btn {
@@ -229,6 +259,7 @@
             background: rgba(255, 255, 255, 0.1);
             padding: 20px;
             border-radius: var(--raio-borda);
+            backdrop-filter: blur(5px);
         }
         
         .stat {
@@ -237,6 +268,7 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: var(--raio-borda);
             transition: transform var(--transicao-rapida);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .stat:hover {
@@ -260,6 +292,10 @@
             color: rgba(255, 255, 255, 0.8);
             text-transform: uppercase;
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
         
         /* Conteúdo principal */
@@ -284,11 +320,16 @@
         }
         
         .sidebar-section {
-            background: var(--cor-fundo-secundario);
+            background: var(--cor-card);
             border-radius: var(--raio-borda);
             padding: 20px;
             box-shadow: var(--sombra-leve);
             border: 1px solid var(--cor-borda);
+            transition: all var(--transicao-normal);
+        }
+        
+        .sidebar-section:hover {
+            box-shadow: var(--sombra-media);
         }
         
         .sidebar-section h3 {
@@ -298,6 +339,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--cor-borda);
         }
         
         .sidebar-section h3 i {
@@ -315,6 +358,14 @@
             font-size: 13px;
             font-weight: 500;
             color: var(--cor-texto-secundario);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-group label i {
+            font-size: 12px;
+            color: var(--cor-secundaria);
         }
         
         .filter-group select,
@@ -336,72 +387,85 @@
             box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
         }
         
+        .filter-group select optgroup {
+            font-weight: bold;
+            color: var(--cor-texto);
+        }
+        
+        .filter-group select option {
+            padding: 5px;
+        }
+        
+        /* Botões */
+        .btn-primary, .btn-secondary, .btn-small {
+            border: none;
+            border-radius: var(--raio-borda-pequeno);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all var(--transicao-rapida);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cor-secundaria), #2980b9);
+            color: white;
+            padding: 12px 24px;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-leve);
+            filter: brightness(1.1);
+        }
+        
         .btn-secondary {
             background: var(--cor-fundo-secundario);
             color: var(--cor-texto);
             border: 1px solid var(--cor-borda);
-            padding: 10px 20px;
-            border-radius: var(--raio-borda-pequeno);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all var(--transicao-rapida);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--cor-borda);
-            transform: translateY(-1px);
-        }
-        
-        /* Botões de ação */
-        .btn-primary {
-            background: var(--cor-secundaria);
-            color: white;
-            border: none;
             padding: 12px 24px;
-            border-radius: var(--raio-borda-pequeno);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all var(--transicao-rapida);
         }
         
-        .btn-primary:hover {
-            background: #2980b9;
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--cor-borda);
             transform: translateY(-2px);
-            box-shadow: var(--sombra-leve);
-        }
-        
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
         }
         
         .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        
+        .btn-primary:disabled,
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
         
         /* Status de sincronização */
         .sync-status {
-            padding-top: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
             border-top: 1px solid var(--cor-borda);
-            margin-top: 15px;
+        }
+        
+        .sync-status p {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+            color: var(--cor-texto-secundario);
         }
         
         .status-indicator {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 10px 0;
+            margin-bottom: 10px;
         }
         
         .status-dot {
@@ -409,6 +473,7 @@
             height: 10px;
             border-radius: 50%;
             background: #95a5a6;
+            transition: background-color 0.3s;
         }
         
         .status-dot.connected {
@@ -426,9 +491,14 @@
             100% { opacity: 1; }
         }
         
+        .status-text {
+            font-size: 14px;
+            color: var(--cor-texto);
+        }
+        
         /* Área de conteúdo */
         .content {
-            background: var(--cor-fundo-secundario);
+            background: var(--cor-card);
             border-radius: var(--raio-borda);
             padding: 20px;
             box-shadow: var(--sombra-leve);
@@ -442,6 +512,8 @@
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px solid var(--cor-borda);
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         .content-header h2 {
@@ -456,6 +528,7 @@
         .content-header h2 span {
             font-size: 16px;
             color: var(--cor-texto-secundario);
+            font-weight: normal;
         }
         
         /* Controles de visualização */
@@ -514,12 +587,24 @@
             transition: all var(--transicao-normal);
             position: relative;
             overflow: hidden;
+            animation: slideIn 0.3s ease-out;
         }
         
         .equipamento-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--sombra-media);
             border-color: var(--cor-secundaria);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .equipamento-card.nao-apto {
@@ -549,22 +634,32 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .equipamento-info {
+            flex: 1;
         }
         
         .equipamento-info h4 {
             margin: 0 0 5px 0;
             font-size: 18px;
             color: var(--cor-texto);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .equipamento-codigo {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--cor-texto-secundario);
             font-weight: 500;
-            background: var(--cor-fundo-secundario);
-            padding: 3px 8px;
+            background: var(--cor-card);
+            padding: 2px 8px;
             border-radius: 12px;
             display: inline-block;
+            border: 1px solid var(--cor-borda);
         }
         
         /* Status chips */
@@ -578,6 +673,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
         }
         
         .status-chip.apto {
@@ -655,6 +751,7 @@
             padding: 10px;
             background: var(--cor-fundo-secundario);
             border-radius: var(--raio-borda-pequeno);
+            border: 1px solid var(--cor-borda);
         }
         
         .pendencia-badge {
@@ -688,6 +785,13 @@
             background: rgba(139, 0, 0, 0.1);
             color: #8b0000;
             border: 1px solid rgba(139, 0, 0, 0.3);
+            animation: pulse-badge 2s infinite;
+        }
+        
+        @keyframes pulse-badge {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         
         /* Ações do card */
@@ -719,7 +823,7 @@
             color: white;
         }
         
-        .action-btn.primary:hover {
+        .action-btn.primary:hover:not(:disabled) {
             background: #2980b9;
             transform: translateY(-2px);
         }
@@ -730,7 +834,7 @@
             border: 1px solid var(--cor-borda);
         }
         
-        .action-btn.secondary:hover {
+        .action-btn.secondary:hover:not(:disabled) {
             background: var(--cor-borda);
             transform: translateY(-2px);
         }
@@ -739,6 +843,18 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+        }
+        
+        /* Badge de permissão */
+        .permission-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: rgba(52, 152, 219, 0.2);
+            color: var(--cor-texto-secundario);
         }
         
         /* Sem resultados */
@@ -767,7 +883,7 @@
             padding: 60px 20px;
         }
         
-        .loading .fa-cog {
+        .loading i {
             font-size: 40px;
             color: var(--cor-secundaria);
             margin-bottom: 20px;
@@ -775,12 +891,13 @@
         
         /* Rodapé */
         .footer-info {
-            background: var(--cor-fundo-secundario);
+            background: var(--cor-card);
             padding: 15px;
             border-radius: var(--raio-borda);
             font-size: 13px;
             color: var(--cor-texto-secundario);
             border: 1px solid var(--cor-borda);
+            margin-top: 20px;
         }
         
         .footer-row {
@@ -797,60 +914,11 @@
             gap: 8px;
         }
         
-        /* Responsividade */
-        @media (max-width: 768px) {
-            .header-top {
-                flex-direction: column;
-            }
-            
-            .header-left, .header-controls {
-                width: 100%;
-            }
-            
-            .user-info-container {
-                align-items: center;
-            }
-            
-            .action-buttons {
-                justify-content: center;
-            }
-            
-            .stats-bar {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .equipamentos-container.grid-view {
-                grid-template-columns: 1fr;
-            }
-            
-            .equipamento-actions {
-                flex-direction: column;
-            }
+        .footer-row i {
+            color: var(--cor-secundaria);
         }
         
-        @media (max-width: 480px) {
-            .container {
-                padding: 10px;
-            }
-            
-            header {
-                padding: 15px;
-            }
-            
-            .stats-bar {
-                grid-template-columns: 1fr;
-            }
-            
-            .sidebar-section {
-                padding: 15px;
-            }
-            
-            .content {
-                padding: 15px;
-            }
-        }
-        
-        /* Estilos para indicador de nível */
+        /* Indicador de nível */
         .nivel-indicator {
             position: fixed;
             top: 10px;
@@ -870,35 +938,6 @@
         
         .nivel-indicator:hover {
             opacity: 1;
-        }
-        
-        /* Acessibilidade */
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        
-        /* Animações de entrada */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .equipamento-card {
-            animation: slideIn 0.3s ease-out;
         }
         
         /* Scrollbar personalizada */
@@ -931,6 +970,130 @@
         .no-select {
             user-select: none;
         }
+        
+        /* Mensagens flutuantes */
+        .mensagem-flutuante {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: var(--cor-card);
+            box-shadow: var(--sombra-forte);
+            z-index: 10000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            min-width: 300px;
+            max-width: 400px;
+            border-left: 4px solid var(--cor-info);
+        }
+        
+        .mensagem-flutuante.show {
+            transform: translateX(0);
+        }
+        
+        .mensagem-flutuante.success { border-left-color: #2ecc71; }
+        .mensagem-flutuante.error { border-left-color: #e74c3c; }
+        .mensagem-flutuante.warning { border-left-color: #f39c12; }
+        .mensagem-flutuante.info { border-left-color: #3498db; }
+        
+        .mensagem-conteudo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mensagem-conteudo i {
+            font-size: 20px;
+        }
+        
+        .mensagem-flutuante.success i { color: #2ecc71; }
+        .mensagem-flutuante.error i { color: #e74c3c; }
+        .mensagem-flutuante.warning i { color: #f39c12; }
+        .mensagem-flutuante.info i { color: #3498db; }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 15px;
+            }
+            
+            .header-top {
+                flex-direction: column;
+            }
+            
+            .header-left, .header-controls {
+                width: 100%;
+            }
+            
+            .user-info-container {
+                align-items: flex-start;
+            }
+            
+            .action-buttons {
+                justify-content: flex-start;
+            }
+            
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .content {
+                order: 1;
+            }
+            
+            .equipamentos-container.grid-view {
+                grid-template-columns: 1fr;
+            }
+            
+            .equipamento-actions {
+                flex-direction: column;
+            }
+            
+            .footer-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .content-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .view-controls {
+                align-self: flex-end;
+            }
+            
+            .equipamento-header {
+                flex-direction: column;
+            }
+            
+            .status-chip {
+                align-self: flex-start;
+            }
+            
+            .nivel-indicator {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -951,10 +1114,14 @@
                 if (agora > sessaoData.expira) {
                     localStorage.removeItem('gestao_equipamentos_sessao');
                     localStorage.removeItem('gestao_equipamentos_usuario');
+                    localStorage.removeItem('gestao_equipamentos_nivel');
+                    localStorage.removeItem('gestao_equipamentos_user_id');
+                    localStorage.removeItem('gestao_equipamentos_is_system_admin');
                     window.location.href = 'login.html?expired=true';
                     return;
                 }
                 
+                // Renovar sessão
                 sessaoData.expira = agora + (8 * 60 * 60 * 1000);
                 localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessaoData));
                 localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
@@ -963,6 +1130,9 @@
                 console.error('Erro ao verificar sessão:', e);
                 localStorage.removeItem('gestao_equipamentos_sessao');
                 localStorage.removeItem('gestao_equipamentos_usuario');
+                localStorage.removeItem('gestao_equipamentos_nivel');
+                localStorage.removeItem('gestao_equipamentos_user_id');
+                localStorage.removeItem('gestao_equipamentos_is_system_admin');
                 window.location.href = 'login.html';
             }
         })();
@@ -973,16 +1143,22 @@
         <header>
             <div class="header-top">
                 <div class="header-left">
-                    <h1>Gestão de Equipamentos - Usina</h1>
-                    <p class="subtitle">Sistema de gerenciamento de equipamentos industriais | Status operacional e controle de pendências</p>
+                    <h1>
+                        <i class="fas fa-industry"></i> 
+                        Gestão de Equipamentos - Usina
+                    </h1>
+                    <p class="subtitle">
+                        <i class="fas fa-info-circle"></i> 
+                        Sistema de gerenciamento de equipamentos industriais | Status operacional e controle de pendências
+                    </p>
                 </div>
                 
                 <div class="header-controls">
                     <!-- Informações do Usuário -->
                     <div class="user-info-container">
-                        <div class="user-info">
+                        <div class="user-info" id="current-user">
                             <i class="fas fa-user-circle"></i>
-                            <span id="current-user">Carregando...</span>
+                            <span>Carregando...</span>
                         </div>
                         
                         <!-- Botões de Ação -->
@@ -998,7 +1174,7 @@
                             </button>
                             
                             <!-- Botão de Administração -->
-                            <button onclick="window.location.href='admin-usuarios.html'" class="admin-btn">
+                            <button onclick="window.location.href='admin-usuarios.html'" class="admin-btn" id="admin-btn">
                                 <i class="fas fa-users-cog"></i> Admin
                             </button>
                         </div>
@@ -1010,19 +1186,27 @@
             <div class="stats-bar">
                 <div class="stat">
                     <span class="stat-value" id="total-equipamentos">0</span>
-                    <span class="stat-label">Total de Equipamentos</span>
+                    <span class="stat-label">
+                        <i class="fas fa-tools"></i> Total de Equipamentos
+                    </span>
                 </div>
                 <div class="stat">
                     <span class="stat-value apto" id="aptos-operar">0</span>
-                    <span class="stat-label">Aptos a Operar</span>
+                    <span class="stat-label">
+                        <i class="fas fa-check-circle"></i> Aptos a Operar
+                    </span>
                 </div>
                 <div class="stat">
                     <span class="stat-value nao-apto" id="nao-aptos">0</span>
-                    <span class="stat-label">Não Aptos</span>
+                    <span class="stat-label">
+                        <i class="fas fa-times-circle"></i> Não Aptos
+                    </span>
                 </div>
                 <div class="stat">
                     <span class="stat-value pendente" id="total-pendencias">0</span>
-                    <span class="stat-label">Pendências Ativas</span>
+                    <span class="stat-label">
+                        <i class="fas fa-exclamation-triangle"></i> Pendências Ativas
+                    </span>
                 </div>
             </div>
         </header>
@@ -1036,7 +1220,9 @@
                     <h3><i class="fas fa-filter"></i> Filtros</h3>
                     
                     <div class="filter-group">
-                        <label for="status-filter">Status Operacional:</label>
+                        <label for="status-filter">
+                            <i class="fas fa-thermometer-half"></i> Status Operacional:
+                        </label>
                         <select id="status-filter">
                             <option value="all">Todos</option>
                             <option value="apto">Apto a Operar</option>
@@ -1045,7 +1231,9 @@
                     </div>
                     
                     <div class="filter-group">
-                        <label for="pendencia-filter">Status de Pendência:</label>
+                        <label for="pendencia-filter">
+                            <i class="fas fa-exclamation-circle"></i> Status de Pendência:
+                        </label>
                         <select id="pendencia-filter">
                             <option value="all">Todas</option>
                             <option value="com-pendencia">Com Pendência</option>
@@ -1055,34 +1243,52 @@
                     </div>
                     
                     <div class="filter-group">
-                        <label for="setor-filter">Setor:</label>
+                        <label for="setor-filter">
+                            <i class="fas fa-building"></i> Setor:
+                        </label>
                         <select id="setor-filter">
                             <option value="all">Todos os Setores</option>
-                            <option value="britagem-britagem">BRITAGEM / BRITAGEM</option>
-                            <option value="moagem-moagem">MOAGEM / MOAGEM</option>
-                            <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
-                            <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
-                            <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
-                            <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
-                            <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
-                            <option value="reagentes-pax">REAGENTES / PAX</option>
-                            <option value="reagentes-dtf">REAGENTES / DTF</option>
-                            <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
-                            <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
-                            <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
-                            <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
-                            <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
-                            <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                            <optgroup label="BRITAGEM">
+                                <option value="britagem-britagem">BRITAGEM / BRITAGEM</option>
+                            </optgroup>
+                            <optgroup label="MOAGEM">
+                                <option value="moagem-moagem">MOAGEM / MOAGEM</option>
+                            </optgroup>
+                            <optgroup label="FLOTAÇÃO">
+                                <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
+                                <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
+                                <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
+                            </optgroup>
+                            <optgroup label="FILTRAGEM">
+                                <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
+                                <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
+                            </optgroup>
+                            <optgroup label="REAGENTES">
+                                <option value="reagentes-pax">REAGENTES / PAX</option>
+                                <option value="reagentes-dtf">REAGENTES / DTF</option>
+                                <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
+                                <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
+                                <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
+                                <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
+                            </optgroup>
+                            <optgroup label="UTILIDADES">
+                                <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
+                            </optgroup>
+                            <optgroup label="TORRE DE RESFRIAMENTO">
+                                <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                            </optgroup>
                         </select>
                     </div>
                     
                     <div class="filter-group">
-                        <label for="search">Buscar Equipamento:</label>
+                        <label for="search">
+                            <i class="fas fa-search"></i> Buscar Equipamento:
+                        </label>
                         <input type="text" id="search" placeholder="Nome, código ou descrição...">
                     </div>
                     
                     <button id="reset-filters" class="btn-secondary" style="width: 100%; margin-top: 10px;">
-                        <i class="fas fa-redo"></i> Limpar Filtros
+                        <i class="fas fa-redo-alt"></i> Limpar Filtros
                     </button>
                 </div>
 
@@ -1110,7 +1316,7 @@
                             <span class="status-text">Conectando...</span>
                         </div>
                         <button id="manual-sync" class="btn-small btn-secondary" style="width: 100%;">
-                            <i class="fas fa-sync"></i> Sincronizar Agora
+                            <i class="fas fa-sync-alt"></i> Sincronizar Agora
                         </button>
                     </div>
                 </div>
@@ -1118,6 +1324,21 @@
                 <!-- Informações do Sistema -->
                 <div class="sidebar-section">
                     <h3><i class="fas fa-info-circle"></i> Sistema</h3>
+                    
+                    <div style="margin-bottom: 10px; padding: 10px; background: var(--cor-fundo); border-radius: var(--raio-borda-pequeno);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Versão:</span>
+                            <strong>2.2.0</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Ambiente:</span>
+                            <strong>Produção</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Usuários:</span>
+                            <strong id="info-total-usuarios">-</strong>
+                        </div>
+                    </div>
                     
                     <button id="system-info" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
                         <i class="fas fa-cog"></i> Informações do Sistema
@@ -1133,7 +1354,11 @@
             <div class="content">
                 <!-- Cabeçalho do Conteúdo -->
                 <div class="content-header">
-                    <h2><i class="fas fa-list"></i> Equipamentos <span id="total-filtrado">(0)</span></h2>
+                    <h2>
+                        <i class="fas fa-list"></i> 
+                        Equipamentos 
+                        <span id="total-filtrado">(0)</span>
+                    </h2>
                     
                     <div class="view-controls">
                         <button id="view-list" class="view-btn" title="Visualização em Lista">
@@ -1159,12 +1384,16 @@
         <div class="footer-info">
             <div class="footer-row">
                 <div>
-                    <i class="fas fa-info-circle"></i> 
+                    <i class="fas fa-sync-alt"></i> 
                     <span id="last-sync">Última sincronização: --:--</span>
                 </div>
                 <div>
-                    <i class="fas fa-user"></i> 
+                    <i class="fas fa-clock"></i> 
                     <span id="user-session">Sessão válida até: --:--</span>
+                </div>
+                <div>
+                    <i class="fas fa-wifi"></i> 
+                    <span id="connection-status">Conectado</span>
                 </div>
             </div>
         </div>
@@ -1176,77 +1405,102 @@
     <div id="equipamento-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Novo Equipamento</h3>
+                <h3 id="modal-title">
+                    <i class="fas fa-plus-circle"></i> 
+                    <span>Novo Equipamento</span>
+                </h3>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
                 <form id="equipamento-form">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="equipamento-codigo">Código *</label>
+                            <label for="equipamento-codigo">
+                                <i class="fas fa-barcode"></i> Código *
+                            </label>
                             <input type="text" id="equipamento-codigo" required 
                                    placeholder="Ex: EQP-001" 
-                                   title="Código único do equipamento">
+                                   title="Código único do equipamento"
+                                   maxlength="20">
                         </div>
                         <div class="form-group">
-                            <label for="equipamento-nome">Nome *</label>
+                            <label for="equipamento-nome">
+                                <i class="fas fa-tag"></i> Nome *
+                            </label>
                             <input type="text" id="equipamento-nome" required 
                                    placeholder="Ex: Turbina Principal"
-                                   title="Nome descritivo do equipamento">
+                                   title="Nome descritivo do equipamento"
+                                   maxlength="100">
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="equipamento-descricao">Descrição</label>
+                        <label for="equipamento-descricao">
+                            <i class="fas fa-align-left"></i> Descrição
+                        </label>
                         <textarea id="equipamento-descricao" rows="3" 
                                   placeholder="Descreva o equipamento, função, características..."
-                                  title="Descrição detalhada do equipamento"></textarea>
+                                  title="Descrição detalhada do equipamento"
+                                  maxlength="500"></textarea>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="equipamento-setor">Setor *</label>
+                            <label for="equipamento-setor">
+                                <i class="fas fa-building"></i> Setor *
+                            </label>
                             <select id="equipamento-setor" required>
                                 <option value="">Selecione um setor</option>
-                                <option value="britagem-britagem">BRITAGEM / BRITAGEM</option>
-                                <option value="moagem-moagem">MOAGEM / MOAGEM</option>
-                                <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
-                                <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
-                                <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
-                                <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
-                                <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
-                                <option value="reagentes-pax">REAGENTES / PAX</option>
-                                <option value="reagentes-dtf">REAGENTES / DTF</option>
-                                <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
-                                <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
-                                <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
-                                <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
-                                <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
-                                <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                                <optgroup label="BRITAGEM">
+                                    <option value="britagem-britagem">BRITAGEM / BRITAGEM</option>
+                                </optgroup>
+                                <optgroup label="MOAGEM">
+                                    <option value="moagem-moagem">MOAGEM / MOAGEM</option>
+                                </optgroup>
+                                <optgroup label="FLOTAÇÃO">
+                                    <option value="flotacao-flot-rougher">FLOTAÇÃO / FLOT ROUGHER</option>
+                                    <option value="flotacao-flot-cleaner-scavenger">FLOTAÇÃO / FLOT CLEANER-SCAVENGER</option>
+                                    <option value="flotacao-flot-pirita">FLOTAÇÃO / FLOT PIRITA</option>
+                                </optgroup>
+                                <optgroup label="FILTRAGEM">
+                                    <option value="filtragem-filtragem-concentrado">FILTRAGEM / FILTRAGEM DE CONCENTRADO</option>
+                                    <option value="filtragem-filtragem-rejeito">FILTRAGEM / FILTRAGEM DE REJEITO</option>
+                                </optgroup>
+                                <optgroup label="REAGENTES">
+                                    <option value="reagentes-pax">REAGENTES / PAX</option>
+                                    <option value="reagentes-dtf">REAGENTES / DTF</option>
+                                    <option value="reagentes-espumante">REAGENTES / ESPUMANTE</option>
+                                    <option value="reagentes-leite-de-cal">REAGENTES / LEITE DE CAL</option>
+                                    <option value="reagentes-acido-sulfurico">REAGENTES / ÁCIDO SULFÚRICO</option>
+                                    <option value="reagentes-floculante">REAGENTES / FLOCULANTE</option>
+                                </optgroup>
+                                <optgroup label="UTILIDADES">
+                                    <option value="utilidades-distribuicao-agua">UTILIDADES / DISTRIBUIÇÃO DE ÁGUA</option>
+                                </optgroup>
+                                <optgroup label="TORRE DE RESFRIAMENTO">
+                                    <option value="torre-resfriamento-torre-resfriamento">TORRE DE RESFRIAMENTO / TORRE DE RESFRIAMENTO</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="equipamento-status">Status Operacional *</label>
-                            <select id="equipamento-status" required>
-                                <option value="apto" selected>Apto a Operar</option>
-                                <option value="nao-apto">Não Apto</option>
-                            </select>
+                            <label for="equipamento-ultima-inspecao">
+                                <i class="fas fa-calendar-check"></i> Última Inspeção
+                            </label>
+                            <input type="date" id="equipamento-ultima-inspecao" max="2024-12-31">
                         </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="equipamento-ultima-inspecao">Última Inspeção</label>
-                        <input type="date" id="equipamento-ultima-inspecao" max="2024-12-31">
                     </div>
                     
                     <!-- Display do Status Automático -->
                     <div class="form-group status-display">
-                        <label>Status Determinado por Pendências:</label>
-                        <div id="equipamento-status-display">
+                        <label>
+                            <i class="fas fa-info-circle"></i> Status Determinado por Pendências:
+                        </label>
+                        <div id="equipamento-status-display" style="padding: 10px; background: var(--cor-fundo); border-radius: 5px;">
                             <span class="status-chip apto">Apto a Operar</span>
-                            <small>
-                                <i class="fas fa-info-circle"></i> O status será automaticamente ajustado conforme as pendências críticas
-                            </small>
+                            <div style="margin-top: 5px; font-size: 12px; color: var(--cor-texto-secundario);">
+                                <i class="fas fa-info-circle"></i> 
+                                O status será automaticamente ajustado conforme as pendências críticas
+                            </div>
                         </div>
                     </div>
                     
@@ -1254,7 +1508,7 @@
                         <button type="button" class="btn-secondary close-modal">
                             <i class="fas fa-times"></i> Cancelar
                         </button>
-                        <button type="submit" class="btn-primary">
+                        <button type="submit" class="btn-primary" id="btn-salvar-equipamento">
                             <i class="fas fa-save"></i> Salvar Equipamento
                         </button>
                     </div>
@@ -1267,7 +1521,10 @@
     <div id="pendencia-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="pendencia-modal-title">Nova Pendência</h3>
+                <h3 id="pendencia-modal-title">
+                    <i class="fas fa-exclamation-circle"></i> 
+                    <span>Nova Pendência</span>
+                </h3>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
@@ -1276,22 +1533,30 @@
                     <input type="hidden" id="pendencia-id">
                     
                     <div class="form-group">
-                        <label for="pendencia-titulo">Título da Pendência *</label>
+                        <label for="pendencia-titulo">
+                            <i class="fas fa-heading"></i> Título da Pendência *
+                        </label>
                         <input type="text" id="pendencia-titulo" required 
                                placeholder="Ex: Vazamento identificado"
-                               title="Título descritivo da pendência">
+                               title="Título descritivo da pendência"
+                               maxlength="100">
                     </div>
                     
                     <div class="form-group">
-                        <label for="pendencia-descricao">Descrição Detalhada *</label>
+                        <label for="pendencia-descricao">
+                            <i class="fas fa-align-left"></i> Descrição Detalhada *
+                        </label>
                         <textarea id="pendencia-descricao" rows="4" required 
                                   placeholder="Descreva detalhadamente o problema, localização, sintomas..."
-                                  title="Descrição completa da pendência"></textarea>
+                                  title="Descrição completa da pendência"
+                                  maxlength="1000"></textarea>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="pendencia-responsavel">Responsável *</label>
+                            <label for="pendencia-responsavel">
+                                <i class="fas fa-user"></i> Responsável *
+                            </label>
                             <select id="pendencia-responsavel" required>
                                 <option value="">Selecione um responsável</option>
                                 <option value="Elétrica">Elétrica</option>
@@ -1304,7 +1569,9 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="pendencia-prioridade">Prioridade *</label>
+                            <label for="pendencia-prioridade">
+                                <i class="fas fa-flag"></i> Prioridade *
+                            </label>
                             <select id="pendencia-prioridade" required>
                                 <option value="baixa">Baixa</option>
                                 <option value="media" selected>Média</option>
@@ -1316,11 +1583,15 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="pendencia-data">Data da Ocorrência *</label>
+                            <label for="pendencia-data">
+                                <i class="fas fa-calendar"></i> Data da Ocorrência *
+                            </label>
                             <input type="date" id="pendencia-data" required max="2024-12-31">
                         </div>
                         <div class="form-group">
-                            <label for="pendencia-status">Status da Pendência *</label>
+                            <label for="pendencia-status">
+                                <i class="fas fa-tasks"></i> Status da Pendência *
+                            </label>
                             <select id="pendencia-status" required>
                                 <option value="aberta" selected>Aberta</option>
                                 <option value="em-andamento">Em Andamento</option>
@@ -1330,19 +1601,23 @@
                         </div>
                     </div>
                     
-                    <!-- NOVO: Campo para comentário na edição -->
+                    <!-- Campo para comentário na edição -->
                     <div class="form-group" id="pendencia-comentario-group" style="display: none;">
-                        <label for="pendencia-comentario">Comentário da Alteração (Opcional)</label>
+                        <label for="pendencia-comentario">
+                            <i class="fas fa-comment"></i> Comentário da Alteração
+                        </label>
                         <textarea id="pendencia-comentario" rows="3" 
                                   placeholder="Explique por que está fazendo esta alteração..."
-                                  title="Comentário sobre a alteração"></textarea>
+                                  title="Comentário sobre a alteração"
+                                  maxlength="500"></textarea>
+                        <div class="input-hint">Opcional, mas recomendado para auditoria</div>
                     </div>
                     
                     <div class="form-actions">
                         <button type="button" class="btn-secondary close-modal">
                             <i class="fas fa-times"></i> Cancelar
                         </button>
-                        <button type="submit" class="btn-primary">
+                        <button type="submit" class="btn-primary" id="btn-salvar-pendencia">
                             <i class="fas fa-save"></i> Salvar Pendência
                         </button>
                     </div>
@@ -1355,21 +1630,28 @@
     <div id="detalhes-modal" class="modal">
         <div class="modal-content large">
             <div class="modal-header">
-                <h3 id="detalhes-titulo">Detalhes do Equipamento</h3>
+                <h3 id="detalhes-titulo">
+                    <i class="fas fa-info-circle"></i> 
+                    <span>Detalhes do Equipamento</span>
+                </h3>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
                 <div class="detalhes-header">
                     <div class="detalhes-info">
                         <h4 id="detalhes-nome"></h4>
-                        <div class="status-chip" id="detalhes-status"></div>
-                        <p id="detalhes-codigo"></p>
-                        <p id="detalhes-descricao"></p>
+                        <div style="display: flex; gap: 10px; align-items: center; margin: 10px 0;">
+                            <span class="status-chip" id="detalhes-status"></span>
+                            <span class="equipamento-codigo" id="detalhes-codigo"></span>
+                        </div>
+                        <p id="detalhes-descricao" style="margin: 15px 0;"></p>
+                        
                         <div class="detalhes-metadata">
-                            <p><i class="fas fa-building"></i> <span id="detalhes-setor"></span></p>
-                            <p><i class="fas fa-calendar"></i> Última inspeção: <span id="detalhes-inspecao"></span></p>
-                            <p><i class="fas fa-calendar-plus"></i> Data de criação: <span id="detalhes-criacao"></span></p>
-                            <p><i class="fas fa-user"></i> Criado por: <span id="detalhes-criador"></span></p>
+                            <p><i class="fas fa-building"></i> <strong>Setor:</strong> <span id="detalhes-setor"></span></p>
+                            <p><i class="fas fa-calendar-check"></i> <strong>Última inspeção:</strong> <span id="detalhes-inspecao"></span></p>
+                            <p><i class="fas fa-calendar-plus"></i> <strong>Data de criação:</strong> <span id="detalhes-criacao"></span></p>
+                            <p><i class="fas fa-user"></i> <strong>Criado por:</strong> <span id="detalhes-criador"></span></p>
+                            <p><i class="fas fa-clock"></i> <strong>Última atualização:</strong> <span id="detalhes-atualizacao"></span></p>
                         </div>
                     </div>
                     <div class="detalhes-actions">
@@ -1383,10 +1665,36 @@
                 </div>
                 
                 <div class="pendencias-section">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Histórico de Pendências</h4>
+                    <h4>
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        Histórico de Pendências
+                    </h4>
                     <div class="pendencias-container" id="detalhes-pendencias">
                         <!-- Pendencias serão carregadas aqui -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="modal-confirmacao" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="modal-confirmacao-titulo">
+                    <i class="fas fa-question-circle"></i> Confirmar Ação
+                </h3>
+                <span class="close-modal" onclick="this.closest('.modal').classList.remove('active')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-confirmacao-mensagem" style="margin-bottom: 20px;"></p>
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="this.closest('.modal').classList.remove('active')">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button class="btn-primary" id="modal-confirmacao-confirmar">
+                        <i class="fas fa-check"></i> Confirmar
+                    </button>
                 </div>
             </div>
         </div>
@@ -1398,7 +1706,10 @@
     
     <!-- Scripts de Interface e Controles -->
     <script>
-        // Configuração de Eventos de Interface
+        // ===========================================
+        // CONFIGURAÇÃO DE EVENTOS DE INTERFACE
+        // ===========================================
+        
         document.addEventListener('DOMContentLoaded', function() {
             // ========== INICIALIZAÇÃO ==========
             
@@ -1410,109 +1721,10 @@
             // ========== CONTROLES DE USUÁRIO ==========
             
             // Mostrar usuário atual
-            const usuario = localStorage.getItem('gestao_equipamentos_usuario');
-            const nivel = localStorage.getItem('gestao_equipamentos_nivel');
+            atualizarDisplayUsuario();
             
-            if (usuario && nivel) {
-                const usuarioFormatado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
-                const nivelNome = window.PERMISSOES ? window.PERMISSOES.getNomeNivel(nivel) : nivel;
-                const nivelCor = window.PERMISSOES ? window.PERMISSOES.getCorNivel(nivel) : '#3498db';
-                
-                const userElement = document.getElementById('current-user');
-                if (userElement) {
-                    userElement.innerHTML = `
-                        <i class="fas ${window.PERMISSOES ? window.PERMISSOES.getIconeNivel(nivel) : 'fa-user'}"></i>
-                        <span>${usuarioFormatado}</span>
-                        <span class="user-level-badge" style="background: ${nivelCor}">${nivelNome}</span>
-                    `;
-                }
-            }
-            
-            // Configurar botão de logout
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    if (confirm('Tem certeza que deseja sair do sistema?')) {
-                        // Registrar atividade
-                        if (window.registrarAtividade) {
-                            window.registrarAtividade('LOGOUT', 'Usuário saiu do sistema');
-                        }
-                        
-                        // Limpar sessão
-                        localStorage.removeItem('gestao_equipamentos_sessao');
-                        localStorage.removeItem('gestao_equipamentos_usuario');
-                        localStorage.removeItem('gestao_equipamentos_nivel');
-                        
-                        // Redirecionar para login
-                        window.location.href = 'login.html';
-                    }
-                });
-            }
-            
-            // ========== CONTROLES DE TEMA ==========
-            
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Alternar tema usando a função global
-                    if (window.alternarTema) {
-                        const novoTema = window.alternarTema();
-                        
-                        // Atualizar ícone
-                        const icon = this.querySelector('i');
-                        if (icon) {
-                            if (novoTema === 'escuro') {
-                                icon.className = 'fas fa-sun';
-                                this.title = 'Alternar para tema claro';
-                            } else {
-                                icon.className = 'fas fa-moon';
-                                this.title = 'Alternar para tema escuro';
-                            }
-                        }
-                    }
-                });
-                
-                // Configurar título inicial
-                const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
-                if (temaAtual === 'escuro') {
-                    themeToggle.querySelector('i').className = 'fas fa-sun';
-                    themeToggle.title = 'Alternar para tema claro';
-                } else {
-                    themeToggle.querySelector('i').className = 'fas fa-moon';
-                    themeToggle.title = 'Alternar para tema escuro';
-                }
-            }
-            
-            // ========== CONTROLES DE SISTEMA ==========
-            
-            // Botão de informações do sistema
-            const systemInfoBtn = document.getElementById('system-info');
-            if (systemInfoBtn) {
-                systemInfoBtn.addEventListener('click', function() {
-                    if (window.mostrarInfoSistema) {
-                        window.mostrarInfoSistema();
-                    } else {
-                        alert('Informações do sistema:\n\nUsuário: ' + (usuario || 'Não autenticado') + 
-                              '\nData: ' + new Date().toLocaleString('pt-BR'));
-                    }
-                });
-            }
-            
-            // Botão de exportar configurações
-            const exportConfigBtn = document.getElementById('export-config');
-            if (exportConfigBtn) {
-                exportConfigBtn.addEventListener('click', function() {
-                    if (window.exportarConfiguracoes) {
-                        window.exportarConfiguracoes();
-                    } else {
-                        alert('Função de exportação não disponível');
-                    }
-                });
-            }
+            // Verificar se é admin do sistema para mostrar badge especial
+            verificarSystemAdmin();
             
             // ========== ATUALIZAÇÕES AUTOMÁTICAS ==========
             
@@ -1533,11 +1745,11 @@
                         const userSessionElement = document.getElementById('user-session');
                         if (userSessionElement) {
                             if (diffMs > 0) {
-                                userSessionElement.textContent = `Sessão: ${diffHrs}h ${diffMins}m restantes`;
-                                userSessionElement.style.color = diffHrs < 1 ? 'var(--cor-erro)' : 'var(--cor-sucesso)';
+                                userSessionElement.innerHTML = `<i class="fas fa-clock"></i> Sessão: ${diffHrs}h ${diffMins}m restantes`;
+                                userSessionElement.style.color = diffHrs < 1 ? '#e74c3c' : '';
                             } else {
-                                userSessionElement.textContent = 'Sessão expirada';
-                                userSessionElement.style.color = 'var(--cor-erro)';
+                                userSessionElement.innerHTML = `<i class="fas fa-clock"></i> Sessão expirada`;
+                                userSessionElement.style.color = '#e74c3c';
                             }
                         }
                     } catch (e) {
@@ -1555,21 +1767,35 @@
                     if (lastSync) {
                         try {
                             const syncDate = new Date(lastSync);
-                            lastSyncElement.textContent = `Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
+                            lastSyncElement.innerHTML = `<i class="fas fa-sync-alt"></i> Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
                             
                             // Destacar se faz mais de 10 minutos
                             const agora = new Date();
                             const diffMinutos = Math.floor((agora - syncDate) / (1000 * 60));
                             if (diffMinutos > 10) {
-                                lastSyncElement.style.color = 'var(--cor-alerta)';
+                                lastSyncElement.style.color = '#f39c12';
                             } else {
                                 lastSyncElement.style.color = '';
                             }
                         } catch (e) {
-                            lastSyncElement.textContent = 'Última sincronização: N/A';
+                            lastSyncElement.innerHTML = `<i class="fas fa-sync-alt"></i> Última sincronização: N/A`;
                         }
                     } else {
-                        lastSyncElement.textContent = 'Última sincronização: N/A';
+                        lastSyncElement.innerHTML = `<i class="fas fa-sync-alt"></i> Última sincronização: N/A`;
+                    }
+                }
+            }
+            
+            // Atualizar status de conexão
+            function atualizarStatusConexao() {
+                const connectionElement = document.getElementById('connection-status');
+                if (connectionElement) {
+                    if (navigator.onLine) {
+                        connectionElement.innerHTML = '<i class="fas fa-wifi"></i> Conectado';
+                        connectionElement.style.color = '#2ecc71';
+                    } else {
+                        connectionElement.innerHTML = '<i class="fas fa-wifi-slash"></i> Offline';
+                        connectionElement.style.color = '#e74c3c';
                     }
                 }
             }
@@ -1577,10 +1803,12 @@
             // Iniciar atualizações periódicas
             setInterval(atualizarInfoSessao, 60000); // A cada minuto
             setInterval(atualizarUltimaSincronizacao, 30000); // A cada 30 segundos
+            setInterval(atualizarStatusConexao, 5000); // A cada 5 segundos
             
             // Executar inicialmente
             atualizarInfoSessao();
             atualizarUltimaSincronizacao();
+            atualizarStatusConexao();
             
             // ========== MELHORIAS DE USABILIDADE ==========
             
@@ -1592,6 +1820,7 @@
                     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
                         e.preventDefault();
                         searchInput.focus();
+                        searchInput.select();
                     }
                 });
                 
@@ -1639,29 +1868,7 @@
                         // Notificar se faltar menos de 5 minutos
                         if (diffMs > 0 && diffMs < 5 * 60 * 1000) {
                             if (!document.querySelector('.sessao-expiracao-alerta')) {
-                                const alerta = document.createElement('div');
-                                alerta.className = 'mensagem-flutuante info sessao-expiracao-alerta';
-                                alerta.innerHTML = `
-                                    <div class="mensagem-conteudo">
-                                        <i class="fas fa-clock"></i>
-                                        <span>Sua sessão expira em ${Math.ceil(diffMs / (60 * 1000))} minutos</span>
-                                    </div>
-                                `;
-                                document.body.appendChild(alerta);
-                                
-                                setTimeout(() => {
-                                    alerta.classList.add('show');
-                                }, 10);
-                                
-                                // Remover após 10 segundos
-                                setTimeout(() => {
-                                    alerta.classList.remove('show');
-                                    setTimeout(() => {
-                                        if (alerta.parentNode) {
-                                            alerta.remove();
-                                        }
-                                    }, 300);
-                                }, 10000);
+                                mostrarMensagem(`Sua sessão expira em ${Math.ceil(diffMs / (60 * 1000))} minutos`, 'warning');
                             }
                         }
                     } catch (e) {
@@ -1673,39 +1880,143 @@
             // ========== INDICADOR DE NÍVEL ==========
             
             // Adicionar indicador visual do nível do usuário
-            function adicionarIndicadorNivel() {
-                if (!window.APP_CONFIG || !window.APP_CONFIG.appSettings.mostrarIndicadorNivel) {
-                    return;
-                }
-                
-                const usuarioNivel = localStorage.getItem('gestao_equipamentos_nivel');
-                if (!usuarioNivel || !window.PERMISSOES) return;
-                
-                const nivelNome = window.PERMISSOES.getNomeNivel(usuarioNivel);
-                const corNivel = window.PERMISSOES.getCorNivel(usuarioNivel);
-                
-                // Remover indicador anterior se existir
-                const indicadorAnterior = document.querySelector('.nivel-indicator');
-                if (indicadorAnterior) {
-                    indicadorAnterior.remove();
-                }
-                
-                // Criar indicador
-                const indicador = document.createElement('div');
-                indicador.className = 'nivel-indicator no-select';
-                indicador.style.cssText = `
-                    background: ${corNivel};
-                    color: white;
-                `;
-                indicador.textContent = nivelNome;
-                indicador.title = `Nível de acesso: ${nivelNome}`;
-                
-                document.body.appendChild(indicador);
-            }
-            
-            // Adicionar indicador após carregamento completo
             setTimeout(adicionarIndicadorNivel, 1000);
         });
+        
+        // ========== FUNÇÕES AUXILIARES ==========
+        
+        function atualizarDisplayUsuario() {
+            const userElement = document.getElementById('current-user');
+            if (!userElement) return;
+            
+            const usuario = localStorage.getItem('gestao_equipamentos_usuario');
+            const nivel = localStorage.getItem('gestao_equipamentos_nivel');
+            const isSystemAdmin = localStorage.getItem('gestao_equipamentos_is_system_admin') === 'true';
+            
+            if (usuario && nivel) {
+                const usuarioFormatado = usuario.charAt(0).toUpperCase() + usuario.slice(1);
+                let nivelNome = '';
+                let nivelCor = '#3498db';
+                let nivelIcone = 'fa-user';
+                
+                if (window.PERMISSOES) {
+                    nivelNome = window.PERMISSOES.getNomeNivel(nivel);
+                    nivelCor = window.PERMISSOES.getCorNivel(nivel);
+                    nivelIcone = window.PERMISSOES.getIconeNivel(nivel);
+                } else {
+                    // Fallback
+                    const niveis = {
+                        'operador': { nome: 'Operador', icone: 'fa-user', cor: '#3498db' },
+                        'supervisor': { nome: 'Supervisor', icone: 'fa-user-tie', cor: '#f39c12' },
+                        'manutencao': { nome: 'Manutenção', icone: 'fa-tools', cor: '#9b59b6' },
+                        'engenharia': { nome: 'Engenharia', icone: 'fa-user-cog', cor: '#2ecc71' },
+                        'administrador': { nome: 'Administrador', icone: 'fa-user-shield', cor: '#e74c3c' }
+                    };
+                    const info = niveis[nivel] || { nome: nivel, icone: 'fa-user', cor: '#95a5a6' };
+                    nivelNome = info.nome;
+                    nivelCor = info.cor;
+                    nivelIcone = info.icone;
+                }
+                
+                userElement.innerHTML = `
+                    <i class="fas ${nivelIcone}"></i>
+                    <span>${usuarioFormatado}</span>
+                    <span class="user-level-badge" style="background: ${nivelCor}">${nivelNome}</span>
+                    ${isSystemAdmin ? '<span class="system-admin-badge"><i class="fas fa-shield-alt"></i> SISTEMA</span>' : ''}
+                `;
+            }
+        }
+        
+        function verificarSystemAdmin() {
+            const isSystemAdmin = localStorage.getItem('gestao_equipamentos_is_system_admin') === 'true';
+            if (isSystemAdmin) {
+                console.log('👑 Administrador do Sistema logado');
+            }
+        }
+        
+        function adicionarIndicadorNivel() {
+            if (!window.APP_CONFIG || !window.APP_CONFIG.appSettings.mostrarIndicadorNivel) {
+                return;
+            }
+            
+            const usuarioNivel = localStorage.getItem('gestao_equipamentos_nivel');
+            if (!usuarioNivel) return;
+            
+            let nivelNome = '';
+            let corNivel = '#95a5a6';
+            
+            if (window.PERMISSOES) {
+                nivelNome = window.PERMISSOES.getNomeNivel(usuarioNivel);
+                corNivel = window.PERMISSOES.getCorNivel(usuarioNivel);
+            } else {
+                // Fallback
+                const niveis = {
+                    'operador': { nome: 'Operador', cor: '#3498db' },
+                    'supervisor': { nome: 'Supervisor', cor: '#f39c12' },
+                    'manutencao': { nome: 'Manutenção', cor: '#9b59b6' },
+                    'engenharia': { nome: 'Engenharia', cor: '#2ecc71' },
+                    'administrador': { nome: 'Administrador', cor: '#e74c3c' }
+                };
+                const info = niveis[usuarioNivel] || { nome: usuarioNivel, cor: '#95a5a6' };
+                nivelNome = info.nome;
+                corNivel = info.cor;
+            }
+            
+            // Remover indicador anterior se existir
+            const indicadorAnterior = document.querySelector('.nivel-indicator');
+            if (indicadorAnterior) {
+                indicadorAnterior.remove();
+            }
+            
+            // Criar indicador
+            const indicador = document.createElement('div');
+            indicador.className = 'nivel-indicator no-select';
+            indicador.style.cssText = `
+                background: ${corNivel};
+                color: white;
+            `;
+            indicador.innerHTML = `<i class="fas ${window.PERMISSOES ? window.PERMISSOES.getIconeNivel(usuarioNivel) : 'fa-user'}"></i> ${nivelNome}`;
+            indicador.title = `Nível de acesso: ${nivelNome}`;
+            
+            document.body.appendChild(indicador);
+        }
+        
+        function mostrarMensagem(texto, tipo = 'info') {
+            // Remover mensagem anterior
+            const mensagemAnterior = document.querySelector('.mensagem-flutuante');
+            if (mensagemAnterior) {
+                mensagemAnterior.remove();
+            }
+            
+            // Criar nova mensagem
+            const mensagem = document.createElement('div');
+            mensagem.className = `mensagem-flutuante ${tipo}`;
+            
+            const icones = {
+                success: 'check-circle',
+                error: 'exclamation-circle',
+                warning: 'exclamation-triangle',
+                info: 'info-circle'
+            };
+            
+            mensagem.innerHTML = `
+                <div class="mensagem-conteudo">
+                    <i class="fas fa-${icones[tipo] || 'info-circle'}"></i>
+                    <span>${texto}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(mensagem);
+            
+            setTimeout(() => {
+                mensagem.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                mensagem.classList.remove('show');
+                setTimeout(() => mensagem.remove(), 300);
+            }, 5000);
+        }
         
         // ========== GERENCIAMENTO DE FILTROS SALVOS ==========
         
@@ -1771,6 +2082,11 @@
                     console.error('Erro ao carregar filtros salvos:', e);
                 }
             }
+            
+            // Carregar total de usuários
+            if (window.USUARIOS_AUTORIZADOS) {
+                document.getElementById('info-total-usuarios').textContent = window.USUARIOS_AUTORIZADOS.length;
+            }
         });
         
         // Salvar filtros antes de sair
@@ -1795,9 +2111,7 @@
             console.error('Erro não tratado:', event.error);
             
             // Mostrar mensagem amigável para o usuário
-            if (window.app && window.app.mostrarMensagem) {
-                window.app.mostrarMensagem('Ocorreu um erro inesperado. Recarregue a página se o problema persistir.', 'error');
-            }
+            mostrarMensagem('Ocorreu um erro inesperado. Recarregue a página se o problema persistir.', 'error');
         });
         
         // Tratar promessas não tratadas
@@ -1807,35 +2121,22 @@
         
         // ========== OFFLINE SUPPORT ==========
         
-        // Verificar status de conexão
-        function atualizarStatusConexao() {
-            const statusIndicator = document.getElementById('sync-status');
-            if (!statusIndicator) return;
-            
-            const statusDot = statusIndicator.querySelector('.status-dot');
-            const statusText = statusIndicator.querySelector('.status-text');
-            
-            if (navigator.onLine) {
-                statusDot.className = 'status-dot connected';
-                statusText.textContent = 'Conectado';
-                statusText.style.color = '';
-            } else {
-                statusDot.className = 'status-dot disconnected';
-                statusText.textContent = 'Offline';
-                statusText.style.color = 'var(--cor-erro)';
-                
-                if (window.app && window.app.mostrarMensagem) {
-                    window.app.mostrarMensagem('Você está offline. Algumas funcionalidades podem não estar disponíveis.', 'warning');
-                }
-            }
-        }
-        
         // Monitorar mudanças de conexão
-        window.addEventListener('online', atualizarStatusConexao);
-        window.addEventListener('offline', atualizarStatusConexao);
+        window.addEventListener('online', function() {
+            document.getElementById('connection-status').innerHTML = '<i class="fas fa-wifi"></i> Conectado';
+            document.getElementById('connection-status').style.color = '#2ecc71';
+            mostrarMensagem('Conexão restabelecida', 'success');
+            
+            if (window.app && window.app.sincronizarDados) {
+                window.app.sincronizarDados();
+            }
+        });
         
-        // Inicializar status da conexão
-        setTimeout(atualizarStatusConexao, 1000);
+        window.addEventListener('offline', function() {
+            document.getElementById('connection-status').innerHTML = '<i class="fas fa-wifi-slash"></i> Offline';
+            document.getElementById('connection-status').style.color = '#e74c3c';
+            mostrarMensagem('Você está offline. Algumas funcionalidades podem não estar disponíveis.', 'warning');
+        });
         
         // ========== SHORTCUTS DE TECLADO ==========
         
@@ -1875,7 +2176,113 @@
                     logoutBtn.click();
                 }
             }
+            
+            // Ctrl+R para recarregar dados (sem recarregar página)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    if (window.app && window.app.sincronizarDados) {
+                        window.app.sincronizarDados();
+                    }
+                }
+            }
         });
+        
+        // ========== BOTÕES DE SISTEMA ==========
+        
+        // Botão de logout
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (confirm('Tem certeza que deseja sair do sistema?')) {
+                    // Registrar atividade
+                    if (window.registrarAtividade) {
+                        window.registrarAtividade('LOGOUT', 'Usuário saiu do sistema');
+                    }
+                    
+                    // Limpar sessão
+                    localStorage.removeItem('gestao_equipamentos_sessao');
+                    localStorage.removeItem('gestao_equipamentos_usuario');
+                    localStorage.removeItem('gestao_equipamentos_nivel');
+                    localStorage.removeItem('gestao_equipamentos_user_id');
+                    localStorage.removeItem('gestao_equipamentos_is_system_admin');
+                    
+                    // Redirecionar para login
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+        
+        // Botão de tema
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Alternar tema usando a função global
+                if (window.alternarTema) {
+                    const novoTema = window.alternarTema();
+                    
+                    // Atualizar ícone
+                    const icon = this.querySelector('i');
+                    if (icon) {
+                        if (novoTema === 'escuro') {
+                            icon.className = 'fas fa-sun';
+                            this.title = 'Alternar para tema claro';
+                        } else {
+                            icon.className = 'fas fa-moon';
+                            this.title = 'Alternar para tema escuro';
+                        }
+                    }
+                }
+            });
+            
+            // Configurar título inicial
+            const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
+            if (temaAtual === 'escuro') {
+                themeToggle.querySelector('i').className = 'fas fa-sun';
+                themeToggle.title = 'Alternar para tema claro';
+            } else {
+                themeToggle.querySelector('i').className = 'fas fa-moon';
+                themeToggle.title = 'Alternar para tema escuro';
+            }
+        }
+        
+        // Botão de informações do sistema
+        const systemInfoBtn = document.getElementById('system-info');
+        if (systemInfoBtn) {
+            systemInfoBtn.addEventListener('click', function() {
+                if (window.mostrarInfoSistema) {
+                    window.mostrarInfoSistema();
+                } else {
+                    const usuario = localStorage.getItem('gestao_equipamentos_usuario') || 'Não autenticado';
+                    mostrarMensagem(`Usuário: ${usuario}\nData: ${new Date().toLocaleString('pt-BR')}`, 'info');
+                }
+            });
+        }
+        
+        // Botão de exportar configurações
+        const exportConfigBtn = document.getElementById('export-config');
+        if (exportConfigBtn) {
+            exportConfigBtn.addEventListener('click', function() {
+                if (window.exportarConfiguracoes) {
+                    window.exportarConfiguracoes();
+                } else {
+                    mostrarMensagem('Função de exportação não disponível', 'error');
+                }
+            });
+        }
+        
+        // Botão de admin - verificar permissão
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) {
+            const nivel = localStorage.getItem('gestao_equipamentos_nivel');
+            if (nivel !== 'administrador') {
+                adminBtn.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
