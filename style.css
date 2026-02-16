@@ -1418,3 +1418,30 @@ table tr:hover {
     margin-left: 8px;
     text-transform: uppercase;
 }
+/* Tags de filtro ativo - MELHORIA DE CONTRASTE */
+.filter-tag {
+    background: #1976d2;  /* Azul mais escuro para melhor contraste */
+    color: #ffffff;        /* Branco puro para máximo contraste */
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;      /* Um pouco mais de peso para melhor legibilidade */
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #0d47a1; /* Azul ainda mais escuro para a borda */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* Sombra sutil para destacar */
+}
+
+.filter-tag i {
+    color: #ffffff; /* Ícone branco também */
+    cursor: pointer;
+    font-size: 10px;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.filter-tag i:hover {
+    opacity: 1;
+    color: #ffcdd2; /* Vermelho claro no hover (bem visível) */
+}
