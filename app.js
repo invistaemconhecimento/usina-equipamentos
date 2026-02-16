@@ -1,6 +1,6 @@
 // ===========================================
 // SISTEMA DE GESTÃO DE EQUIPAMENTOS - APP PRINCIPAL
-// Versão 2.2.0 - Com Filtros Avançados
+// Versão 2.2.0 - Com Filtros Avançados e Correções
 // ===========================================
 
 class EquipamentosApp {
@@ -29,6 +29,9 @@ class EquipamentosApp {
         this.nivelUsuario = null;
         this.userId = null;
         this.isSystemAdmin = false;
+        this.sugestoesAtuais = [];
+        this.sugestaoSelecionada = -1;
+        this.modalConfirmacaoCallback = null;
         
         this.init();
     }
@@ -403,43 +406,78 @@ class EquipamentosApp {
                 const filtro = btn.dataset.filter;
                 this.aplicarFiltroRapido(filtro);
                 
-                // Marcar como ativo
+                // Marcar como ativo (exceto para "todos")
                 document.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+                if (filtro !== 'todos') {
+                    btn.classList.add('active');
+                }
             });
         });
     }
     
     aplicarFiltroRapido(tipo) {
-        const hoje = new Date().toISOString().split('T')[0];
-        const umaSemanaAtras = new Date();
-        umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const hojeStr = hoje.toISOString().split('T')[0];
         
         switch(tipo) {
             case 'hoje':
-                this.filtros.dataInicio = hoje;
-                this.filtros.dataFim = hoje;
-                document.getElementById('data-inicio').value = hoje;
-                document.getElementById('data-fim').value = hoje;
+                this.filtros.dataInicio = hojeStr;
+                this.filtros.dataFim = hojeStr;
+                document.getElementById('data-inicio').value = hojeStr;
+                document.getElementById('data-fim').value = hojeStr;
                 break;
-            case 'semana':
+                
+            case 'semana': {
+                const umaSemanaAtras = new Date(hoje);
+                umaSemanaAtras.setDate(hoje.getDate() - 7);
                 this.filtros.dataInicio = umaSemanaAtras.toISOString().split('T')[0];
-                this.filtros.dataFim = hoje;
+                this.filtros.dataFim = hojeStr;
                 document.getElementById('data-inicio').value = this.filtros.dataInicio;
-                document.getElementById('data-fim').value = hoje;
+                document.getElementById('data-fim').value = hojeStr;
                 break;
+            }
+            
+            case 'mes': {
+                const umMesAtras = new Date(hoje);
+                umMesAtras.setMonth(hoje.getMonth() - 1);
+                this.filtros.dataInicio = umMesAtras.toISOString().split('T')[0];
+                this.filtros.dataFim = hojeStr;
+                document.getElementById('data-inicio').value = this.filtros.dataInicio;
+                document.getElementById('data-fim').value = hojeStr;
+                break;
+            }
+            
+            case 'trimestre': {
+                const tresMesesAtras = new Date(hoje);
+                tresMesesAtras.setMonth(hoje.getMonth() - 3);
+                this.filtros.dataInicio = tresMesesAtras.toISOString().split('T')[0];
+                this.filtros.dataFim = hojeStr;
+                document.getElementById('data-inicio').value = this.filtros.dataInicio;
+                document.getElementById('data-fim').value = hojeStr;
+                break;
+            }
+            
             case 'criticos':
                 this.filtros.pendencia = 'com-criticas';
                 document.getElementById('pendencia-filter').value = 'com-criticas';
                 break;
+                
             case 'sem-pendencias':
                 this.filtros.pendencia = 'sem-pendencia';
                 document.getElementById('pendencia-filter').value = 'sem-pendencia';
                 break;
+                
             case 'minhas-pendencias':
                 this.filtros.responsavel = this.usuarioAtual;
                 break;
+                
+            case 'todos':
+                // Limpar todos os filtros
+                this.limparTodosFiltros();
+                return;
         }
+        
         this.renderizarEquipamentos();
         this.atualizarIndicadoresFiltros();
     }
@@ -622,7 +660,9 @@ class EquipamentosApp {
     
     aplicarFiltroPeriodo(periodo) {
         const hoje = new Date();
-        let dataInicio = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const hojeStr = hoje.toISOString().split('T')[0];
+        let dataInicio = new Date(hoje);
         
         switch(periodo) {
             case 'hoje':
@@ -640,14 +680,24 @@ class EquipamentosApp {
         }
         
         document.getElementById('data-inicio').value = dataInicio.toISOString().split('T')[0];
-        document.getElementById('data-fim').value = hoje.toISOString().split('T')[0];
+        document.getElementById('data-fim').value = hojeStr;
         
         this.atualizarFiltrosData();
     }
     
     atualizarFiltrosData() {
-        this.filtros.dataInicio = document.getElementById('data-inicio')?.value || null;
-        this.filtros.dataFim = document.getElementById('data-fim')?.value || null;
+        const dataInicio = document.getElementById('data-inicio')?.value;
+        const dataFim = document.getElementById('data-fim')?.value;
+        
+        // Validar se data início é maior que data fim
+        if (dataInicio && dataFim && dataInicio > dataFim) {
+            this.mostrarMensagem('Data inicial não pode ser maior que data final', 'warning');
+            return;
+        }
+        
+        this.filtros.dataInicio = dataInicio || null;
+        this.filtros.dataFim = dataFim || null;
+        
         this.renderizarEquipamentos();
         this.atualizarIndicadoresFiltros();
     }
@@ -827,10 +877,20 @@ class EquipamentosApp {
             filtrosAtivos.push({ tipo: 'busca', valor: this.filtros.busca, nome: `Busca: "${this.filtros.busca}"` });
         }
         
+        // Indicador de data das pendências
         if (this.filtros.dataInicio || this.filtros.dataFim) {
-            let periodo = 'Período: ';
-            if (this.filtros.dataInicio) periodo += `de ${this.formatarData(this.filtros.dataInicio)}`;
-            if (this.filtros.dataFim) periodo += ` até ${this.formatarData(this.filtros.dataFim)}`;
+            let periodo = 'Data das Pendências: ';
+            if (this.filtros.dataInicio && this.filtros.dataFim) {
+                if (this.filtros.dataInicio === this.filtros.dataFim) {
+                    periodo += this.formatarData(this.filtros.dataInicio);
+                } else {
+                    periodo += `de ${this.formatarData(this.filtros.dataInicio)} até ${this.formatarData(this.filtros.dataFim)}`;
+                }
+            } else if (this.filtros.dataInicio) {
+                periodo += `a partir de ${this.formatarData(this.filtros.dataInicio)}`;
+            } else if (this.filtros.dataFim) {
+                periodo += `até ${this.formatarData(this.filtros.dataFim)}`;
+            }
             filtrosAtivos.push({ tipo: 'data', valor: 'periodo', nome: periodo });
         }
         
@@ -846,7 +906,7 @@ class EquipamentosApp {
         }
         
         if (this.filtros.responsavel) {
-            filtrosAtivos.push({ tipo: 'responsavel', valor: this.filtros.responsavel, nome: `Meu responsável` });
+            filtrosAtivos.push({ tipo: 'responsavel', valor: this.filtros.responsavel, nome: `Minhas pendências` });
         }
         
         if (filtrosAtivos.length === 0) {
@@ -901,6 +961,12 @@ class EquipamentosApp {
                 break;
             case 'responsavel':
                 this.filtros.responsavel = null;
+                // Remover active class do botão "Minhas Pendências"
+                document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+                    if (btn.dataset.filter === 'minhas-pendencias') {
+                        btn.classList.remove('active');
+                    }
+                });
                 break;
         }
         
@@ -924,6 +990,13 @@ class EquipamentosApp {
         this.atualizarInterfaceFiltros();
         this.renderizarEquipamentos();
         this.atualizarIndicadoresFiltros();
+        
+        // Remover classe active de todos os botões de filtro rápido
+        document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        this.mostrarMensagem('Todos os filtros foram removidos', 'info');
     }
     
     getNomeStatus(status) {
@@ -1158,14 +1231,40 @@ class EquipamentosApp {
             }
         }
         
-        // Filtrar por data de criação/inspeção
+        // Filtrar por data das pendências
         if (this.filtros.dataInicio || this.filtros.dataFim) {
-            const dataEquip = equipamento.ultimaInspecao || equipamento.dataCriacao;
-            if (!dataEquip) return false;
+            // Se não houver pendências, não atende ao filtro de data
+            if (!equipamento.pendencias || equipamento.pendencias.length === 0) {
+                return false;
+            }
             
-            const data = new Date(dataEquip);
-            if (this.filtros.dataInicio && data < new Date(this.filtros.dataInicio)) return false;
-            if (this.filtros.dataFim && data > new Date(this.filtros.dataFim)) return false;
+            // Verificar se alguma pendência está dentro do período
+            const temPendenciaNoPeriodo = equipamento.pendencias.some(pendencia => {
+                // Usar a data da pendência (campo 'data')
+                const dataPendencia = pendencia.data;
+                if (!dataPendencia) return false;
+                
+                const data = new Date(dataPendencia);
+                data.setHours(0, 0, 0, 0); // Normalizar para início do dia
+                
+                if (this.filtros.dataInicio) {
+                    const dataInicio = new Date(this.filtros.dataInicio);
+                    dataInicio.setHours(0, 0, 0, 0);
+                    if (data < dataInicio) return false;
+                }
+                
+                if (this.filtros.dataFim) {
+                    const dataFim = new Date(this.filtros.dataFim);
+                    dataFim.setHours(23, 59, 59, 999); // Final do dia
+                    if (data > dataFim) return false;
+                }
+                
+                return true;
+            });
+            
+            if (!temPendenciaNoPeriodo) {
+                return false;
+            }
         }
         
         // Filtrar por prioridades
@@ -2033,7 +2132,6 @@ class EquipamentosApp {
         
         // Contar histórico
         const totalHistorico = pendencia.historico ? pendencia.historico.length : 0;
-        const historicoStatus = pendencia.historicoStatus ? pendencia.historicoStatus.length : 0;
         
         // Verificar se foi resolvida
         const foiResolvida = pendencia.status === 'resolvida';
