@@ -396,6 +396,384 @@
             padding: 5px;
         }
         
+        /* Busca com sugestões */
+        .search-container {
+            position: relative;
+        }
+        
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 0 0 var(--raio-borda-pequeno) var(--raio-borda-pequeno);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: var(--sombra-media);
+        }
+        
+        .search-suggestions.show {
+            display: block;
+        }
+        
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+            background: var(--cor-fundo-secundario);
+        }
+        
+        .suggestion-item i {
+            color: var(--cor-secundaria);
+            width: 16px;
+        }
+        
+        .suggestion-item .suggestion-text {
+            flex: 1;
+        }
+        
+        .suggestion-item .suggestion-type {
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+            background: var(--cor-fundo);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        /* Filtros de data */
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .date-range input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda-pequeno);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            font-size: 13px;
+        }
+        
+        .date-range span {
+            color: var(--cor-texto-secundario);
+            font-size: 12px;
+        }
+        
+        .quick-date-filters {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .date-filter-btn {
+            padding: 6px;
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda-pequeno);
+            color: var(--cor-texto);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .date-filter-btn:hover {
+            background: var(--cor-secundaria);
+            color: white;
+            border-color: var(--cor-secundaria);
+        }
+        
+        /* Filtros rápidos */
+        .quick-filters {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .quick-filter-btn {
+            background: var(--cor-fundo);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda-pequeno);
+            padding: 10px;
+            font-size: 12px;
+            color: var(--cor-texto);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        
+        .quick-filter-btn:hover {
+            background: var(--cor-secundaria);
+            color: white;
+            border-color: var(--cor-secundaria);
+            transform: translateY(-2px);
+        }
+        
+        .quick-filter-btn i {
+            font-size: 16px;
+        }
+        
+        .quick-filter-btn.active {
+            background: var(--cor-secundaria);
+            color: white;
+            border-color: var(--cor-secundaria);
+        }
+        
+        /* Filtros por prioridade */
+        .priority-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .priority-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px;
+            background: var(--cor-fundo);
+            border-radius: var(--raio-borda-pequeno);
+            cursor: pointer;
+        }
+        
+        .priority-checkbox:hover {
+            background: var(--cor-fundo-secundario);
+        }
+        
+        .priority-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .priority-checkbox .count {
+            background: var(--cor-borda);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        
+        /* Filtros por responsável */
+        #filtro-responsavel {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda-pequeno);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+        }
+        
+        #filtro-responsavel option {
+            padding: 5px;
+        }
+        
+        #filtro-responsavel option:checked {
+            background: var(--cor-secundaria);
+            color: white;
+        }
+        
+        /* Filtros salvos */
+        .saved-filters {
+            margin-bottom: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .saved-filter-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            background: var(--cor-fundo);
+            border-radius: var(--raio-borda-pequeno);
+            margin-bottom: 5px;
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .saved-filter-item:hover {
+            background: var(--cor-fundo-secundario);
+        }
+        
+        .saved-filter-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .saved-filter-info i {
+            color: var(--cor-secundaria);
+        }
+        
+        .saved-filter-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .saved-filter-count {
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+            margin-left: 5px;
+        }
+        
+        .saved-filter-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .saved-filter-actions button {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .saved-filter-actions button:hover {
+            background: var(--cor-borda);
+            color: var(--cor-texto);
+        }
+        
+        .save-filter-form {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .save-filter-form input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda-pequeno);
+            background: var(--cor-fundo);
+            color: var(--cor-texto);
+            font-size: 13px;
+        }
+        
+        /* Indicadores de filtros ativos */
+        .active-filters {
+            background: var(--cor-fundo-secundario);
+            padding: 10px;
+            border-radius: var(--raio-borda-pequeno);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .active-filters span {
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            flex: 1;
+        }
+        
+        .filter-tag {
+            background: var(--cor-secundaria);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-tag i {
+            cursor: pointer;
+            font-size: 10px;
+        }
+        
+        .filter-tag i:hover {
+            color: var(--cor-erro);
+        }
+        
+        .clear-filters-btn {
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .clear-filters-btn:hover {
+            background: var(--cor-erro);
+            color: white;
+        }
+        
+        /* Estatísticas dos filtros */
+        .filter-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            background: var(--cor-fundo);
+            padding: 8px;
+            border-radius: var(--raio-borda-pequeno);
+            text-align: center;
+        }
+        
+        .stat-item .stat-label {
+            display: block;
+            font-size: 11px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .stat-item .stat-value {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--cor-secundaria);
+        }
+        
+        .progress-bar-container {
+            height: 6px;
+            background: var(--cor-fundo);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--cor-sucesso);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
         /* Botões */
         .btn-primary, .btn-secondary, .btn-small {
             border: none;
@@ -845,18 +1223,6 @@
             transform: none;
         }
         
-        /* Badge de permissão */
-        .permission-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            background: rgba(52, 152, 219, 0.2);
-            color: var(--cor-texto-secundario);
-        }
-        
         /* Sem resultados */
         .no-results {
             grid-column: 1 / -1;
@@ -1066,6 +1432,18 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
+            
+            .quick-filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-date-filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-stats {
+                grid-template-columns: 1fr;
+            }
         }
         
         @media (max-width: 480px) {
@@ -1091,6 +1469,14 @@
             }
             
             .nivel-indicator {
+                display: none;
+            }
+            
+            .date-range {
+                flex-direction: column;
+            }
+            
+            .date-range span {
                 display: none;
             }
         }
@@ -1215,7 +1601,42 @@
         <div class="main-content">
             <!-- Sidebar com Filtros e Ações -->
             <div class="sidebar">
-                <!-- Filtros -->
+                <!-- Indicadores de Filtros Ativos -->
+                <div class="active-filters" id="active-filters" style="display: none;">
+                    <span><i class="fas fa-filter"></i> Filtros ativos:</span>
+                    <div class="filter-tags" id="filter-tags"></div>
+                    <button onclick="app.limparTodosFiltros()" class="clear-filters-btn">
+                        <i class="fas fa-times"></i> Limpar todos
+                    </button>
+                </div>
+
+                <!-- Filtros Rápidos -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-bolt"></i> Filtros Rápidos</h3>
+                    
+                    <div class="quick-filters">
+                        <button class="quick-filter-btn" data-filter="hoje">
+                            <i class="fas fa-calendar-day"></i> Hoje
+                        </button>
+                        <button class="quick-filter-btn" data-filter="semana">
+                            <i class="fas fa-calendar-week"></i> Esta Semana
+                        </button>
+                        <button class="quick-filter-btn" data-filter="criticos">
+                            <i class="fas fa-exclamation-triangle"></i> Críticos
+                        </button>
+                        <button class="quick-filter-btn" data-filter="sem-pendencias">
+                            <i class="fas fa-check-circle"></i> Sem Pendências
+                        </button>
+                        <button class="quick-filter-btn" data-filter="minhas-pendencias">
+                            <i class="fas fa-user"></i> Minhas Pendências
+                        </button>
+                        <button class="quick-filter-btn" data-filter="todos">
+                            <i class="fas fa-list"></i> Todos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros Básicos -->
                 <div class="sidebar-section">
                     <h3><i class="fas fa-filter"></i> Filtros</h3>
                     
@@ -1284,12 +1705,115 @@
                         <label for="search">
                             <i class="fas fa-search"></i> Buscar Equipamento:
                         </label>
-                        <input type="text" id="search" placeholder="Nome, código ou descrição...">
+                        <div class="search-container">
+                            <input type="text" id="search" placeholder="Nome, código ou descrição..." autocomplete="off">
+                            <div class="search-suggestions" id="search-suggestions"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros por Data -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-calendar-alt"></i> Período</h3>
+                    
+                    <div class="filter-group">
+                        <label>Data:</label>
+                        <div class="date-range">
+                            <input type="date" id="data-inicio" placeholder="Data inicial">
+                            <span>até</span>
+                            <input type="date" id="data-fim" placeholder="Data final">
+                        </div>
                     </div>
                     
-                    <button id="reset-filters" class="btn-secondary" style="width: 100%; margin-top: 10px;">
-                        <i class="fas fa-redo-alt"></i> Limpar Filtros
-                    </button>
+                    <div class="quick-date-filters">
+                        <button class="date-filter-btn" data-period="hoje">Hoje</button>
+                        <button class="date-filter-btn" data-period="semana">Esta Semana</button>
+                        <button class="date-filter-btn" data-period="mes">Este Mês</button>
+                        <button class="date-filter-btn" data-period="trimestre">Este Trimestre</button>
+                    </div>
+                </div>
+
+                <!-- Filtros por Prioridade -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-flag"></i> Por Prioridade</h3>
+                    
+                    <div class="priority-filters">
+                        <label class="priority-checkbox">
+                            <input type="checkbox" value="critica"> Crítica
+                            <span class="count" id="count-critica">0</span>
+                        </label>
+                        <label class="priority-checkbox">
+                            <input type="checkbox" value="alta"> Alta
+                            <span class="count" id="count-alta">0</span>
+                        </label>
+                        <label class="priority-checkbox">
+                            <input type="checkbox" value="media"> Média
+                            <span class="count" id="count-media">0</span>
+                        </label>
+                        <label class="priority-checkbox">
+                            <input type="checkbox" value="baixa"> Baixa
+                            <span class="count" id="count-baixa">0</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Filtros por Responsável -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-users"></i> Por Responsável</h3>
+                    
+                    <select id="filtro-responsavel" multiple size="4">
+                        <option value="Elétrica">Elétrica</option>
+                        <option value="Instrumentação">Instrumentação</option>
+                        <option value="Mecânica">Mecânica</option>
+                        <option value="Automação">Automação</option>
+                        <option value="Química">Química</option>
+                        <option value="Externo">Externo</option>
+                    </select>
+                </div>
+
+                <!-- Filtros Salvos -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-bookmark"></i> Filtros Salvos</h3>
+                    
+                    <div class="saved-filters" id="saved-filters">
+                        <!-- Filtros salvos serão carregados aqui -->
+                        <p style="text-align: center; color: var(--cor-texto-secundario); padding: 10px;">Nenhum filtro salvo</p>
+                    </div>
+                    
+                    <div class="save-filter-form">
+                        <input type="text" id="filter-name" placeholder="Nome do filtro...">
+                        <button onclick="app.salvarFiltroAtual()" class="btn-small btn-primary">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Estatísticas dos Filtros -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-chart-pie"></i> Estatísticas</h3>
+                    
+                    <div class="filter-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total:</span>
+                            <span class="stat-value" id="stats-total">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Filtrados:</span>
+                            <span class="stat-value" id="stats-filtrados">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Aptos:</span>
+                            <span class="stat-value" id="stats-aptos">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Não Aptos:</span>
+                            <span class="stat-value" id="stats-nao-aptos">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="stats-progress-apto"></div>
+                    </div>
                 </div>
 
                 <!-- Ações Rápidas -->
@@ -1831,6 +2355,7 @@
                         if (window.app && window.app.filtros) {
                             window.app.filtros.busca = '';
                             window.app.renderizarEquipamentos();
+                            window.app.atualizarIndicadoresFiltros();
                         }
                     }
                 });
@@ -2022,62 +2547,11 @@
         
         // Carregar filtros salvos
         window.addEventListener('load', function() {
-            const filtrosSalvos = localStorage.getItem('gestao_equipamentos_filtros');
+            const filtrosSalvos = localStorage.getItem('gestao_equipamentos_filtros_salvos');
             if (filtrosSalvos) {
                 try {
                     const filtros = JSON.parse(filtrosSalvos);
-                    
-                    // Aplicar filtros salvos
-                    if (filtros.status) {
-                        const statusFilter = document.getElementById('status-filter');
-                        if (statusFilter) statusFilter.value = filtros.status;
-                    }
-                    
-                    if (filtros.pendencia) {
-                        const pendenciaFilter = document.getElementById('pendencia-filter');
-                        if (pendenciaFilter) pendenciaFilter.value = filtros.pendencia;
-                    }
-                    
-                    if (filtros.setor) {
-                        const setorFilter = document.getElementById('setor-filter');
-                        if (setorFilter) setorFilter.value = filtros.setor;
-                    }
-                    
-                    if (filtros.busca) {
-                        const searchInput = document.getElementById('search');
-                        if (searchInput) searchInput.value = filtros.busca;
-                    }
-                    
-                    if (filtros.viewMode) {
-                        const viewListBtn = document.getElementById('view-list');
-                        const viewGridBtn = document.getElementById('view-grid');
-                        
-                        if (viewListBtn && viewGridBtn) {
-                            viewListBtn.classList.toggle('active', filtros.viewMode === 'list');
-                            viewGridBtn.classList.toggle('active', filtros.viewMode === 'grid');
-                        }
-                    }
-                    
-                    // Atualizar aplicação após carregar
-                    setTimeout(() => {
-                        if (window.app && window.app.filtros) {
-                            window.app.filtros = {
-                                ...window.app.filtros,
-                                status: filtros.status || 'all',
-                                pendencia: filtros.pendencia || 'all',
-                                setor: filtros.setor || 'all',
-                                busca: filtros.busca || ''
-                            };
-                            
-                            if (filtros.viewMode && window.app.setViewMode) {
-                                window.app.setViewMode(filtros.viewMode);
-                            }
-                            
-                            if (window.app.renderizarEquipamentos) {
-                                window.app.renderizarEquipamentos();
-                            }
-                        }
-                    }, 1000);
+                    // Os filtros serão carregados pelo app.js
                 } catch (e) {
                     console.error('Erro ao carregar filtros salvos:', e);
                 }
@@ -2097,7 +2571,11 @@
                     pendencia: window.app.filtros.pendencia,
                     setor: window.app.filtros.setor || 'all',
                     busca: window.app.filtros.busca,
-                    viewMode: window.app.viewMode || 'grid'
+                    viewMode: window.app.viewMode || 'grid',
+                    dataInicio: window.app.filtros.dataInicio,
+                    dataFim: window.app.filtros.dataFim,
+                    prioridades: window.app.filtros.prioridades,
+                    responsaveis: window.app.filtros.responsaveis
                 };
                 
                 localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify(filtrosParaSalvar));
