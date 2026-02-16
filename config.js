@@ -49,7 +49,6 @@ const INITIAL_DATA = {
                     criadoEm: "2024-01-10T10:30:00",
                     atualizadoPor: "supervisor",
                     ultimaAtualizacao: "2024-01-10T10:30:00",
-                    // NOVO: Sistema de histórico implementado
                     historico: [
                         {
                             timestamp: "2024-01-10T10:30:00",
@@ -103,7 +102,6 @@ const INITIAL_DATA = {
                     criadoEm: "2024-01-05T08:15:00",
                     atualizadoPor: "operador",
                     ultimaAtualizacao: "2024-01-05T08:15:00",
-                    // Histórico de exemplo
                     historico: [
                         {
                             timestamp: "2024-01-05T08:15:00",
@@ -176,6 +174,86 @@ const INITIAL_DATA = {
     dataAtualizacao: "2024-01-20",
     criadoPor: "Alexandre Oliveira"
 };
+
+// ===========================================
+// USUÁRIOS DO SISTEMA - FORMATO CONSISTENTE (ARRAY)
+// ===========================================
+
+const USUARIOS_AUTORIZADOS = [
+    {
+        id: 1,
+        username: 'administrador',
+        senha: 'admin789',
+        nivel: 'administrador',
+        nome: 'Administrador Sistema',
+        email: 'admin@empresa.com',
+        departamento: 'TI',
+        ativo: true,
+        isSystemAdmin: true, // Flag para identificar admin do sistema
+        dataCriacao: '2024-01-01',
+        criadoPor: 'sistema',
+        ultimoAcesso: null
+    },
+    {
+        id: 2,
+        username: 'supervisor',
+        senha: 'supervisor456',
+        nivel: 'supervisor',
+        nome: 'Maria Santos',
+        email: 'maria.santos@empresa.com',
+        departamento: 'Supervisão',
+        ativo: true,
+        isSystemAdmin: false,
+        dataCriacao: '2024-01-01',
+        criadoPor: 'sistema',
+        ultimoAcesso: null
+    },
+    {
+        id: 3,
+        username: 'operador',
+        senha: 'operador123',
+        nivel: 'operador',
+        nome: 'João Silva',
+        email: 'joao.silva@empresa.com',
+        departamento: 'Operações',
+        ativo: true,
+        isSystemAdmin: false,
+        dataCriacao: '2024-01-01',
+        criadoPor: 'sistema',
+        ultimoAcesso: null
+    },
+    {
+        id: 4,
+        username: 'manutencao',
+        senha: 'manutencao2024',
+        nivel: 'manutencao',
+        nome: 'Pedro Costa',
+        email: 'pedro.costa@empresa.com',
+        departamento: 'Manutenção',
+        ativo: true,
+        isSystemAdmin: false,
+        dataCriacao: '2024-01-01',
+        criadoPor: 'sistema',
+        ultimoAcesso: null
+    },
+    {
+        id: 5,
+        username: 'engenharia',
+        senha: 'engenharia789',
+        nivel: 'engenharia',
+        nome: 'Ana Rodrigues',
+        email: 'ana.rodrigues@empresa.com',
+        departamento: 'Engenharia',
+        ativo: true,
+        isSystemAdmin: false,
+        dataCriacao: '2024-01-01',
+        criadoPor: 'sistema',
+        ultimoAcesso: null
+    }
+];
+
+// Próximo ID disponível para novos usuários
+const NEXT_USER_ID = 6;
 
 // ===========================================
 // SISTEMA DE PERMISSÕES HIERÁRQUICO
@@ -337,10 +415,6 @@ const PERMISSOES = {
         // Verificar permissões específicas do nível
         const temPermissao = nivelUsuario.permissoes.includes(permissao);
         
-        if (!temPermissao) {
-            console.debug(`Usuário "${usuario}" não tem permissão para "${permissao}"`);
-        }
-        
         return temPermissao;
     },
     
@@ -445,7 +519,6 @@ const PERMISSOES = {
         return relatorio;
     },
     
-    // Verificar se usuário tem nível igual ou superior
     temNivelMinimo: function(usuario, nivelMinimo) {
         const nivelUsuario = this.getNivelNumerico(usuario);
         const nivelRequerido = this.getNivelNumerico(nivelMinimo);
@@ -1097,65 +1170,26 @@ const APP_UTILS = {
 };
 
 // ===========================================
-// USUÁRIOS DO SISTEMA (BACKUP LOCAL)
+// FUNÇÕES DE SEGURANÇA - HASH DE SENHA
 // ===========================================
 
-const USUARIOS_AUTORIZADOS = {
-    'operador': {
-        senha: 'operador123',
-        nivel: 'operador',
-        nome: 'João Silva',
-        email: 'joao.silva@empresa.com',
-        departamento: 'Operações',
-        telefone: '(11) 99999-8888',
-        dataCadastro: '2024-01-01',
-        ativo: true
-    },
-    
-    'supervisor': {
-        senha: 'supervisor456',
-        nivel: 'supervisor',
-        nome: 'Maria Santos',
-        email: 'maria.santos@empresa.com',
-        departamento: 'Supervisão',
-        telefone: '(11) 98888-7777',
-        dataCadastro: '2024-01-01',
-        ativo: true
-    },
-    
-    'administrador': {
-        senha: 'admin789',
-        nivel: 'administrador',
-        nome: 'Alexandre Oliveira',
-        email: 'alexandre.oliveira@ero.com',
-        departamento: 'Beneficiamento',
-        telefone: '(11) 97777-6666',
-        dataCadastro: '2024-01-01',
-        ativo: true
-    },
-    
-    'manutencao': {
-        senha: 'manutencao2024',
-        nivel: 'manutencao',
-        nome: 'Pedro Costa',
-        email: 'pedro.costa@empresa.com',
-        departamento: 'Manutenção',
-        telefone: '(11) 96666-5555',
-        dataCadastro: '2024-01-01',
-        ativo: true
-    },
-    
-    'engenharia': {
-        senha: 'engenharia789',
-        nivel: 'engenharia',
-        nome: 'Ana Rodrigues',
-        email: 'ana.rodrigues@empresa.com',
-        departamento: 'Engenharia',
-        telefone: '(11) 95555-4444',
-        dataCadastro: '2024-01-01',
-        ativo: true
+// Função simples de hash (para demonstração - em produção usar bcrypt)
+function hashSenha(senha) {
+    // Esta é uma simulação - em produção use bcrypt ou similar
+    let hash = 0;
+    for (let i = 0; i < senha.length; i++) {
+        const char = senha.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Converte para 32-bit integer
     }
-};
+    return 'hash_' + Math.abs(hash).toString(16) + '_' + senha.length;
+}
+
+// Verificar senha (simulação)
+function verificarSenha(senha, hash) {
+    // Em produção, use bcrypt.compare
+    return hashSenha(senha) === hash;
+}
 
 // ===========================================
 // FUNÇÕES DE SISTEMA - GERENCIAMENTO
@@ -1171,7 +1205,8 @@ function logout() {
     
     // Limpar dados da sessão
     ['gestao_equipamentos_sessao', 'gestao_equipamentos_usuario', 
-     'gestao_equipamentos_nivel', 'gestao_equipamentos_ultimo_acesso']
+     'gestao_equipamentos_nivel', 'gestao_equipamentos_ultimo_acesso',
+     'gestao_equipamentos_user_id', 'gestao_equipamentos_is_system_admin']
         .forEach(item => localStorage.removeItem(item));
     
     // Redirecionar com parâmetro de logout
@@ -1198,6 +1233,8 @@ function verificarSessaoAtiva() {
             localStorage.removeItem('gestao_equipamentos_sessao');
             localStorage.removeItem('gestao_equipamentos_usuario');
             localStorage.removeItem('gestao_equipamentos_nivel');
+            localStorage.removeItem('gestao_equipamentos_user_id');
+            localStorage.removeItem('gestao_equipamentos_is_system_admin');
             
             return false;
         }
@@ -1225,26 +1262,39 @@ function getNivelUsuario() {
     return localStorage.getItem('gestao_equipamentos_nivel');
 }
 
+// Obter ID do usuário atual
+function getUsuarioId() {
+    return localStorage.getItem('gestao_equipamentos_user_id');
+}
+
+// Verificar se é admin do sistema
+function isSystemAdmin() {
+    return localStorage.getItem('gestao_equipamentos_is_system_admin') === 'true';
+}
+
 // Obter informações completas do usuário
 function getUsuarioInfo() {
     const usuarioKey = getUsuarioLogado();
     if (!usuarioKey) return null;
     
-    const usuarioData = USUARIOS_AUTORIZADOS[usuarioKey];
+    // Tentar encontrar no array de usuários
+    let usuarioData = USUARIOS_AUTORIZADOS.find(u => u.username === usuarioKey);
+    
     const nivelKey = getNivelUsuario();
     
     return usuarioData ? {
+        id: usuarioData.id,
         username: usuarioKey,
         nome: usuarioData.nome,
         email: usuarioData.email,
         departamento: usuarioData.departamento,
-        telefone: usuarioData.telefone,
         nivel: nivelKey,
         nivelNome: PERMISSOES.getNomeNivel(nivelKey),
         corNivel: PERMISSOES.getCorNivel(nivelKey),
         iconeNivel: PERMISSOES.getIconeNivel(nivelKey),
-        dataCadastro: usuarioData.dataCadastro,
-        ativo: usuarioData.ativo
+        dataCadastro: usuarioData.dataCriacao,
+        ativo: usuarioData.ativo,
+        isSystemAdmin: usuarioData.isSystemAdmin || false
     } : null;
 }
 
@@ -1324,17 +1374,35 @@ function exportarConfiguracoes() {
             empresa: APP_CONFIG.empresa,
             dataExportacao: new Date().toISOString(),
             exportadoPor: usuario,
-            totalUsuarios: Object.keys(USUARIOS_AUTORIZADOS).length
+            totalUsuarios: USUARIOS_AUTORIZADOS.length,
+            usuariosAtivos: USUARIOS_AUTORIZADOS.filter(u => u.ativo !== false).length
         },
         
         configuracoes: {
-            appConfig: APP_CONFIG,
+            appConfig: {
+                ...APP_CONFIG,
+                cores: undefined // Remover informações sensíveis
+            },
             jsonBinConfig: {
                 BIN_ID: JSONBIN_CONFIG.BIN_ID,
-                BIN_USUARIOS: JSONBIN_CONFIG.BIN_USUARIOS.ID,
+                BIN_USUARIOS_ID: JSONBIN_CONFIG.BIN_USUARIOS.ID,
                 ultimaSincronizacao: localStorage.getItem('gestao_equipamentos_ultima_sinc')
             }
         },
+        
+        usuarios: USUARIOS_AUTORIZADOS.map(u => ({
+            id: u.id,
+            username: u.username,
+            nome: u.nome,
+            email: u.email,
+            nivel: u.nivel,
+            departamento: u.departamento,
+            ativo: u.ativo,
+            isSystemAdmin: u.isSystemAdmin || false,
+            dataCriacao: u.dataCriacao,
+            criadoPor: u.criadoPor
+            // NÃO incluir a senha!
+        })),
         
         permissoes: PERMISSOES.gerarRelatorioPermissoes(),
         
@@ -1362,9 +1430,9 @@ function exportarConfiguracoes() {
     URL.revokeObjectURL(url);
     
     // Registrar atividade
-    registrarAtividade('EXPORTAR_CONFIG', 'Configurações do sistema exportadas');
+    registrarAtividade('EXPORTAR_CONFIG', `Configurações do sistema exportadas (${USUARIOS_AUTORIZADOS.length} usuários)`);
     
-    alert(`Configurações exportadas com sucesso!\nArquivo: ${nomeArquivo}`);
+    alert(`Configurações exportadas com sucesso!\nArquivo: ${nomeArquivo}\nTotal de usuários: ${USUARIOS_AUTORIZADOS.length}`);
 }
 
 // Gerar relatório de configuração
@@ -1399,6 +1467,7 @@ Usuário: ${usuarioInfo?.username || 'N/A'}
 Nível: ${usuarioInfo?.nivelNome || 'N/A'}
 Departamento: ${usuarioInfo?.departamento || 'N/A'}
 E-mail: ${usuarioInfo?.email || 'N/A'}
+Admin Sistema: ${usuarioInfo?.isSystemAdmin ? 'Sim' : 'Não'}
 
 CONFIGURAÇÕES
 -------------
@@ -1406,6 +1475,8 @@ Setores Configurados: ${Object.keys(APP_CONFIG.setores).length}
 Responsáveis: ${Object.keys(APP_CONFIG.responsaveis).length}
 Status de Equipamentos: ${Object.keys(APP_CONFIG.statusEquipamento).length}
 Níveis de Permissão: ${Object.keys(PERMISSOES.niveis).length}
+Usuários Cadastrados: ${USUARIOS_AUTORIZADOS.length}
+Usuários Ativos: ${USUARIOS_AUTORIZADOS.filter(u => u.ativo !== false).length}
 
 ARMAZENAMENTO
 -------------
@@ -1427,7 +1498,6 @@ ${logs.map(log => `[${APP_UTILS.formatarHora(log.timestamp)}] ${log.usuario}: ${
 ESTATÍSTICAS
 ------------
 Total de Logs: ${getLogsAtividades().length}
-Usuários Cadastrados: ${Object.keys(USUARIOS_AUTORIZADOS).length}
 Versão do Sistema: ${APP_CONFIG.versao}
 Data de Geração: ${new Date().toLocaleString('pt-BR')}
 
@@ -1477,7 +1547,7 @@ function mostrarInfoSistema() {
                         <i class="fas fa-users"></i>
                         <div>
                             <strong>Usuários</strong>
-                            <p>${Object.keys(USUARIOS_AUTORIZADOS).length} cadastrados</p>
+                            <p>${USUARIOS_AUTORIZADOS.length} cadastrados</p>
                         </div>
                     </div>
                     <div class="info-item">
@@ -1619,12 +1689,19 @@ if (typeof window !== 'undefined') {
     window.PERMISSOES = PERMISSOES;
     window.APP_UTILS = APP_UTILS;
     window.USUARIOS_AUTORIZADOS = USUARIOS_AUTORIZADOS;
+    window.NEXT_USER_ID = NEXT_USER_ID;
+    
+    // Funções de segurança
+    window.hashSenha = hashSenha;
+    window.verificarSenha = verificarSenha;
     
     // Funções do sistema
     window.logout = logout;
     window.verificarSessaoAtiva = verificarSessaoAtiva;
     window.getUsuarioLogado = getUsuarioLogado;
     window.getNivelUsuario = getNivelUsuario;
+    window.getUsuarioId = getUsuarioId;
+    window.isSystemAdmin = isSystemAdmin;
     window.getUsuarioInfo = getUsuarioInfo;
     window.registrarAtividade = registrarAtividade;
     window.getLogsAtividades = getLogsAtividades;
@@ -1643,6 +1720,8 @@ if (typeof window !== 'undefined') {
                 'color: #2c3e50; font-size: 14px; font-weight: bold;');
     console.log(`%cConfigurações carregadas com sucesso | ${new Date().toLocaleString('pt-BR')}`, 
                 'color: #27ae60;');
+    console.log(`%cUsuários disponíveis: ${USUARIOS_AUTORIZADOS.length}`, 
+                'color: #3498db;');
 }
 
 // Exportar para módulos (se usando Node.js/CommonJS)
@@ -1654,10 +1733,15 @@ if (typeof module !== 'undefined' && module.exports) {
         PERMISSOES,
         APP_UTILS,
         USUARIOS_AUTORIZADOS,
+        NEXT_USER_ID,
+        hashSenha,
+        verificarSenha,
         logout,
         verificarSessaoAtiva,
         getUsuarioLogado,
         getNivelUsuario,
+        getUsuarioId,
+        isSystemAdmin,
         getUsuarioInfo,
         registrarAtividade,
         getLogsAtividades,
