@@ -604,37 +604,37 @@ const APP_CONFIG = {
         "reagentes-pax": {
             nome: "REAGENTES / PAX",
             codigo: "RGX",
-            responsavelPadrao: "Química",
+            responsavelPadrao: "Engenharia",
             cor: "#c0392b"
         },
         "reagentes-dtf": {
             nome: "REAGENTES / DTF",
             codigo: "RGD",
-            responsavelPadrao: "Química",
+            responsavelPadrao: "Engenharia",
             cor: "#e74c3c"
         },
         "reagentes-espumante": {
             nome: "REAGENTES / ESPUMANTE",
             codigo: "RGE",
-            responsavelPadrao: "Química",
+            responsavelPadrao: "Engenharia",
             cor: "#e67e22"
         },
         "reagentes-leite-de-cal": {
             nome: "REAGENTES / LEITE DE CAL",
             codigo: "RGC",
-            responsavelPadrao: "Química",
+            responsavelPadrao: "Engenharia",
             cor: "#f39c12"
         },
         "reagentes-acido-sulfurico": {
             nome: "REAGENTES / ÁCIDO SULFÚRICO",
             codigo: "RGA",
-            responsavelPadrao: "Química",
+            responsavelPadrao: "Engenharia",
             cor: "#d35400"
         },
         "reagentes-floculante": {
             nome: "REAGENTES / FLOCULANTE",
             codigo: "RGF",
-            responsavelPadrao: "Química",
+            responsavelPadrao: "Engenharia",
             cor: "#16a085"
         },
         
@@ -767,7 +767,7 @@ const APP_CONFIG = {
             icone: "fa-building",
             contato: "fornecedor"
         },
-        "Química": {
+        "Engenharia": {
             cor: "#c0392b",
             icone: "fa-flask",
             contato: "ramal-206"
