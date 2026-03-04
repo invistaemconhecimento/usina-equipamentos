@@ -1,82 +1,101 @@
-# Sistema de Gerenciamento de Equipamentos de Usina
+# 🏭 Sistema de Gestão de Equipamentos - Usina de Beneficiamento
 
-Aplicação web para gerenciar 300 equipamentos de usina, com controle de status operacional e registro de pendências.
+![Versão](https://img.shields.io/badge/versão-2.2.0-blue)
+![Licença](https://img.shields.io/badge/licença-MIT-green)
+![Status](https://img.shields.io/badge/status-produção-brightgreen)
+![Equipamentos](https://img.shields.io/badge/equipamentos-300%2B-orange)
 
-## Funcionalidades
+Sistema completo para gerenciamento de equipamentos industriais, com capacidade para gerenciar **300+ equipamentos**, controle de status operacional, registro detalhado de pendências e sistema de permissões por níveis de acesso.
 
-- **Cadastro de equipamentos** com código, nome, descrição, setor e status operacional
-- **Controle de status**: Apto a operar / Não apto
-- **Registro de pendências** para cada equipamento
-- **Histórico de pendências** com responsável, data, prioridade e status
-- **Filtros avançados** por status operacional e existência de pendências
-- **Busca por equipamentos**
-- **Visualização em lista ou grade**
-- **Sincronização com JSONBin.io** para armazenamento em nuvem
-- **Exportação de dados** para backup
+## 📋 Índice
 
-## Configuração
+- [Visão Geral](#-visão-geral)
+- [Funcionalidades](#-funcionalidades)
+- [Níveis de Acesso](#-níveis-de-acesso)
+- [Estrutura do Sistema](#-estrutura-do-sistema)
+- [Tecnologias Utilizadas](#-tecnologias-utilizadas)
+- [Configuração](#-configuração)
+- [Hospedagem](#-hospedagem)
+- [Como Usar](#-como-usar)
+- [Estrutura dos Dados](#-estrutura-dos-dados)
+- [Manutenção](#-manutenção)
+- [Suporte](#-suporte)
 
-### 1. Configurar JSONBin.io
+## 🔍 Visão Geral
 
-1. Acesse [JSONBin.io](https://jsonbin.io/) e crie uma conta gratuita
-2. Obtenha sua API Key e Master Key
-3. Crie um novo "bin" (repositório de dados)
-4. No arquivo `config.js`, substitua as seguintes informações:
-   - `API_KEY`: Sua chave de API
-   - `BIN_ID`: O ID do bin criado
-   - `X-Master-Key`: Sua master key no cabeçalho
+Sistema web desenvolvido para usinas de beneficiamento, permitindo o gerenciamento eficiente de equipamentos industriais, com foco em:
 
-### 2. Hospedagem no GitHub Pages
+- **Controle operacional**: Monitoramento de status "Apto" / "Não Apto"
+- **Gestão de pendências**: Registro e acompanhamento de ocorrências
+- **Rastreabilidade**: Histórico completo de todas as ações
+- **Segurança**: Sistema de permissões por níveis hierárquicos
+- **Armazenamento em nuvem**: Sincronização automática com JSONBin.io
 
-1. Crie um repositório no GitHub
-2. Faça upload dos arquivos:
-   - `index.html`
-   - `style.css`
-   - `app.js`
-   - `config.js`
-   - `README.md`
-3. Ative o GitHub Pages nas configurações do repositório
+## ✨ Funcionalidades
 
-## Como Usar
+### 📦 Equipamentos
+- ✅ **Cadastro simplificado**: Apenas nome, descrição e setor (ID gerado automaticamente)
+- ✅ **IDs automáticos**: Sistema numérico sequencial (1, 2, 3...)
+- ✅ **Status automático**: Determinado pelas pendências críticas
+- ✅ **Edição completa**: Atualização de dados a qualquer momento
+- ✅ **Exclusão segura**: Apenas administradores, com verificação de pendências ativas
+- ✅ **Dupla confirmação**: Para equipamentos com histórico de pendências
 
-### Adicionar um Equipamento
+### 📝 Pendências
+- ✅ **Registro detalhado**: Título, descrição, responsável, prioridade, data
+- ✅ **Prioridades**: Crítica, Alta, Média, Baixa (com cores distintas)
+- ✅ **Status**: Aberta, Em Andamento, Resolvida, Cancelada
+- ✅ **Histórico completo**: Todas as alterações registradas
+- ✅ **Comentários**: Adicionar observações a qualquer momento
+- ✅ **Edição e exclusão**: Com permissões controladas
 
-1. Clique em "Novo Equipamento"
-2. Preencha os dados obrigatórios (código, nome, status)
-3. Clique em "Salvar Equipamento"
+### 🔍 Filtros e Busca
+- ✅ **Filtros rápidos**: Hoje, Esta Semana, Críticos, Sem Pendências, Minhas Pendências
+- ✅ **Filtros por status**: Apto / Não Apto
+- ✅ **Filtros por pendência**: Com pendência / Sem pendência / Com críticas
+- ✅ **Filtros por setor**: Todos os setores da usina
+- ✅ **Filtros por data**: Período personalizado
+- ✅ **Filtros por prioridade**: Crítica, Alta, Média, Baixa
+- ✅ **Filtros por responsável**: Múltipla seleção
+- ✅ **Busca inteligente**: Por nome, descrição ou ID
+- ✅ **Sugestões em tempo real**: Auto-complete na busca
+- ✅ **Filtros salvos**: Salvar combinações de filtros para uso futuro
 
-### Registrar uma Pendência
+### 👥 Sistema de Permissões
+- ✅ **5 níveis de acesso**: Operador, Supervisor, Manutenção, Engenharia, Administrador
+- ✅ **Controle granular**: Cada ação tem permissão específica
+- ✅ **Indicador visual**: Badge colorido mostrando o nível do usuário
+- ✅ **Sistema de login**: Autenticação segura com sessão
 
-1. Selecione um equipamento na lista
-2. Clique em "Pendência" no card do equipamento
-3. Preencha os detalhes da pendência
-4. Clique em "Salvar Pendência"
+### 📊 Interface
+- ✅ **Visualização dupla**: Lista ou Grade
+- ✅ **Cards informativos**: Status, pendências, metadados
+- ✅ **Cores intuitivas**: Identificação visual rápida
+- ✅ **Tema claro/escuro**: Alternância com atalho Ctrl+T
+- ✅ **Design responsivo**: Funciona em desktop, tablet e mobile
+- ✅ **Atalhos de teclado**: Ctrl+F (busca), Ctrl+E (novo equipamento), etc.
 
-### Visualizar Detalhes
+### 🔄 Sincronização
+- ✅ **JSONBin.io**: Armazenamento em nuvem
+- ✅ **Sincronização automática**: A cada 5 minutos
+- ✅ **Sincronização manual**: Botão dedicado
+- ✅ **Indicador de status**: Conectado / Desconectado
+- ✅ **Fallback local**: Dados iniciais se offline
 
-1. Clique em "Detalhes" em qualquer equipamento
-2. Veja todas as informações do equipamento
-3. Acesse o histórico completo de pendências
-4. Edite ou exclua pendências diretamente
+### 📈 Estatísticas
+- ✅ **Dashboard**: Total de equipamentos, aptos, não aptos, pendências
+- ✅ **Contadores**: Por prioridade e status
+- ✅ **Progresso**: Percentual de equipamentos aptos
+- ✅ **Exportação de dados**: CSV com todos os registros
 
-### Filtros e Busca
+## 👑 Níveis de Acesso
 
-- Use o filtro de status para ver apenas equipamentos aptos ou não aptos
-- Use o filtro de pendência para ver equipamentos com ou sem pendências
-- Utilize a busca para encontrar equipamentos por nome, código ou descrição
+| Nível | Cor | Ícone | Permissões |
+|-------|-----|-------|------------|
+| **Operador** | 🔵 Azul | `fa-user` | Visualizar equipamentos, criar pendências, comentar |
+| **Supervisor** | 🟡 Amarelo | `fa-user-tie` | + Editar pendências, exportar dados, relatórios |
+| **Manutenção** | 🟣 Roxo | `fa-tools` | + Resolver pendências, ver histórico completo |
+| **Engenharia** | 🟢 Verde | `fa-user-cog` | + Criar/editar equipamentos, excluir pendências |
+| **Administrador** | 🔴 Vermelho | `fa-user-shield` | **ACESSO TOTAL** + Excluir equipamentos, gerenciar usuários |
 
-## Estrutura dos Dados
-
-### Equipamento
-```json
-{
-  "id": 1,
-  "codigo": "EQP-001",
-  "nome": "Turbina Principal",
-  "descricao": "Turbina de alta pressão",
-  "setor": "geracao",
-  "status": "apto",
-  "ultimaInspecao": "2023-10-15",
-  "dataCriacao": "2023-01-10",
-  "pendencias": []
-}
+## 📁 Estrutura do Sistema
