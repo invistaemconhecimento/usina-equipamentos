@@ -782,7 +782,7 @@
         }
         
         /* Botões */
-        .btn-primary, .btn-secondary, .btn-small {
+        .btn-primary, .btn-secondary, .btn-small, .btn-danger {
             border: none;
             border-radius: var(--raio-borda-pequeno);
             font-size: 14px;
@@ -817,6 +817,24 @@
         .btn-secondary:hover:not(:disabled) {
             background: var(--cor-borda);
             transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            padding: 12px 24px;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-forte);
+        }
+        
+        .btn-danger:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
         
         .btn-small {
@@ -1950,8 +1968,6 @@
             </div>
             <div class="modal-body">
                 <form id="equipamento-form">
-                    <!-- Campo Código REMOVIDO - Agora só usa ID automático -->
-                    
                     <div class="form-group">
                         <label for="equipamento-nome">
                             <i class="fas fa-tag"></i> Nome do Equipamento *
@@ -2192,6 +2208,9 @@
                         </button>
                         <button id="nova-pendencia-detalhes" class="btn-primary">
                             <i class="fas fa-plus-circle"></i> Nova Pendência
+                        </button>
+                        <button id="excluir-equipamento" class="btn-danger" style="display: none;">
+                            <i class="fas fa-trash"></i> Excluir Equipamento
                         </button>
                     </div>
                 </div>
