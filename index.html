@@ -695,38 +695,31 @@
         }
         
         .filter-tag {
-    background: #1976d2;  /* Azul escuro */
-    color: #ffffff;        /* BRANCO - texto principal */
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    border: 1px solid #0d47a1;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
+            background: #1976d2;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid #0d47a1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
 
-.filter-tag i {
-    color: #ffffff; /* Ícone branco */
-    cursor: pointer;
-    font-size: 10px;
-    opacity: 0.9;
-    transition: opacity 0.2s;
-}
+        .filter-tag i {
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 10px;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
 
-.filter-tag i:hover {
-    opacity: 1;
-    color: #ffcdd2; /* Vermelho claro no hover */
-}
-
-/* Garantir que qualquer texto dentro da tag seja branco */
-.filter-tag span,
-.filter-tag strong,
-.filter-tag .filter-tag-text {
-    color: #ffffff;
-}
+        .filter-tag i:hover {
+            opacity: 1;
+            color: #ffcdd2;
+        }
         
         .clear-filters-btn {
             background: none;
@@ -1052,6 +1045,11 @@
             border-radius: 12px;
             display: inline-block;
             border: 1px solid var(--cor-borda);
+        }
+        
+        .equipamento-codigo i {
+            color: var(--cor-secundaria);
+            margin-right: 3px;
         }
         
         /* Status chips */
@@ -1720,7 +1718,7 @@
                             <i class="fas fa-search"></i> Buscar Equipamento:
                         </label>
                         <div class="search-container">
-                            <input type="text" id="search" placeholder="Nome, código ou descrição..." autocomplete="off">
+                            <input type="text" id="search" placeholder="Nome, descrição ou ID..." autocomplete="off">
                             <div class="search-suggestions" id="search-suggestions"></div>
                         </div>
                     </div>
@@ -1775,13 +1773,13 @@
                 <div class="sidebar-section">
                     <h3><i class="fas fa-users"></i> Por Responsável</h3>
                     
-                    <select id="filtro-responsavel" multiple size="4">
+                    <select id="filtro-responsavel" multiple size="5">
                         <option value="Elétrica">Elétrica</option>
                         <option value="Instrumentação">Instrumentação</option>
                         <option value="Mecânica">Mecânica</option>
                         <option value="Automação">Automação</option>
                         <option value="Engenharia">Engenharia</option>
-                        <option value="Operação">Operação</option> <!-- NOVO -->
+                        <option value="Operação">Operação</option>
                         <option value="Externo">Externo</option>
                     </select>
                 </div>
@@ -1952,25 +1950,19 @@
             </div>
             <div class="modal-body">
                 <form id="equipamento-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="equipamento-codigo">
-                                <i class="fas fa-barcode"></i> Código *
-                            </label>
-                            <input type="text" id="equipamento-codigo" required 
-                                   placeholder="Ex: EQP-001" 
-                                   title="Código único do equipamento"
-                                   maxlength="20">
-                        </div>
-                        <div class="form-group">
-                            <label for="equipamento-nome">
-                                <i class="fas fa-tag"></i> Nome *
-                            </label>
-                            <input type="text" id="equipamento-nome" required 
-                                   placeholder="Ex: Turbina Principal"
-                                   title="Nome descritivo do equipamento"
-                                   maxlength="100">
-                        </div>
+                    <!-- Campo Código REMOVIDO - Agora só usa ID automático -->
+                    
+                    <div class="form-group">
+                        <label for="equipamento-nome">
+                            <i class="fas fa-tag"></i> Nome do Equipamento *
+                        </label>
+                        <input type="text" id="equipamento-nome" required 
+                               placeholder="Ex: Turbina Principal"
+                               title="Nome descritivo do equipamento"
+                               maxlength="100">
+                        <small style="color: var(--cor-texto-secundario); display: block; margin-top: 5px;">
+                            <i class="fas fa-info-circle"></i> ID será gerado automaticamente
+                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -2104,7 +2096,7 @@
                                 <option value="Preventiva_Engenharia">Preventiva Engenharia</option>
                                 <option value="Automação">Automação</option>
                                 <option value="Engenharia">Engenharia</option>
-                                <option value="Operação">Operação</option> <!-- NOVO -->
+                                <option value="Operação">Operação</option>
                                 <option value="Externo">Externo</option>
                             </select>
                         </div>
