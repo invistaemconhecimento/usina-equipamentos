@@ -1418,3 +1418,12 @@ table tr:hover {
     margin-left: 8px;
     text-transform: uppercase;
 }
+/* Responsável: Operação */
+.pendencia-responsavel.operacao {
+    color: #f1c40f;
+    font-weight: bold;
+}
+
+.pendencia-responsavel.operacao i {
+    color: #f1c40f;
+}
