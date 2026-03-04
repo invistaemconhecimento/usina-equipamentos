@@ -1866,179 +1866,194 @@ class EquipamentosApp {
         this.atualizarEstadoBotaoPendencia();
     }
     
-    async salvarPendencia() {
-        const form = document.getElementById('pendencia-form');
-        const equipamentoId = parseInt(document.getElementById('pendencia-equipamento-id').value);
-        const isEdit = form.dataset.editId;
+async salvarPendencia() {
+    const form = document.getElementById('pendencia-form');
+    const equipamentoId = parseInt(document.getElementById('pendencia-equipamento-id').value);
+    const isEdit = form.dataset.editId;
+    
+    const usuarioAtual = this.usuarioAtual;
+    const timestamp = new Date().toISOString();
+    
+    const pendencia = {
+        titulo: document.getElementById('pendencia-titulo').value.trim(),
+        descricao: document.getElementById('pendencia-descricao').value.trim(),
+        responsavel: document.getElementById('pendencia-responsavel').value,
+        prioridade: document.getElementById('pendencia-prioridade').value,
+        data: document.getElementById('pendencia-data').value || new Date().toISOString().split('T')[0],
+        status: document.getElementById('pendencia-status').value
+    };
+    
+    // Validação
+    if (!pendencia.titulo || !pendencia.descricao || !pendencia.responsavel) {
+        this.mostrarMensagem('Título, descrição e responsável são obrigatórios', 'error');
+        return;
+    }
+    
+    // Encontrar equipamento
+    const equipamentoIndex = this.equipamentos.findIndex(e => e.id === equipamentoId);
+    if (equipamentoIndex === -1) {
+        this.mostrarMensagem('Equipamento não encontrado', 'error');
+        return;
+    }
+    
+    // Garantir que o array de pendencias existe
+    if (!this.equipamentos[equipamentoIndex].pendencias) {
+        this.equipamentos[equipamentoIndex].pendencias = [];
+    }
+    
+    if (isEdit) {
+        // MODO EDIÇÃO - Atualizar pendência existente
+        const pendenciaId = parseInt(isEdit);
+        const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
         
-        const usuarioAtual = this.usuarioAtual;
-        const timestamp = new Date().toISOString();
-        
-        const pendencia = {
-            titulo: document.getElementById('pendencia-titulo').value.trim(),
-            descricao: document.getElementById('pendencia-descricao').value.trim(),
-            responsavel: document.getElementById('pendencia-responsavel').value,
-            prioridade: document.getElementById('pendencia-prioridade').value,
-            data: document.getElementById('pendencia-data').value || new Date().toISOString().split('T')[0],
-            status: document.getElementById('pendencia-status').value
-        };
-        
-        // Validação
-        if (!pendencia.titulo || !pendencia.descricao || !pendencia.responsavel) {
-            this.mostrarMensagem('Título, descrição e responsável são obrigatórios', 'error');
-            return;
-        }
-        
-        // Encontrar equipamento
-        const equipamentoIndex = this.equipamentos.findIndex(e => e.id === equipamentoId);
-        if (equipamentoIndex === -1) {
-            this.mostrarMensagem('Equipamento não encontrado', 'error');
-            return;
-        }
-        
-        if (isEdit) {
-            // Modo edição com histórico
-            const pendenciaId = parseInt(isEdit);
-            const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
+        if (pendenciaIndex !== -1) {
+            const pendenciaAntiga = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
             
-            if (pendenciaIndex !== -1) {
-                const pendenciaAntiga = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
+            // Verificar se houve alteração de status
+            const statusAlterado = pendenciaAntiga.status !== pendencia.status;
+            
+            // Inicializar histórico se não existir
+            if (!pendenciaAntiga.historico) {
+                pendenciaAntiga.historico = [];
+            }
+            
+            // Registrar alteração no histórico
+            const alteracoes = this.detectarAlteracoesPendencia(pendenciaAntiga, pendencia);
+            
+            if (Object.keys(alteracoes).length > 0) {
+                const entradaHistorico = {
+                    timestamp: timestamp,
+                    usuario: usuarioAtual,
+                    acao: 'ATUALIZAR_PENDENCIA',
+                    alteracoes: alteracoes,
+                    comentario: document.getElementById('pendencia-comentario')?.value || ''
+                };
                 
-                // Verificar se houve alteração de status
-                const statusAlterado = pendenciaAntiga.status !== pendencia.status;
+                pendenciaAntiga.historico.push(entradaHistorico);
                 
-                // Inicializar histórico se não existir
-                if (!pendenciaAntiga.historico) {
-                    pendenciaAntiga.historico = [];
-                }
-                
-                // Registrar alteração no histórico
-                const alteracoes = this.detectarAlteracoesPendencia(pendenciaAntiga, pendencia);
-                
-                if (Object.keys(alteracoes).length > 0) {
-                    const entradaHistorico = {
+                // Se houve alteração de status, registrar separadamente
+                if (statusAlterado) {
+                    if (!pendenciaAntiga.historicoStatus) {
+                        pendenciaAntiga.historicoStatus = [];
+                    }
+                    
+                    const historicoStatus = {
                         timestamp: timestamp,
                         usuario: usuarioAtual,
-                        acao: 'ATUALIZAR_PENDENCIA',
-                        alteracoes: alteracoes,
-                        comentario: document.getElementById('pendencia-comentario')?.value || ''
+                        acao: 'ALTERAR_STATUS',
+                        de: pendenciaAntiga.status,
+                        para: pendencia.status,
+                        comentario: document.getElementById('pendencia-comentario')?.value || 'Alteração de status'
                     };
                     
-                    pendenciaAntiga.historico.push(entradaHistorico);
+                    pendenciaAntiga.historicoStatus.push(historicoStatus);
                     
-                    // Se houve alteração de status, registrar separadamente
-                    if (statusAlterado) {
-                        const historicoStatus = {
+                    // Registrar quem concluiu se status for "resolvida"
+                    if (pendencia.status === 'resolvida') {
+                        pendenciaAntiga.resolvidoPor = usuarioAtual;
+                        pendenciaAntiga.dataResolucao = timestamp;
+                        
+                        pendenciaAntiga.historico.push({
                             timestamp: timestamp,
                             usuario: usuarioAtual,
-                            acao: 'ALTERAR_STATUS',
-                            de: pendenciaAntiga.status,
-                            para: pendencia.status,
-                            comentario: document.getElementById('pendencia-comentario')?.value || 'Alteração de status'
-                        };
-                        
-                        if (!pendenciaAntiga.historicoStatus) {
-                            pendenciaAntiga.historicoStatus = [];
-                        }
-                        pendenciaAntiga.historicoStatus.push(historicoStatus);
-                        
-                        // Registrar quem concluiu se status for "resolvida"
-                        if (pendencia.status === 'resolvida') {
-                            pendenciaAntiga.resolvidoPor = usuarioAtual;
-                            pendenciaAntiga.dataResolucao = timestamp;
-                            
-                            pendenciaAntiga.historico.push({
-                                timestamp: timestamp,
-                                usuario: usuarioAtual,
-                                acao: 'RESOLVER_PENDENCIA',
-                                comentario: `Pendência resolvida por ${usuarioAtual}`
-                            });
-                        }
-                    }
-                }
-                
-                // Atualizar dados da pendência
-                pendencia.id = pendenciaId;
-                pendencia.criadoPor = pendenciaAntiga.criadoPor;
-                pendencia.criadoEm = pendenciaAntiga.criadoEm;
-                pendencia.historico = pendenciaAntiga.historico;
-                pendencia.historicoStatus = pendenciaAntiga.historicoStatus;
-                pendencia.ultimaAtualizacao = timestamp;
-                pendencia.atualizadoPor = usuarioAtual;
-                
-                // Manter dados de resolução se existirem
-                if (pendenciaAntiga.resolvidoPor) pendencia.resolvidoPor = pendenciaAntiga.resolvidoPor;
-                if (pendenciaAntiga.dataResolucao) pendencia.dataResolucao = pendenciaAntiga.dataResolucao;
-                
-                this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
-                
-                this.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} (${Object.keys(alteracoes).length} alterações)`);
-                this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
-            }
-        } else {
-            // Modo criação
-            // Garantir que nextPendenciaId existe
-            if (!this.data.nextPendenciaId) {
-                // Calcular próximo ID baseado nas pendências existentes
-                let maxPendenciaId = 0;
-                this.equipamentos.forEach(equip => {
-                    if (equip.pendencias) {
-                        equip.pendencias.forEach(pend => {
-                            if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
+                            acao: 'RESOLVER_PENDENCIA',
+                            comentario: `Pendência resolvida por ${usuarioAtual}`
                         });
                     }
-                });
-                this.data.nextPendenciaId = maxPendenciaId + 1;
+                }
             }
             
-            pendencia.id = this.data.nextPendenciaId;
-            pendencia.criadoPor = usuarioAtual;
-            pendencia.criadoEm = timestamp;
+            // ATUALIZAR OS DADOS - Manter histórico e metadados existentes
+            pendencia.id = pendenciaId;
+            pendencia.criadoPor = pendenciaAntiga.criadoPor;
+            pendencia.criadoEm = pendenciaAntiga.criadoEm;
+            pendencia.historico = pendenciaAntiga.historico;
+            pendencia.historicoStatus = pendenciaAntiga.historicoStatus;
             pendencia.ultimaAtualizacao = timestamp;
             pendencia.atualizadoPor = usuarioAtual;
             
-            // Inicializar histórico
-            pendencia.historico = [{
-                timestamp: timestamp,
-                usuario: usuarioAtual,
-                acao: 'CRIAR_PENDENCIA',
-                alteracoes: {},
-                comentario: 'Pendência criada'
-            }];
+            // Manter dados de resolução se existirem
+            if (pendenciaAntiga.resolvidoPor) pendencia.resolvidoPor = pendenciaAntiga.resolvidoPor;
+            if (pendenciaAntiga.dataResolucao) pendencia.dataResolucao = pendenciaAntiga.dataResolucao;
             
-            pendencia.historicoStatus = [{
-                timestamp: timestamp,
-                usuario: usuarioAtual,
-                acao: 'CRIAR_PENDENCIA',
-                status: 'aberta',
-                comentario: 'Status inicial: Aberta'
-            }];
+            // ATUALIZAR a pendência no array (não substituir o array inteiro)
+            this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
             
-            // Garantir que o array de pendencias existe
-            if (!this.equipamentos[equipamentoIndex].pendencias) {
-                this.equipamentos[equipamentoIndex].pendencias = [];
-            }
-            
-            this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
-            
-            // Atualizar próximo ID
-            this.data.nextPendenciaId = pendencia.id + 1;
-            
-            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
-            this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
+            this.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} (${Object.keys(alteracoes).length} alterações)`);
+            this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
+        }
+    } else {
+        // MODO CRIAÇÃO - Adicionar nova pendência
+        // Garantir que nextPendenciaId existe
+        if (!this.data.nextPendenciaId) {
+            // Calcular próximo ID baseado nas pendências existentes
+            let maxPendenciaId = 0;
+            this.equipamentos.forEach(equip => {
+                if (equip.pendencias) {
+                    equip.pendencias.forEach(pend => {
+                        if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
+                    });
+                }
+            });
+            this.data.nextPendenciaId = maxPendenciaId + 1;
         }
         
-        // Atualizar status do equipamento
-        this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
+        pendencia.id = this.data.nextPendenciaId;
+        pendencia.criadoPor = usuarioAtual;
+        pendencia.criadoEm = timestamp;
+        pendencia.ultimaAtualizacao = timestamp;
+        pendencia.atualizadoPor = usuarioAtual;
         
-        // Salvar dados
-        const salvou = await this.salvarDados();
+        // Inicializar histórico
+        pendencia.historico = [{
+            timestamp: timestamp,
+            usuario: usuarioAtual,
+            acao: 'CRIAR_PENDENCIA',
+            alteracoes: {},
+            comentario: 'Pendência criada'
+        }];
         
-        // Fechar modal e atualizar
-        this.fecharModal(this.modals.pendencia);
-        this.renderizarEquipamentos();
-        this.atualizarEstatisticas();
+        pendencia.historicoStatus = [{
+            timestamp: timestamp,
+            usuario: usuarioAtual,
+            acao: 'CRIAR_PENDENCIA',
+            de: null,
+            para: 'aberta',
+            comentario: 'Status inicial: Aberta'
+        }];
+        
+        // ADICIONAR a nova pendência ao array (não substituir)
+        this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
+        
+        // Atualizar próximo ID
+        this.data.nextPendenciaId = pendencia.id + 1;
+        
+        this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
+        this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
     }
+    
+    // Atualizar status do equipamento baseado nas pendências
+    this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
+    
+    // Salvar dados
+    const salvou = await this.salvarDados();
+    
+    // Fechar modal e atualizar
+    this.fecharModal(this.modals.pendencia);
+    
+    // Limpar o form
+    document.getElementById('pendencia-form').reset();
+    delete document.getElementById('pendencia-form').dataset.editId;
+    
+    // Se o modal de detalhes estiver aberto com este equipamento, atualizar
+    if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
+        this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
+        this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
+    }
+    
+    this.renderizarEquipamentos();
+    this.atualizarEstatisticas();
+}
     
     detectarAlteracoesPendencia(pendenciaAntiga, pendenciaNova) {
         const alteracoes = {};
