@@ -767,12 +767,18 @@ const APP_CONFIG = {
             icone: "fa-building",
             contato: "fornecedor"
         },
-        "Engenharia": {
-            cor: "#c0392b",
-            icone: "fa-flask",
-            contato: "ramal-206"
-        }
+    "Engenharia": {
+        cor: "#c0392b",
+        icone: "fa-flask",
+        contato: "ramal-206"
     },
+    // NOVO RESPONSÁVEL
+    "Operação": {
+        cor: "#f1c40f",
+        icone: "fa-hard-hat",
+        contato: "ramal-207"
+    }
+},
     
     // ========== TIPOS DE AÇÕES PARA LOGS ==========
     
