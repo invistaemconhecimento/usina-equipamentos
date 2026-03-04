@@ -1,6 +1,6 @@
 // ===========================================
 // SISTEMA DE GESTÃO DE EQUIPAMENTOS - APP PRINCIPAL
-// Versão 2.2.0 - Com Filtros Avançados, Correções e IDs Automáticos
+// Versão 2.2.0 - Com IDs Automáticos (SEM CÓDIGO)
 // ===========================================
 
 class EquipamentosApp {
@@ -576,8 +576,9 @@ class EquipamentosApp {
         const sugestoes = [];
         const termoLower = termo.toLowerCase();
         
-        // Buscar em equipamentos
+        // Buscar em equipamentos (agora busca por ID também)
         this.equipamentos.forEach(equip => {
+            // Buscar por nome
             if (equip.nome.toLowerCase().includes(termoLower)) {
                 sugestoes.push({
                     texto: equip.nome,
@@ -586,14 +587,18 @@ class EquipamentosApp {
                     acao: () => this.verDetalhesEquipamento(equip.id)
                 });
             }
-            if (equip.codigo.toLowerCase().includes(termoLower)) {
+            
+            // Buscar por ID
+            if (equip.id.toString().includes(termoLower)) {
                 sugestoes.push({
-                    texto: equip.codigo,
-                    tipo: 'Código',
-                    icone: 'fa-barcode',
+                    texto: `ID: ${equip.id} - ${equip.nome}`,
+                    tipo: 'ID',
+                    icone: 'fa-hashtag',
                     acao: () => this.verDetalhesEquipamento(equip.id)
                 });
             }
+            
+            // Buscar em descrição
             if (equip.descricao && equip.descricao.toLowerCase().includes(termoLower)) {
                 sugestoes.push({
                     texto: equip.descricao.substring(0, 50) + '...',
@@ -1291,14 +1296,14 @@ class EquipamentosApp {
             return false;
         }
         
-        // Filtrar por busca
+        // Filtrar por busca (agora inclui ID)
         if (this.filtros.busca) {
             const busca = this.filtros.busca.toLowerCase();
             const nomeMatch = equipamento.nome.toLowerCase().includes(busca);
-            const codigoMatch = equipamento.codigo.toLowerCase().includes(busca);
+            const idMatch = equipamento.id.toString().includes(busca);
             const descricaoMatch = equipamento.descricao.toLowerCase().includes(busca);
             
-            if (!nomeMatch && !codigoMatch && !descricaoMatch) {
+            if (!nomeMatch && !idMatch && !descricaoMatch) {
                 return false;
             }
         }
@@ -1401,8 +1406,8 @@ class EquipamentosApp {
     
     obterValorCampo(equipamento, campo) {
         const campos = {
+            'id': equipamento.id,
             'nome': equipamento.nome,
-            'codigo': equipamento.codigo,
             'setor': equipamento.setor,
             'status': equipamento.status,
             'ultimaInspecao': equipamento.ultimaInspecao,
@@ -1496,10 +1501,8 @@ class EquipamentosApp {
                             ${this.escapeHTML(equipamento.nome)}
                         </h4>
                         <div class="equipamento-codigo">
-                            <span style="color: var(--cor-texto-secundario); font-size: 11px; margin-right: 5px;">
-                                <i class="fas fa-hashtag"></i> ID: ${equipamento.id} |
-                            </span>
-                            ${this.escapeHTML(equipamento.codigo)}
+                            <i class="fas fa-hashtag" style="color: var(--cor-secundaria);"></i> 
+                            ID: ${equipamento.id}
                         </div>
                     </div>
                     <div class="status-chip ${equipamento.status}">
@@ -1673,7 +1676,7 @@ class EquipamentosApp {
             
             titulo.textContent = 'Editar Equipamento';
             
-            document.getElementById('equipamento-codigo').value = equipamento.codigo;
+            // Campo código foi removido - não preenche mais
             document.getElementById('equipamento-nome').value = equipamento.nome;
             document.getElementById('equipamento-descricao').value = equipamento.descricao;
             document.getElementById('equipamento-setor').value = equipamento.setor;
@@ -1786,7 +1789,7 @@ class EquipamentosApp {
         }
         
         const equipamento = {
-            codigo: document.getElementById('equipamento-codigo').value.trim(),
+            // Campo código removido - não usamos mais
             nome: document.getElementById('equipamento-nome').value.trim(),
             descricao: document.getElementById('equipamento-descricao').value.trim(),
             setor: document.getElementById('equipamento-setor').value,
@@ -1795,9 +1798,9 @@ class EquipamentosApp {
             pendencias: []
         };
         
-        // Validação
-        if (!equipamento.codigo || !equipamento.nome) {
-            this.mostrarMensagem('Código e nome são obrigatórios', 'error');
+        // Validação - apenas nome é obrigatório agora
+        if (!equipamento.nome) {
+            this.mostrarMensagem('Nome do equipamento é obrigatório', 'error');
             return;
         }
         
@@ -1821,12 +1824,11 @@ class EquipamentosApp {
                 
                 this.equipamentos[index] = equipamento;
                 
-                this.registrarAtividade('EDITAR_EQUIPAMENTO', `Editou equipamento: ${equipamento.codigo} - ${equipamento.nome}`);
+                this.registrarAtividade('EDITAR_EQUIPAMENTO', `Editou equipamento: ${equipamento.nome} (ID: ${equipamento.id})`);
                 this.mostrarMensagem('Equipamento atualizado com sucesso', 'success');
             }
         } else {
-            // CRIAR NOVO EQUIPAMENTO - Garantir ID automático
-            // Calcular próximo ID baseado nos equipamentos existentes
+            // CRIAR NOVO EQUIPAMENTO - Gerar ID automático
             let nextId = 1;
             
             // Se existirem equipamentos, pegar o maior ID + 1
@@ -1850,7 +1852,7 @@ class EquipamentosApp {
             if (!this.data) this.data = {};
             this.data.nextEquipamentoId = nextId + 1;
             
-            this.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.codigo} - ${equipamento.nome} (ID: ${equipamento.id})`);
+            this.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.nome} (ID: ${equipamento.id})`);
             this.mostrarMensagem(`Equipamento criado com sucesso! ID: ${equipamento.id}`, 'success');
         }
         
@@ -2022,7 +2024,7 @@ class EquipamentosApp {
             // Atualizar próximo ID
             this.data.nextPendenciaId = pendencia.id + 1;
             
-            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].codigo} (ID: ${pendencia.id})`);
+            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
             this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
         }
         
@@ -2119,9 +2121,9 @@ class EquipamentosApp {
         this.equipamentoSelecionado = equipamento;
         
         // Preencher informações
-        document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome} (ID: ${equipamento.id})`;
+        document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome}`;
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
-        document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo} | ID Interno: ${equipamento.id}`;
+        document.getElementById('detalhes-codigo').textContent = `ID: ${equipamento.id}`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         
         const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
@@ -2482,7 +2484,7 @@ class EquipamentosApp {
         this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
         
         // Registrar atividade
-        this.registrarAtividade('EXCLUIR_PENDENCIA', `Excluiu pendência: ${pendencia.titulo} do equipamento ${this.equipamentoSelecionado.codigo}`);
+        this.registrarAtividade('EXCLUIR_PENDENCIA', `Excluiu pendência: ${pendencia.titulo} do equipamento ${this.equipamentoSelecionado.nome}`);
         
         // Salvar dados
         await this.salvarDados();
@@ -2733,8 +2735,8 @@ class EquipamentosApp {
             const dataAtual = new Date().toISOString().split('T')[0];
             const usuario = this.usuarioAtual || 'sistema';
             
-            // Criar cabeçalhos
-            let csvEquipamentos = 'ID Interno,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
+            // Criar cabeçalhos - removido campo de código
+            let csvEquipamentos = 'ID,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
             
             // Adicionar dados dos equipamentos
             this.equipamentos.forEach(equipamento => {
@@ -2766,7 +2768,6 @@ class EquipamentosApp {
                 
                 csvEquipamentos += [
                     equipamento.id,
-                    escapeCSV(equipamento.codigo),
                     escapeCSV(equipamento.nome),
                     escapeCSV(equipamento.descricao),
                     escapeCSV(setorFormatado),
@@ -2783,7 +2784,7 @@ class EquipamentosApp {
             });
             
             // Criar arquivo de pendências
-            let csvPendencias = 'ID Pendência,ID Equipamento,Código Equipamento,Nome Equipamento,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em,Última Atualização,Atualizado Por,Resolvido Por,Data Resolução\n';
+            let csvPendencias = 'ID Pendência,ID Equipamento,Nome Equipamento,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em,Última Atualização,Atualizado Por,Resolvido Por,Data Resolução\n';
             
             this.equipamentos.forEach(equipamento => {
                 const pendencias = equipamento.pendencias || [];
@@ -2808,7 +2809,6 @@ class EquipamentosApp {
                     csvPendencias += [
                         pendencia.id,
                         equipamento.id,
-                        escapeCSV(equipamento.codigo),
                         escapeCSV(equipamento.nome),
                         escapeCSV(pendencia.titulo),
                         escapeCSV(pendencia.descricao),
