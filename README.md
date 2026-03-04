@@ -99,3 +99,41 @@ Sistema web desenvolvido para usinas de beneficiamento, permitindo o gerenciamen
 | **Administrador** | 🔴 Vermelho | `fa-user-shield` | **ACESSO TOTAL** + Excluir equipamentos, gerenciar usuários |
 
 ## 📁 Estrutura do Sistema
+gestao-equipamentos-usina/
+│
+├── 📄 index.html # Interface principal
+├── 📄 style.css # Estilos e temas
+├── 📄 app.js # Lógica da aplicação
+├── 📄 config.js # Configurações e dados iniciais
+├── 📄 login.html # Página de autenticação
+├── 📄 admin-usuarios.html # Painel administrativo
+└── 📄 README.md # Documentação
+
+## 🛠️ Tecnologias Utilizadas
+
+- **HTML5**: Estrutura da aplicação
+- **CSS3**: Estilização e temas (claro/escuro)
+- **JavaScript (ES6+)**: Lógica da aplicação
+- **Font Awesome 6**: Ícones profissionais
+- **Google Fonts**: Fonte Roboto
+- **JSONBin.io**: API para armazenamento em nuvem
+- **LocalStorage**: Cache local e persistência
+
+## ⚙️ Configuração
+
+### 1. Configurar JSONBin.io
+
+1. Acesse [JSONBin.io](https://jsonbin.io/) e crie uma conta gratuita
+2. Obtenha sua API Key e Master Key no painel
+3. Crie um novo "bin" (repositório de dados)
+4. No arquivo `config.js`, configure:
+
+```javascript
+const JSONBIN_CONFIG = {
+    BIN_ID: 'SEU_BIN_ID_AQUI',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': 'SUA_MASTER_KEY_AQUI',
+        'X-Access-Key': 'SUA_API_KEY_AQUI'
+    }
+};
