@@ -1,6 +1,6 @@
 // ===========================================
 // SISTEMA DE GESTÃO DE EQUIPAMENTOS - APP PRINCIPAL
-// Versão 2.2.0 - Com IDs Automáticos (SEM CÓDIGO)
+// Versão 2.2.0 - Com IDs Automáticos e Exclusão de Equipamentos
 // ===========================================
 
 class EquipamentosApp {
@@ -379,6 +379,8 @@ class EquipamentosApp {
             }
         });
         
+        // Botão de excluir equipamento (evento será configurado dinamicamente)
+        
         // Botões de sistema
         document.getElementById('system-info')?.addEventListener('click', () => {
             if (window.mostrarInfoSistema) {
@@ -576,7 +578,7 @@ class EquipamentosApp {
         const sugestoes = [];
         const termoLower = termo.toLowerCase();
         
-        // Buscar em equipamentos (agora busca por ID também)
+        // Buscar em equipamentos
         this.equipamentos.forEach(equip => {
             // Buscar por nome
             if (equip.nome.toLowerCase().includes(termoLower)) {
@@ -1296,7 +1298,7 @@ class EquipamentosApp {
             return false;
         }
         
-        // Filtrar por busca (agora inclui ID)
+        // Filtrar por busca
         if (this.filtros.busca) {
             const busca = this.filtros.busca.toLowerCase();
             const nomeMatch = equipamento.nome.toLowerCase().includes(busca);
@@ -1676,7 +1678,7 @@ class EquipamentosApp {
             
             titulo.textContent = 'Editar Equipamento';
             
-            // Campo código foi removido - não preenche mais
+            // Campo código removido
             document.getElementById('equipamento-nome').value = equipamento.nome;
             document.getElementById('equipamento-descricao').value = equipamento.descricao;
             document.getElementById('equipamento-setor').value = equipamento.setor;
@@ -1789,7 +1791,6 @@ class EquipamentosApp {
         }
         
         const equipamento = {
-            // Campo código removido - não usamos mais
             nome: document.getElementById('equipamento-nome').value.trim(),
             descricao: document.getElementById('equipamento-descricao').value.trim(),
             setor: document.getElementById('equipamento-setor').value,
@@ -1798,7 +1799,7 @@ class EquipamentosApp {
             pendencias: []
         };
         
-        // Validação - apenas nome é obrigatório agora
+        // Validação - apenas nome é obrigatório
         if (!equipamento.nome) {
             this.mostrarMensagem('Nome do equipamento é obrigatório', 'error');
             return;
@@ -1828,16 +1829,14 @@ class EquipamentosApp {
                 this.mostrarMensagem('Equipamento atualizado com sucesso', 'success');
             }
         } else {
-            // CRIAR NOVO EQUIPAMENTO - Gerar ID automático
+            // NOVO EQUIPAMENTO - Gerar ID automático
             let nextId = 1;
             
-            // Se existirem equipamentos, pegar o maior ID + 1
             if (this.equipamentos && this.equipamentos.length > 0) {
                 const maxId = Math.max(...this.equipamentos.map(e => e.id));
                 nextId = maxId + 1;
             }
             
-            // Se existir nextEquipamentoId no data, usar ele (mas garantir que seja maior que o máximo)
             if (this.data && this.data.nextEquipamentoId) {
                 nextId = Math.max(nextId, this.data.nextEquipamentoId);
             }
@@ -1848,8 +1847,6 @@ class EquipamentosApp {
             
             this.equipamentos.push(equipamento);
             
-            // Atualizar próximo ID
-            if (!this.data) this.data = {};
             this.data.nextEquipamentoId = nextId + 1;
             
             this.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.nome} (ID: ${equipamento.id})`);
@@ -1866,194 +1863,194 @@ class EquipamentosApp {
         this.atualizarEstadoBotaoPendencia();
     }
     
-async salvarPendencia() {
-    const form = document.getElementById('pendencia-form');
-    const equipamentoId = parseInt(document.getElementById('pendencia-equipamento-id').value);
-    const isEdit = form.dataset.editId;
-    
-    const usuarioAtual = this.usuarioAtual;
-    const timestamp = new Date().toISOString();
-    
-    const pendencia = {
-        titulo: document.getElementById('pendencia-titulo').value.trim(),
-        descricao: document.getElementById('pendencia-descricao').value.trim(),
-        responsavel: document.getElementById('pendencia-responsavel').value,
-        prioridade: document.getElementById('pendencia-prioridade').value,
-        data: document.getElementById('pendencia-data').value || new Date().toISOString().split('T')[0],
-        status: document.getElementById('pendencia-status').value
-    };
-    
-    // Validação
-    if (!pendencia.titulo || !pendencia.descricao || !pendencia.responsavel) {
-        this.mostrarMensagem('Título, descrição e responsável são obrigatórios', 'error');
-        return;
-    }
-    
-    // Encontrar equipamento
-    const equipamentoIndex = this.equipamentos.findIndex(e => e.id === equipamentoId);
-    if (equipamentoIndex === -1) {
-        this.mostrarMensagem('Equipamento não encontrado', 'error');
-        return;
-    }
-    
-    // Garantir que o array de pendencias existe
-    if (!this.equipamentos[equipamentoIndex].pendencias) {
-        this.equipamentos[equipamentoIndex].pendencias = [];
-    }
-    
-    if (isEdit) {
-        // MODO EDIÇÃO - Atualizar pendência existente
-        const pendenciaId = parseInt(isEdit);
-        const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
+    async salvarPendencia() {
+        const form = document.getElementById('pendencia-form');
+        const equipamentoId = parseInt(document.getElementById('pendencia-equipamento-id').value);
+        const isEdit = form.dataset.editId;
         
-        if (pendenciaIndex !== -1) {
-            const pendenciaAntiga = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
+        const usuarioAtual = this.usuarioAtual;
+        const timestamp = new Date().toISOString();
+        
+        const pendencia = {
+            titulo: document.getElementById('pendencia-titulo').value.trim(),
+            descricao: document.getElementById('pendencia-descricao').value.trim(),
+            responsavel: document.getElementById('pendencia-responsavel').value,
+            prioridade: document.getElementById('pendencia-prioridade').value,
+            data: document.getElementById('pendencia-data').value || new Date().toISOString().split('T')[0],
+            status: document.getElementById('pendencia-status').value
+        };
+        
+        // Validação
+        if (!pendencia.titulo || !pendencia.descricao || !pendencia.responsavel) {
+            this.mostrarMensagem('Título, descrição e responsável são obrigatórios', 'error');
+            return;
+        }
+        
+        // Encontrar equipamento
+        const equipamentoIndex = this.equipamentos.findIndex(e => e.id === equipamentoId);
+        if (equipamentoIndex === -1) {
+            this.mostrarMensagem('Equipamento não encontrado', 'error');
+            return;
+        }
+        
+        // Garantir que o array de pendencias existe
+        if (!this.equipamentos[equipamentoIndex].pendencias) {
+            this.equipamentos[equipamentoIndex].pendencias = [];
+        }
+        
+        if (isEdit) {
+            // MODO EDIÇÃO - Atualizar pendência existente
+            const pendenciaId = parseInt(isEdit);
+            const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
             
-            // Verificar se houve alteração de status
-            const statusAlterado = pendenciaAntiga.status !== pendencia.status;
-            
-            // Inicializar histórico se não existir
-            if (!pendenciaAntiga.historico) {
-                pendenciaAntiga.historico = [];
-            }
-            
-            // Registrar alteração no histórico
-            const alteracoes = this.detectarAlteracoesPendencia(pendenciaAntiga, pendencia);
-            
-            if (Object.keys(alteracoes).length > 0) {
-                const entradaHistorico = {
-                    timestamp: timestamp,
-                    usuario: usuarioAtual,
-                    acao: 'ATUALIZAR_PENDENCIA',
-                    alteracoes: alteracoes,
-                    comentario: document.getElementById('pendencia-comentario')?.value || ''
-                };
+            if (pendenciaIndex !== -1) {
+                const pendenciaAntiga = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
                 
-                pendenciaAntiga.historico.push(entradaHistorico);
+                // Verificar se houve alteração de status
+                const statusAlterado = pendenciaAntiga.status !== pendencia.status;
                 
-                // Se houve alteração de status, registrar separadamente
-                if (statusAlterado) {
-                    if (!pendenciaAntiga.historicoStatus) {
-                        pendenciaAntiga.historicoStatus = [];
-                    }
-                    
-                    const historicoStatus = {
+                // Inicializar histórico se não existir
+                if (!pendenciaAntiga.historico) {
+                    pendenciaAntiga.historico = [];
+                }
+                
+                // Registrar alteração no histórico
+                const alteracoes = this.detectarAlteracoesPendencia(pendenciaAntiga, pendencia);
+                
+                if (Object.keys(alteracoes).length > 0) {
+                    const entradaHistorico = {
                         timestamp: timestamp,
                         usuario: usuarioAtual,
-                        acao: 'ALTERAR_STATUS',
-                        de: pendenciaAntiga.status,
-                        para: pendencia.status,
-                        comentario: document.getElementById('pendencia-comentario')?.value || 'Alteração de status'
+                        acao: 'ATUALIZAR_PENDENCIA',
+                        alteracoes: alteracoes,
+                        comentario: document.getElementById('pendencia-comentario')?.value || ''
                     };
                     
-                    pendenciaAntiga.historicoStatus.push(historicoStatus);
+                    pendenciaAntiga.historico.push(entradaHistorico);
                     
-                    // Registrar quem concluiu se status for "resolvida"
-                    if (pendencia.status === 'resolvida') {
-                        pendenciaAntiga.resolvidoPor = usuarioAtual;
-                        pendenciaAntiga.dataResolucao = timestamp;
+                    // Se houve alteração de status, registrar separadamente
+                    if (statusAlterado) {
+                        if (!pendenciaAntiga.historicoStatus) {
+                            pendenciaAntiga.historicoStatus = [];
+                        }
                         
-                        pendenciaAntiga.historico.push({
+                        const historicoStatus = {
                             timestamp: timestamp,
                             usuario: usuarioAtual,
-                            acao: 'RESOLVER_PENDENCIA',
-                            comentario: `Pendência resolvida por ${usuarioAtual}`
-                        });
+                            acao: 'ALTERAR_STATUS',
+                            de: pendenciaAntiga.status,
+                            para: pendencia.status,
+                            comentario: document.getElementById('pendencia-comentario')?.value || 'Alteração de status'
+                        };
+                        
+                        pendenciaAntiga.historicoStatus.push(historicoStatus);
+                        
+                        // Registrar quem concluiu se status for "resolvida"
+                        if (pendencia.status === 'resolvida') {
+                            pendenciaAntiga.resolvidoPor = usuarioAtual;
+                            pendenciaAntiga.dataResolucao = timestamp;
+                            
+                            pendenciaAntiga.historico.push({
+                                timestamp: timestamp,
+                                usuario: usuarioAtual,
+                                acao: 'RESOLVER_PENDENCIA',
+                                comentario: `Pendência resolvida por ${usuarioAtual}`
+                            });
+                        }
                     }
                 }
+                
+                // ATUALIZAR OS DADOS - Manter histórico e metadados existentes
+                pendencia.id = pendenciaId;
+                pendencia.criadoPor = pendenciaAntiga.criadoPor;
+                pendencia.criadoEm = pendenciaAntiga.criadoEm;
+                pendencia.historico = pendenciaAntiga.historico;
+                pendencia.historicoStatus = pendenciaAntiga.historicoStatus;
+                pendencia.ultimaAtualizacao = timestamp;
+                pendencia.atualizadoPor = usuarioAtual;
+                
+                // Manter dados de resolução se existirem
+                if (pendenciaAntiga.resolvidoPor) pendencia.resolvidoPor = pendenciaAntiga.resolvidoPor;
+                if (pendenciaAntiga.dataResolucao) pendencia.dataResolucao = pendenciaAntiga.dataResolucao;
+                
+                // ATUALIZAR a pendência no array
+                this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
+                
+                this.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} (${Object.keys(alteracoes).length} alterações)`);
+                this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
+            }
+        } else {
+            // MODO CRIAÇÃO - Adicionar nova pendência
+            // Garantir que nextPendenciaId existe
+            if (!this.data.nextPendenciaId) {
+                // Calcular próximo ID baseado nas pendências existentes
+                let maxPendenciaId = 0;
+                this.equipamentos.forEach(equip => {
+                    if (equip.pendencias) {
+                        equip.pendencias.forEach(pend => {
+                            if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
+                        });
+                    }
+                });
+                this.data.nextPendenciaId = maxPendenciaId + 1;
             }
             
-            // ATUALIZAR OS DADOS - Manter histórico e metadados existentes
-            pendencia.id = pendenciaId;
-            pendencia.criadoPor = pendenciaAntiga.criadoPor;
-            pendencia.criadoEm = pendenciaAntiga.criadoEm;
-            pendencia.historico = pendenciaAntiga.historico;
-            pendencia.historicoStatus = pendenciaAntiga.historicoStatus;
+            pendencia.id = this.data.nextPendenciaId;
+            pendencia.criadoPor = usuarioAtual;
+            pendencia.criadoEm = timestamp;
             pendencia.ultimaAtualizacao = timestamp;
             pendencia.atualizadoPor = usuarioAtual;
             
-            // Manter dados de resolução se existirem
-            if (pendenciaAntiga.resolvidoPor) pendencia.resolvidoPor = pendenciaAntiga.resolvidoPor;
-            if (pendenciaAntiga.dataResolucao) pendencia.dataResolucao = pendenciaAntiga.dataResolucao;
+            // Inicializar histórico
+            pendencia.historico = [{
+                timestamp: timestamp,
+                usuario: usuarioAtual,
+                acao: 'CRIAR_PENDENCIA',
+                alteracoes: {},
+                comentario: 'Pendência criada'
+            }];
             
-            // ATUALIZAR a pendência no array (não substituir o array inteiro)
-            this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
+            pendencia.historicoStatus = [{
+                timestamp: timestamp,
+                usuario: usuarioAtual,
+                acao: 'CRIAR_PENDENCIA',
+                de: null,
+                para: 'aberta',
+                comentario: 'Status inicial: Aberta'
+            }];
             
-            this.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} (${Object.keys(alteracoes).length} alterações)`);
-            this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
-        }
-    } else {
-        // MODO CRIAÇÃO - Adicionar nova pendência
-        // Garantir que nextPendenciaId existe
-        if (!this.data.nextPendenciaId) {
-            // Calcular próximo ID baseado nas pendências existentes
-            let maxPendenciaId = 0;
-            this.equipamentos.forEach(equip => {
-                if (equip.pendencias) {
-                    equip.pendencias.forEach(pend => {
-                        if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
-                    });
-                }
-            });
-            this.data.nextPendenciaId = maxPendenciaId + 1;
+            // ADICIONAR a nova pendência ao array
+            this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
+            
+            // Atualizar próximo ID
+            this.data.nextPendenciaId = pendencia.id + 1;
+            
+            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
+            this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
         }
         
-        pendencia.id = this.data.nextPendenciaId;
-        pendencia.criadoPor = usuarioAtual;
-        pendencia.criadoEm = timestamp;
-        pendencia.ultimaAtualizacao = timestamp;
-        pendencia.atualizadoPor = usuarioAtual;
+        // Atualizar status do equipamento baseado nas pendências
+        this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
         
-        // Inicializar histórico
-        pendencia.historico = [{
-            timestamp: timestamp,
-            usuario: usuarioAtual,
-            acao: 'CRIAR_PENDENCIA',
-            alteracoes: {},
-            comentario: 'Pendência criada'
-        }];
+        // Salvar dados
+        const salvou = await this.salvarDados();
         
-        pendencia.historicoStatus = [{
-            timestamp: timestamp,
-            usuario: usuarioAtual,
-            acao: 'CRIAR_PENDENCIA',
-            de: null,
-            para: 'aberta',
-            comentario: 'Status inicial: Aberta'
-        }];
+        // Fechar modal e atualizar
+        this.fecharModal(this.modals.pendencia);
         
-        // ADICIONAR a nova pendência ao array (não substituir)
-        this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
+        // Limpar o form
+        document.getElementById('pendencia-form').reset();
+        delete document.getElementById('pendencia-form').dataset.editId;
         
-        // Atualizar próximo ID
-        this.data.nextPendenciaId = pendencia.id + 1;
+        // Se o modal de detalhes estiver aberto com este equipamento, atualizar
+        if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
+            this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
+            this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
+        }
         
-        this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
-        this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
+        this.renderizarEquipamentos();
+        this.atualizarEstatisticas();
     }
-    
-    // Atualizar status do equipamento baseado nas pendências
-    this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
-    
-    // Salvar dados
-    const salvou = await this.salvarDados();
-    
-    // Fechar modal e atualizar
-    this.fecharModal(this.modals.pendencia);
-    
-    // Limpar o form
-    document.getElementById('pendencia-form').reset();
-    delete document.getElementById('pendencia-form').dataset.editId;
-    
-    // Se o modal de detalhes estiver aberto com este equipamento, atualizar
-    if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
-        this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
-        this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
-    }
-    
-    this.renderizarEquipamentos();
-    this.atualizarEstatisticas();
-}
     
     detectarAlteracoesPendencia(pendenciaAntiga, pendenciaNova) {
         const alteracoes = {};
@@ -2065,8 +2062,7 @@ async salvarPendencia() {
             if (pendenciaAntiga[campo] !== pendenciaNova[campo]) {
                 alteracoes[campo] = {
                     anterior: pendenciaAntiga[campo],
-                    novo: pendenciaNova[campo],
-                    data: new Date().toISOString()
+                    novo: pendenciaNova[campo]
                 };
             }
         });
@@ -2188,6 +2184,7 @@ async salvarPendencia() {
     configurarBotoesDetalhes() {
         const editarBtn = document.getElementById('editar-equipamento');
         const pendenciaBtn = document.getElementById('nova-pendencia-detalhes');
+        const excluirBtn = document.getElementById('excluir-equipamento');
         
         if (editarBtn) {
             const podeEditar = this.verificarPermissao('editar_equipamentos');
@@ -2204,6 +2201,119 @@ async salvarPendencia() {
             if (!podeCriarPendencia) {
                 pendenciaBtn.title = 'Sem permissão para criar pendências';
             }
+        }
+        
+        // Configurar botão de excluir - APENAS PARA ADMIN
+        if (excluirBtn) {
+            // Verificar se é administrador
+            const isAdmin = this.nivelUsuario === 'administrador';
+            const temPendenciasAtivas = this.equipamentoSelecionado?.pendencias?.some(p => 
+                p.status === 'aberta' || p.status === 'em-andamento'
+            ) || false;
+            
+            // Mostrar apenas para admin
+            excluirBtn.style.display = isAdmin ? 'flex' : 'none';
+            
+            // Desabilitar se houver pendências ativas
+            excluirBtn.disabled = temPendenciasAtivas;
+            
+            if (temPendenciasAtivas) {
+                excluirBtn.title = 'Não é possível excluir: equipamento possui pendências ativas';
+            } else if (!isAdmin) {
+                excluirBtn.title = 'Apenas administradores podem excluir equipamentos';
+            } else {
+                excluirBtn.title = 'Excluir equipamento';
+            }
+            
+            // Adicionar evento de clique (remover eventos anteriores)
+            excluirBtn.replaceWith(excluirBtn.cloneNode(true));
+            const novoExcluirBtn = document.getElementById('excluir-equipamento');
+            
+            novoExcluirBtn.addEventListener('click', () => {
+                if (this.equipamentoSelecionado) {
+                    this.excluirEquipamento(this.equipamentoSelecionado.id);
+                }
+            });
+        }
+    }
+    
+    // ================== EXCLUSÃO DE EQUIPAMENTO ==================
+
+    async excluirEquipamento(equipamentoId) {
+        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+        if (!equipamento) return;
+        
+        // Verificar permissão (apenas admin)
+        if (this.nivelUsuario !== 'administrador') {
+            this.mostrarMensagem('Apenas administradores podem excluir equipamentos', 'error');
+            return;
+        }
+        
+        // Verificar se há pendências ativas
+        const pendenciasAtivas = equipamento.pendencias?.filter(p => 
+            p.status === 'aberta' || p.status === 'em-andamento'
+        ) || [];
+        
+        if (pendenciasAtivas.length > 0) {
+            this.mostrarMensagem(`Não é possível excluir: equipamento possui ${pendenciasAtivas.length} pendência(s) ativa(s)`, 'error');
+            return;
+        }
+        
+        // Contar total de pendências (incluindo resolvidas)
+        const totalPendencias = equipamento.pendencias?.length || 0;
+        
+        // Mensagem personalizada se houver pendências resolvidas
+        let mensagem = `Tem certeza que deseja excluir o equipamento "${equipamento.nome}" (ID: ${equipamento.id})?`;
+        
+        if (totalPendencias > 0) {
+            mensagem += `\n\n⚠️ Este equipamento possui ${totalPendencias} pendência(s) no histórico que também serão excluídas.`;
+        }
+        
+        mensagem += `\n\nEsta ação não pode ser desfeita!`;
+        
+        // Confirmar exclusão
+        const confirmar = await this.mostrarConfirmacao(
+            'Excluir Equipamento',
+            mensagem
+        );
+        
+        if (!confirmar) return;
+        
+        // Segunda confirmação para equipamentos com histórico
+        if (totalPendencias > 0) {
+            const confirmarNovamente = await this.mostrarConfirmacao(
+                'Confirmação Adicional',
+                `ÚLTIMA CHANCE: Tem CERTEZA que deseja excluir "${equipamento.nome}" com ${totalPendencias} pendência(s)?`
+            );
+            
+            if (!confirmarNovamente) return;
+        }
+        
+        // Remover equipamento
+        const index = this.equipamentos.findIndex(e => e.id === equipamentoId);
+        if (index !== -1) {
+            // Remover
+            this.equipamentos.splice(index, 1);
+            
+            // Registrar atividade
+            this.registrarAtividade('EXCLUIR_EQUIPAMENTO', 
+                `Administrador excluiu equipamento: ${equipamento.nome} (ID: ${equipamento.id}) com ${totalPendencias} pendências`);
+            
+            // Salvar dados
+            await this.salvarDados();
+            
+            // Fechar modal de detalhes se estiver aberto
+            if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
+                this.fecharModal(this.modals.detalhes);
+                this.equipamentoSelecionado = null;
+            }
+            
+            // Atualizar interface
+            this.renderizarEquipamentos();
+            this.atualizarEstatisticas();
+            this.atualizarEstadoBotaoPendencia();
+            
+            this.mostrarMensagem(`Equipamento "${equipamento.nome}" excluído com sucesso!`, 'success');
         }
     }
     
