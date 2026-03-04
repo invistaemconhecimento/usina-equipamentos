@@ -1,6 +1,6 @@
 // ===========================================
 // SISTEMA DE GESTÃO DE EQUIPAMENTOS - APP PRINCIPAL
-// Versão 2.2.0 - Com Filtros Avançados e Correções
+// Versão 2.2.0 - Com Filtros Avançados, Correções e IDs Automáticos
 // ===========================================
 
 class EquipamentosApp {
@@ -60,19 +60,22 @@ class EquipamentosApp {
             // 6. Carregar dados
             await this.carregarDados();
             
-            // 7. Inicializar interface
+            // 7. Garantir IDs únicos após carregar dados
+            this.garantirIdsUnicos();
+            
+            // 8. Inicializar interface
             this.renderizarEquipamentos();
             this.atualizarEstatisticas();
             this.atualizarStatusSincronizacao(true);
             this.atualizarContadoresPrioridade();
             this.carregarFiltrosSalvos();
             
-            // 8. Configurar atualizações automáticas
+            // 9. Configurar atualizações automáticas
             this.configurarAtualizacoes();
             
             console.log('Aplicação inicializada com sucesso');
             
-            // 9. Adicionar indicador de nível
+            // 10. Adicionar indicador de nível
             this.adicionarIndicadorNivel();
             
         } catch (error) {
@@ -388,6 +391,53 @@ class EquipamentosApp {
                 window.exportarConfiguracoes();
             }
         });
+    }
+    
+    // ================== GARANTIA DE IDS ÚNICOS ==================
+
+    garantirIdsUnicos() {
+        if (!this.equipamentos || this.equipamentos.length === 0) return;
+        
+        // Verificar se há IDs duplicados
+        const ids = new Set();
+        const duplicados = [];
+        
+        this.equipamentos.forEach((equip, index) => {
+            if (ids.has(equip.id)) {
+                duplicados.push(index);
+            } else {
+                ids.add(equip.id);
+            }
+        });
+        
+        // Corrigir IDs duplicados
+        if (duplicados.length > 0) {
+            console.warn(`Encontrados ${duplicados.length} equipamentos com ID duplicado. Corrigindo...`);
+            
+            let maxId = Math.max(...this.equipamentos.map(e => e.id));
+            
+            duplicados.forEach(index => {
+                maxId++;
+                this.equipamentos[index].id = maxId;
+            });
+            
+            // Atualizar nextEquipamentoId
+            if (this.data) {
+                this.data.nextEquipamentoId = maxId + 1;
+            }
+            
+            this.mostrarMensagem(`${duplicados.length} IDs duplicados foram corrigidos`, 'info');
+        }
+        
+        // Garantir que nextEquipamentoId existe e é maior que todos os IDs
+        if (this.equipamentos.length > 0) {
+            const maxId = Math.max(...this.equipamentos.map(e => e.id));
+            if (!this.data) this.data = {};
+            if (!this.data.nextEquipamentoId || this.data.nextEquipamentoId <= maxId) {
+                this.data.nextEquipamentoId = maxId + 1;
+                console.log(`nextEquipamentoId ajustado para: ${this.data.nextEquipamentoId}`);
+            }
+        }
     }
     
     // ================== FILTROS AVANÇADOS ==================
@@ -1044,6 +1094,14 @@ class EquipamentosApp {
                 this.data = result.record;
                 this.equipamentos = this.data.equipamentos;
                 
+                // Garantir que nextEquipamentoId existe
+                if (!this.data.nextEquipamentoId && this.equipamentos.length > 0) {
+                    const maxId = Math.max(...this.equipamentos.map(e => e.id));
+                    this.data.nextEquipamentoId = maxId + 1;
+                } else if (!this.data.nextEquipamentoId) {
+                    this.data.nextEquipamentoId = 1;
+                }
+                
                 // Atualizar status baseado nas pendências
                 this.atualizarStatusTodosEquipamentos();
                 
@@ -1057,6 +1115,13 @@ class EquipamentosApp {
                 if (window.INITIAL_DATA) {
                     this.data = window.INITIAL_DATA;
                     this.equipamentos = window.INITIAL_DATA.equipamentos;
+                    
+                    // Garantir nextEquipamentoId nos dados iniciais
+                    if (!this.data.nextEquipamentoId && this.equipamentos.length > 0) {
+                        const maxId = Math.max(...this.equipamentos.map(e => e.id));
+                        this.data.nextEquipamentoId = maxId + 1;
+                    }
+                    
                     this.atualizarStatusTodosEquipamentos();
                     
                     this.registrarAtividade('CARREGAR_DADOS', 'Usando dados iniciais do sistema');
@@ -1076,6 +1141,13 @@ class EquipamentosApp {
             if (window.INITIAL_DATA) {
                 this.data = window.INITIAL_DATA;
                 this.equipamentos = window.INITIAL_DATA.equipamentos;
+                
+                // Garantir nextEquipamentoId nos dados iniciais de fallback
+                if (!this.data.nextEquipamentoId && this.equipamentos.length > 0) {
+                    const maxId = Math.max(...this.equipamentos.map(e => e.id));
+                    this.data.nextEquipamentoId = maxId + 1;
+                }
+                
                 this.atualizarStatusTodosEquipamentos();
                 
                 this.atualizarStatusSincronizacao(false);
@@ -1423,7 +1495,12 @@ class EquipamentosApp {
                             <i class="fas fa-cog" style="color: var(--cor-secundaria);"></i>
                             ${this.escapeHTML(equipamento.nome)}
                         </h4>
-                        <div class="equipamento-codigo">${this.escapeHTML(equipamento.codigo)}</div>
+                        <div class="equipamento-codigo">
+                            <span style="color: var(--cor-texto-secundario); font-size: 11px; margin-right: 5px;">
+                                <i class="fas fa-hashtag"></i> ID: ${equipamento.id} |
+                            </span>
+                            ${this.escapeHTML(equipamento.codigo)}
+                        </div>
                     </div>
                     <div class="status-chip ${equipamento.status}">
                         ${window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
@@ -1703,6 +1780,11 @@ class EquipamentosApp {
         const form = document.getElementById('equipamento-form');
         const isEdit = form.dataset.editId;
         
+        // Garantir que data existe
+        if (!this.data) {
+            this.data = { nextEquipamentoId: 1 };
+        }
+        
         const equipamento = {
             codigo: document.getElementById('equipamento-codigo').value.trim(),
             nome: document.getElementById('equipamento-nome').value.trim(),
@@ -1743,18 +1825,33 @@ class EquipamentosApp {
                 this.mostrarMensagem('Equipamento atualizado com sucesso', 'success');
             }
         } else {
-            // Criar novo equipamento
-            equipamento.id = this.data.nextEquipamentoId || 1;
+            // CRIAR NOVO EQUIPAMENTO - Garantir ID automático
+            // Calcular próximo ID baseado nos equipamentos existentes
+            let nextId = 1;
+            
+            // Se existirem equipamentos, pegar o maior ID + 1
+            if (this.equipamentos && this.equipamentos.length > 0) {
+                const maxId = Math.max(...this.equipamentos.map(e => e.id));
+                nextId = maxId + 1;
+            }
+            
+            // Se existir nextEquipamentoId no data, usar ele (mas garantir que seja maior que o máximo)
+            if (this.data && this.data.nextEquipamentoId) {
+                nextId = Math.max(nextId, this.data.nextEquipamentoId);
+            }
+            
+            equipamento.id = nextId;
             equipamento.dataCriacao = new Date().toISOString().split('T')[0];
             equipamento.criadoPor = this.usuarioAtual;
             
             this.equipamentos.push(equipamento);
             
             // Atualizar próximo ID
-            this.data.nextEquipamentoId = (this.data.nextEquipamentoId || 1) + 1;
+            if (!this.data) this.data = {};
+            this.data.nextEquipamentoId = nextId + 1;
             
-            this.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.codigo} - ${equipamento.nome}`);
-            this.mostrarMensagem('Equipamento criado com sucesso', 'success');
+            this.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.codigo} - ${equipamento.nome} (ID: ${equipamento.id})`);
+            this.mostrarMensagem(`Equipamento criado com sucesso! ID: ${equipamento.id}`, 'success');
         }
         
         // Salvar dados
@@ -1878,7 +1975,21 @@ class EquipamentosApp {
             }
         } else {
             // Modo criação
-            pendencia.id = this.data.nextPendenciaId || 1;
+            // Garantir que nextPendenciaId existe
+            if (!this.data.nextPendenciaId) {
+                // Calcular próximo ID baseado nas pendências existentes
+                let maxPendenciaId = 0;
+                this.equipamentos.forEach(equip => {
+                    if (equip.pendencias) {
+                        equip.pendencias.forEach(pend => {
+                            if (pend.id > maxPendenciaId) maxPendenciaId = pend.id;
+                        });
+                    }
+                });
+                this.data.nextPendenciaId = maxPendenciaId + 1;
+            }
+            
+            pendencia.id = this.data.nextPendenciaId;
             pendencia.criadoPor = usuarioAtual;
             pendencia.criadoEm = timestamp;
             pendencia.ultimaAtualizacao = timestamp;
@@ -1909,10 +2020,10 @@ class EquipamentosApp {
             this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
             
             // Atualizar próximo ID
-            this.data.nextPendenciaId = (this.data.nextPendenciaId || 1) + 1;
+            this.data.nextPendenciaId = pendencia.id + 1;
             
-            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].codigo}`);
-            this.mostrarMensagem('Pendência registrada com sucesso', 'success');
+            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].codigo} (ID: ${pendencia.id})`);
+            this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
         }
         
         // Atualizar status do equipamento
@@ -2008,9 +2119,9 @@ class EquipamentosApp {
         this.equipamentoSelecionado = equipamento;
         
         // Preencher informações
-        document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome}`;
+        document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome} (ID: ${equipamento.id})`;
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
-        document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo}`;
+        document.getElementById('detalhes-codigo').textContent = `Código: ${equipamento.codigo} | ID Interno: ${equipamento.id}`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         
         const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
@@ -2146,6 +2257,7 @@ class EquipamentosApp {
                             ${isCritica ? '<i class="fas fa-exclamation-triangle"></i> ' : ''}
                             ${this.escapeHTML(pendencia.titulo)}
                             <small style="color: var(--cor-texto-secundario); margin-left: 8px;">
+                                <i class="fas fa-hashtag"></i> ID: ${pendencia.id} | 
                                 Criada por: ${this.escapeHTML(pendencia.criadoPor || 'N/A')} em ${criadoEmFormatado}
                             </small>
                         </div>
@@ -2398,7 +2510,7 @@ class EquipamentosApp {
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 800px; max-height: 80vh;">
                 <div class="modal-header">
-                    <h3><i class="fas fa-history"></i> Histórico da Pendência: ${this.escapeHTML(pendencia.titulo)}</h3>
+                    <h3><i class="fas fa-history"></i> Histórico da Pendência: ${this.escapeHTML(pendencia.titulo)} (ID: ${pendencia.id})</h3>
                     <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
                 </div>
                 <div class="modal-body" style="overflow-y: auto;">
@@ -2604,6 +2716,7 @@ class EquipamentosApp {
         this.registrarAtividade('SINCRONIZAR', 'Iniciou sincronização manual de dados');
         
         await this.carregarDados();
+        this.garantirIdsUnicos();
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
         this.mostrarMensagem('Dados sincronizados com sucesso', 'success');
@@ -2621,7 +2734,7 @@ class EquipamentosApp {
             const usuario = this.usuarioAtual || 'sistema';
             
             // Criar cabeçalhos
-            let csvEquipamentos = 'ID,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
+            let csvEquipamentos = 'ID Interno,Código,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
             
             // Adicionar dados dos equipamentos
             this.equipamentos.forEach(equipamento => {
@@ -2670,7 +2783,7 @@ class EquipamentosApp {
             });
             
             // Criar arquivo de pendências
-            let csvPendencias = 'ID Equipamento,Código Equipamento,Nome Equipamento,ID Pendência,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em,Última Atualização,Atualizado Por,Resolvido Por,Data Resolução\n';
+            let csvPendencias = 'ID Pendência,ID Equipamento,Código Equipamento,Nome Equipamento,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em,Última Atualização,Atualizado Por,Resolvido Por,Data Resolução\n';
             
             this.equipamentos.forEach(equipamento => {
                 const pendencias = equipamento.pendencias || [];
@@ -2693,10 +2806,10 @@ class EquipamentosApp {
                         pendencia.status;
                     
                     csvPendencias += [
+                        pendencia.id,
                         equipamento.id,
                         escapeCSV(equipamento.codigo),
                         escapeCSV(equipamento.nome),
-                        pendencia.id,
                         escapeCSV(pendencia.titulo),
                         escapeCSV(pendencia.descricao),
                         escapeCSV(pendencia.responsavel),
