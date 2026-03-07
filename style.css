@@ -1427,3 +1427,519 @@ table tr:hover {
 .pendencia-responsavel.operacao i {
     color: #f1c40f;
 }
+/* ========== ESTILOS PARA CONTROLE DE LINHA E TOGGLE BUTTON ========== */
+
+/* Card quando equipamento está em linha */
+.equipamento-card.em-linha {
+    border: 2px solid var(--cor-em-linha);
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
+    animation: pulse-card 2s infinite;
+}
+
+@keyframes pulse-card {
+    0% { box-shadow: 0 0 20px rgba(46, 204, 113, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(46, 204, 113, 0.5); }
+    100% { box-shadow: 0 0 20px rgba(46, 204, 113, 0.3); }
+}
+
+/* Container do controle de linha */
+.controle-linha {
+    margin: 15px 0;
+    padding: 15px;
+    background: var(--cor-fundo-secundario);
+    border-radius: var(--raio-borda);
+    border: 1px solid var(--cor-borda);
+    transition: all 0.3s ease;
+}
+
+.controle-linha.alerta {
+    border-color: var(--cor-alerta-tempo);
+    animation: alerta-pulse 2s infinite;
+    background: rgba(230, 126, 34, 0.05);
+}
+
+@keyframes alerta-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(230, 126, 34, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); }
+}
+
+/* Container do toggle */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* ===== TOGGLE BUTTON PRINCIPAL ===== */
+.toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 30px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--cor-fora-linha);
+    color: white;
+    min-width: 140px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Estado desligado (fora de linha) */
+.toggle-btn {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+}
+
+.toggle-btn i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+/* Hover effect */
+.toggle-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.toggle-btn:hover:not(:disabled) i {
+    transform: scale(1.1);
+}
+
+/* Active/Pressed effect */
+.toggle-btn:active:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+/* ===== ESTADO LIGADO (EM LINHA) ===== */
+.toggle-btn.active {
+    background: linear-gradient(135deg, var(--cor-em-linha), #229954);
+    animation: pulse-linha 2s infinite;
+}
+
+.toggle-btn.active i {
+    animation: rotate 2s infinite linear;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-linha {
+    0% { 
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        opacity: 1;
+    }
+    50% { 
+        box-shadow: 0 0 0 10px rgba(46, 204, 113, 0.3);
+        opacity: 0.9;
+    }
+    100% { 
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+        opacity: 1;
+    }
+}
+
+/* Efeito de onda ao clicar */
+.toggle-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.toggle-btn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
+}
+
+/* Botão desabilitado */
+.toggle-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    filter: grayscale(0.5);
+}
+
+/* ===== INDICADOR DE TEMPO DE OPERAÇÃO ===== */
+.tempo-operacao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--cor-texto);
+    font-size: 14px;
+    background: var(--cor-card);
+    padding: 8px 16px;
+    border-radius: 25px;
+    border: 1px solid var(--cor-borda);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tempo-operacao i {
+    color: var(--cor-alerta-tempo);
+    font-size: 16px;
+    animation: clock-pulse 2s infinite;
+}
+
+@keyframes clock-pulse {
+    0% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0.7; transform: scale(1); }
+}
+
+.tempo-operacao span {
+    font-weight: 600;
+    color: var(--cor-texto);
+}
+
+.tempo-operacao small {
+    color: var(--cor-texto-secundario);
+    font-size: 11px;
+    margin-left: 5px;
+}
+
+/* ===== INDICADOR DE ÚLTIMO DESLIGAMENTO ===== */
+.ultimo-desligamento {
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--cor-borda);
+    color: var(--cor-texto-secundario);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ultimo-desligamento i {
+    color: var(--cor-erro);
+    font-size: 12px;
+}
+
+/* ===== BOTÃO DE HISTÓRICO ===== */
+.historico-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--cor-secundaria);
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    border-radius: 20px;
+    background: var(--cor-fundo);
+    width: 100%;
+    justify-content: center;
+}
+
+.historico-btn:hover {
+    background: var(--cor-secundaria);
+    color: white;
+    border-color: var(--cor-secundaria);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+.historico-btn i {
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+
+.historico-btn:hover i {
+    transform: rotate(360deg);
+}
+
+/* ===== INDICADOR "EM LINHA" NO TÍTULO ===== */
+.em-linha-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+    padding: 4px 12px;
+    background: var(--cor-em-linha);
+    color: white;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    animation: pulse-indicator 2s infinite;
+    box-shadow: 0 2px 8px rgba(46, 204, 113, 0.4);
+}
+
+@keyframes pulse-indicator {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+.em-linha-indicator i {
+    font-size: 10px;
+}
+
+/* ===== ESTILOS PARA TABELA DE HISTÓRICO ===== */
+.historico-tabs {
+    display: flex;
+    gap: 5px;
+    border-bottom: 2px solid var(--cor-borda);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    color: var(--cor-texto-secundario);
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 20px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.tab-btn:hover {
+    background: var(--cor-fundo-secundario);
+    color: var(--cor-texto);
+}
+
+.tab-btn.active {
+    background: var(--cor-secundaria);
+    color: white;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.historico-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.historico-table th {
+    background: var(--cor-fundo-secundario);
+    color: var(--cor-texto);
+    font-weight: 600;
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 2px solid var(--cor-borda);
+}
+
+.historico-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.historico-table tr:hover {
+    background: var(--cor-fundo-secundario);
+    transition: background 0.2s;
+}
+
+/* Cards de estatísticas no histórico */
+.stat-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: var(--cor-fundo-secundario);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--cor-borda);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sombra-leve);
+    border-color: var(--cor-secundaria);
+}
+
+.stat-card i {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+/* ===== STATUS CHIPS NO HISTÓRICO ===== */
+.historico-table .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.historico-table .status-chip.apto {
+    background: rgba(46, 204, 113, 0.15);
+    color: #27ae60;
+}
+
+.historico-table .status-chip.nao-apto {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}
+
+/* ===== ANIMAÇÕES ADICIONAIS ===== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Efeito de loading para toggle */
+.toggle-btn.loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.toggle-btn.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 768px) {
+    .toggle-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .toggle-btn {
+        width: 100%;
+        min-width: auto;
+        padding: 14px 20px;
+    }
+    
+    .tempo-operacao {
+        width: 100%;
+        justify-content: center;
+        padding: 10px;
+    }
+    
+    .historico-table {
+        font-size: 11px;
+    }
+    
+    .historico-table th,
+    .historico-table td {
+        padding: 6px 4px;
+    }
+    
+    .stat-card {
+        padding: 10px;
+    }
+    
+    .stat-card i {
+        font-size: 20px;
+    }
+    
+    .em-linha-indicator {
+        margin-left: 0;
+        margin-top: 5px;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .toggle-btn {
+        font-size: 13px;
+        padding: 12px 16px;
+    }
+    
+    .tempo-operacao {
+        font-size: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .historico-tabs {
+        flex-direction: column;
+    }
+    
+    .tab-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .historico-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
+/* ===== TEMA ESCURO AJUSTES ===== */
+[data-tema="escuro"] .toggle-btn {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+[data-tema="escuro"] .tempo-operacao {
+    background: var(--cor-fundo);
+    border-color: var(--cor-borda);
+}
+
+[data-tema="escuro"] .historico-btn {
+    background: var(--cor-fundo);
+}
+
+[data-tema="escuro"] .historico-btn:hover {
+    background: var(--cor-secundaria);
+}
+
+[data-tema="escuro"] .controle-linha.alerta {
+    background: rgba(230, 126, 34, 0.1);
+}
+
+[data-tema="escuro"] .em-linha-indicator {
+    box-shadow: 0 2px 8px rgba(46, 204, 113, 0.2);
+}
