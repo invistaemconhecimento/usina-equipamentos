@@ -1,6 +1,6 @@
 // ===========================================
 // SISTEMA DE GESTÃO DE EQUIPAMENTOS - APP PRINCIPAL
-// Versão 2.2.0 - Com IDs Automáticos e Exclusão de Equipamentos
+// Versão 2.3.0 - Com Controle de Linha e Histórico de Acionamentos
 // ===========================================
 
 class EquipamentosApp {
@@ -33,6 +33,10 @@ class EquipamentosApp {
         this.sugestaoSelecionada = -1;
         this.modalConfirmacaoCallback = null;
         
+        // NOVAS PROPRIEDADES PARA CONTROLE DE LINHA
+        this.tempoUpdateInterval = null;
+        this.equipamentosEmLinha = new Set();
+        
         this.init();
     }
     
@@ -63,24 +67,460 @@ class EquipamentosApp {
             // 7. Garantir IDs únicos após carregar dados
             this.garantirIdsUnicos();
             
-            // 8. Inicializar interface
+            // 8. Inicializar controle de linha
+            this.initControleLinha();
+            
+            // 9. Inicializar interface
             this.renderizarEquipamentos();
             this.atualizarEstatisticas();
             this.atualizarStatusSincronizacao(true);
             this.atualizarContadoresPrioridade();
             this.carregarFiltrosSalvos();
             
-            // 9. Configurar atualizações automáticas
+            // 10. Configurar atualizações automáticas
             this.configurarAtualizacoes();
             
             console.log('Aplicação inicializada com sucesso');
             
-            // 10. Adicionar indicador de nível
+            // 11. Adicionar indicador de nível
             this.adicionarIndicadorNivel();
             
         } catch (error) {
             console.error('Erro na inicialização da aplicação:', error);
             this.mostrarMensagem('Erro ao inicializar aplicação. Recarregue a página.', 'error');
+        }
+    }
+    
+    // ================== NOVO: CONTROLE DE LINHA ==================
+    
+    initControleLinha() {
+        // Atualizar equipamentos em linha a cada minuto
+        this.tempoUpdateInterval = setInterval(() => {
+            this.atualizarTempoOperacao();
+        }, 60000); // 1 minuto
+        
+        // Verificar equipamentos com tempo excessivo
+        setInterval(() => {
+            this.verificarTempoExcessivo();
+        }, 300000); // 5 minutos
+    }
+    
+    atualizarTempoOperacao() {
+        let atualizacoes = false;
+        
+        this.equipamentos.forEach(equip => {
+            if (equip.emLinha && equip.emLinha.ativo) {
+                const agora = new Date();
+                const ultimoAcionamento = new Date(equip.emLinha.ultimoAcionamento);
+                const diferencaMinutos = Math.floor((agora - ultimoAcionamento) / (1000 * 60));
+                
+                // Atualizar tempo total
+                equip.emLinha.tempoTotalOperacao += 1; // +1 minuto
+                
+                // Registrar no histórico se atingir marcos importantes
+                if (equip.emLinha.tempoTotalOperacao % 60 === 0) { // A cada hora
+                    this.registrarMarcoOperacao(equip.id, equip.emLinha.tempoTotalOperacao);
+                }
+                
+                atualizacoes = true;
+            }
+        });
+        
+        if (atualizacoes) {
+            this.atualizarCardsEquipamentos();
+            this.salvarDados();
+        }
+    }
+    
+    registrarMarcoOperacao(equipamentoId, tempoTotal) {
+        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+        if (!equipamento) return;
+        
+        if (!equipamento.historicoAcionamentos) {
+            equipamento.historicoAcionamentos = [];
+        }
+        
+        equipamento.historicoAcionamentos.push({
+            tipo: 'MARCO_OPERACAO',
+            timestamp: new Date().toISOString(),
+            tempoTotal: tempoTotal,
+            operador: 'sistema',
+            observacao: `${tempoTotal} minutos de operação contínua`
+        });
+    }
+    
+    verificarTempoExcessivo() {
+        const limite = window.APP_CONFIG?.controleLinha?.alertaTempoMaximo || 480;
+        
+        this.equipamentos.forEach(equip => {
+            if (equip.emLinha && equip.emLinha.ativo) {
+                if (equip.emLinha.tempoTotalOperacao >= limite) {
+                    this.mostrarMensagem(
+                        `⚠️ ATENÇÃO: ${equip.nome} está em operação há mais de ${Math.floor(limite/60)} horas!`,
+                        'warning'
+                    );
+                    
+                    this.registrarAtividade('ALERTA_TEMPO_EXCESSIVO', 
+                        `${equip.nome} em operação por ${equip.emLinha.tempoTotalOperacao} minutos`);
+                }
+            }
+        });
+    }
+    
+    async toggleEquipamentoLinha(equipamentoId, justificativa = '') {
+        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+        if (!equipamento) return;
+        
+        // Verificar permissão
+        const podeOperar = this.verificarPermissao('operar_equipamentos');
+        
+        if (!podeOperar) {
+            this.mostrarMensagem('Você não tem permissão para operar equipamentos', 'error');
+            return;
+        }
+        
+        // Verificar se equipamento está apto
+        if (equipamento.status === 'nao-apto' && !equipamento.emLinha?.ativo) {
+            const confirmar = await this.mostrarConfirmacao(
+                'Equipamento Não Apto',
+                'Este equipamento possui pendências críticas. Deseja ligá-lo mesmo assim?'
+            );
+            if (!confirmar) return;
+        }
+        
+        const novoEstado = !equipamento.emLinha?.ativo;
+        const timestamp = new Date().toISOString();
+        
+        // Validar justificativa para desligamento
+        if (!novoEstado && !justificativa && window.APP_CONFIG?.controleLinha?.exigirJustificativaDesligamento) {
+            justificativa = await this.solicitarJustificativa();
+            if (!justificativa) return;
+        }
+        
+        // Verificar tempo mínimo entre acionamentos
+        if (novoEstado && equipamento.emLinha?.ultimoDesligamento) {
+            const ultimoDesligamento = new Date(equipamento.emLinha.ultimoDesligamento);
+            const agora = new Date();
+            const diferencaMinutos = Math.floor((agora - ultimoDesligamento) / (1000 * 60));
+            const tempoMinimo = window.APP_CONFIG?.controleLinha?.tempoMinimoEntreAcionamentos || 5;
+            
+            if (diferencaMinutos < tempoMinimo) {
+                const confirmar = await this.mostrarConfirmacao(
+                    'Tempo Mínimo não Respeitado',
+                    `Aguarde ${tempoMinimo - diferencaMinutos} minutos antes de religar. Deseja prosseguir mesmo assim?`
+                );
+                if (!confirmar) return;
+            }
+        }
+        
+        // Inicializar estrutura se não existir
+        if (!equipamento.emLinha) {
+            equipamento.emLinha = {
+                ativo: false,
+                ultimoAcionamento: null,
+                ultimoDesligamento: null,
+                tempoTotalOperacao: 0,
+                operadorAtual: null
+            };
+        }
+        
+        if (!equipamento.historicoAcionamentos) {
+            equipamento.historicoAcionamentos = [];
+        }
+        
+        // Atualizar estado
+        equipamento.emLinha.ativo = novoEstado;
+        
+        if (novoEstado) {
+            // LIGANDO
+            equipamento.emLinha.ultimoAcionamento = timestamp;
+            equipamento.emLinha.operadorAtual = this.usuarioAtual;
+            this.equipamentosEmLinha.add(equipamentoId);
+            
+            equipamento.historicoAcionamentos.push({
+                tipo: 'LIGADO',
+                timestamp: timestamp,
+                operador: this.usuarioAtual,
+                turno: this.obterTurnoAtual(),
+                observacao: justificativa || 'Equipamento ligado para operação'
+            });
+            
+            this.registrarAtividade('EQUIPAMENTO_LIGADO', 
+                `${equipamento.nome} ligado por ${this.usuarioAtual}`);
+            
+            this.mostrarMensagem(`✅ ${equipamento.nome} ligado com sucesso`, 'success');
+            
+        } else {
+            // DESLIGANDO
+            const tempoOperacao = equipamento.emLinha.tempoTotalOperacao || 0;
+            equipamento.emLinha.ultimoDesligamento = timestamp;
+            equipamento.emLinha.operadorAtual = null;
+            this.equipamentosEmLinha.delete(equipamentoId);
+            
+            equipamento.historicoAcionamentos.push({
+                tipo: 'DESLIGADO',
+                timestamp: timestamp,
+                operador: this.usuarioAtual,
+                tempoOperacao: tempoOperacao,
+                turno: this.obterTurnoAtual(),
+                observacao: justificativa || 'Equipamento desligado'
+            });
+            
+            this.registrarAtividade('EQUIPAMENTO_DESLIGADO', 
+                `${equipamento.nome} desligado por ${this.usuarioAtual} (${tempoOperacao} min operação)`);
+            
+            this.mostrarMensagem(`⏹️ ${equipamento.nome} desligado com sucesso`, 'info');
+        }
+        
+        // Salvar dados
+        await this.salvarDados();
+        
+        // Atualizar interface
+        this.atualizarCardsEquipamentos();
+        
+        // Atualizar estatísticas de operação
+        this.atualizarEstatisticasOperacao();
+    }
+    
+    obterTurnoAtual() {
+        const hora = new Date().getHours();
+        
+        if (hora >= 6 && hora < 14) return 'TURNO_A';
+        if (hora >= 14 && hora < 22) return 'TURNO_B';
+        return 'TURNO_C';
+    }
+    
+    solicitarJustificativa() {
+        return new Promise((resolve) => {
+            const justificativa = prompt('Por favor, informe o motivo do desligamento:');
+            resolve(justificativa ? justificativa.trim() : '');
+        });
+    }
+    
+    mostrarHistoricoAcionamentos(equipamentoId) {
+        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+        if (!equipamento) return;
+        
+        if (!equipamento.historicoAcionamentos) {
+            equipamento.historicoAcionamentos = [];
+        }
+        
+        const historico = equipamento.historicoAcionamentos;
+        
+        // Agrupar por período
+        const agora = new Date();
+        const ultimas24h = historico.filter(h => {
+            const data = new Date(h.timestamp);
+            return (agora - data) <= 24 * 60 * 60 * 1000;
+        });
+        
+        const ultimaSemana = historico.filter(h => {
+            const data = new Date(h.timestamp);
+            return (agora - data) <= 7 * 24 * 60 * 60 * 1000;
+        });
+        
+        const tempoTotalHoras = Math.floor((equipamento.emLinha?.tempoTotalOperacao || 0) / 60);
+        const tempoTotalMinutos = (equipamento.emLinha?.tempoTotalOperacao || 0) % 60;
+        
+        // Criar modal
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.id = 'historico-acionamentos-modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 900px; max-height: 80vh;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-history"></i> Histórico de Acionamentos - ${this.escapeHTML(equipamento.nome)}</h3>
+                    <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+                </div>
+                <div class="modal-body" style="overflow-y: auto;">
+                    <div class="historico-stats" style="display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px;">
+                        <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
+                            <i class="fas fa-power-off" style="color: #27ae60; font-size: 20px;"></i>
+                            <div style="font-size: 24px; font-weight: bold;">${historico.filter(h => h.tipo === 'LIGADO').length}</div>
+                            <div style="font-size: 12px;">Ligações</div>
+                        </div>
+                        <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
+                            <i class="fas fa-stop" style="color: #e74c3c; font-size: 20px;"></i>
+                            <div style="font-size: 24px; font-weight: bold;">${historico.filter(h => h.tipo === 'DESLIGADO').length}</div>
+                            <div style="font-size: 12px;">Desligamentos</div>
+                        </div>
+                        <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
+                            <i class="fas fa-clock" style="color: #f39c12; font-size: 20px;"></i>
+                            <div style="font-size: 24px; font-weight: bold;">${tempoTotalHoras}h ${tempoTotalMinutos}min</div>
+                            <div style="font-size: 12px;">Tempo Total</div>
+                        </div>
+                        <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
+                            <i class="fas fa-calendar" style="color: #3498db; font-size: 20px;"></i>
+                            <div style="font-size: 24px; font-weight: bold;">${ultimas24h.length}</div>
+                            <div style="font-size: 12px;">Últimas 24h</div>
+                        </div>
+                    </div>
+                    
+                    <div class="historico-tabs" style="display: flex; gap: 5px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 10px; margin-bottom: 20px;">
+                        <button class="tab-btn active" onclick="document.querySelectorAll('.tab-pane').forEach(p => p.style.display='none'); document.getElementById('tab-todos').style.display='block'; this.classList.add('active'); document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">Todos</button>
+                        <button class="tab-btn" onclick="document.querySelectorAll('.tab-pane').forEach(p => p.style.display='none'); document.getElementById('tab-ultimas24h').style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">Últimas 24h</button>
+                        <button class="tab-btn" onclick="document.querySelectorAll('.tab-pane').forEach(p => p.style.display='none'); document.getElementById('tab-semana').style.display='block'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">Última Semana</button>
+                    </div>
+                    
+                    <div id="tab-todos" class="tab-pane" style="display: block;">
+                        ${this.renderizarTabelaHistorico(historico)}
+                    </div>
+                    
+                    <div id="tab-ultimas24h" class="tab-pane" style="display: none;">
+                        ${this.renderizarTabelaHistorico(ultimas24h)}
+                    </div>
+                    
+                    <div id="tab-semana" class="tab-pane" style="display: none;">
+                        ${this.renderizarTabelaHistorico(ultimaSemana)}
+                    </div>
+                    
+                    <div class="form-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="app.exportarHistoricoAcionamentos(${equipamentoId})" class="btn-secondary">
+                            <i class="fas fa-download"></i> Exportar Histórico (CSV)
+                        </button>
+                        <button onclick="this.closest('.modal').remove()" class="btn-primary">
+                            <i class="fas fa-times"></i> Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Fechar ao clicar fora
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.remove();
+            }
+        });
+        
+        this.registrarAtividade('VISUALIZAR_HISTORICO_ACIONAMENTOS', 
+            `Visualizou histórico de acionamentos do equipamento ${equipamento.nome}`);
+    }
+    
+    renderizarTabelaHistorico(historico) {
+        if (!historico || historico.length === 0) {
+            return '<p style="text-align: center; padding: 40px; color: var(--cor-texto-secundario);"><i class="fas fa-info-circle"></i> Nenhum registro neste período</p>';
+        }
+        
+        return `
+            <table class="historico-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: var(--cor-fundo-secundario);">
+                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Data/Hora</th>
+                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Ação</th>
+                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Operador</th>
+                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Turno</th>
+                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Tempo</th>
+                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Observação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${historico.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map(h => {
+                        const data = new Date(h.timestamp);
+                        const dataStr = data.toLocaleDateString('pt-BR');
+                        const horaStr = data.toLocaleTimeString('pt-BR');
+                        
+                        let acaoClass = '';
+                        let acaoIcon = '';
+                        
+                        if (h.tipo === 'LIGADO') {
+                            acaoClass = 'status-chip apto';
+                            acaoIcon = 'fa-play';
+                        } else if (h.tipo === 'DESLIGADO') {
+                            acaoClass = 'status-chip nao-apto';
+                            acaoIcon = 'fa-stop';
+                        } else {
+                            acaoClass = 'status-chip cancelada';
+                            acaoIcon = 'fa-flag';
+                        }
+                        
+                        const tempoFormatado = h.tempoOperacao ? 
+                            `${Math.floor(h.tempoOperacao / 60)}h ${h.tempoOperacao % 60}min` : 
+                            (h.tempoTotal ? `${Math.floor(h.tempoTotal / 60)}h ${h.tempoTotal % 60}min` : '-');
+                        
+                        return `
+                            <tr style="border-bottom: 1px solid var(--cor-borda);">
+                                <td style="padding: 8px;">${dataStr} ${horaStr}</td>
+                                <td style="padding: 8px;">
+                                    <span class="${acaoClass}" style="display: inline-flex; align-items: center; gap: 5px;">
+                                        <i class="fas ${acaoIcon}"></i> ${h.tipo}
+                                    </span>
+                                </td>
+                                <td style="padding: 8px;">${this.escapeHTML(h.operador)}</td>
+                                <td style="padding: 8px;">${h.turno || '-'}</td>
+                                <td style="padding: 8px;">${tempoFormatado}</td>
+                                <td style="padding: 8px;">${h.observacao || '-'}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+    
+    exportarHistoricoAcionamentos(equipamentoId) {
+        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+        if (!equipamento || !equipamento.historicoAcionamentos) return;
+        
+        let csv = 'Data,Hora,Ação,Operador,Turno,Tempo Operação (min),Observação\n';
+        
+        equipamento.historicoAcionamentos.forEach(h => {
+            const data = new Date(h.timestamp);
+            const dataStr = data.toLocaleDateString('pt-BR');
+            const horaStr = data.toLocaleTimeString('pt-BR');
+            
+            csv += [
+                dataStr,
+                horaStr,
+                h.tipo,
+                h.operador,
+                h.turno || '',
+                h.tempoOperacao || h.tempoTotal || '',
+                `"${(h.observacao || '').replace(/"/g, '""')}"`
+            ].join(',') + '\n';
+        });
+        
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const fileName = `historico_${equipamento.nome}_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        this.registrarAtividade('EXPORTAR_HISTORICO_ACIONAMENTOS', 
+            `Exportou histórico de acionamentos do equipamento ${equipamento.nome}`);
+        
+        this.mostrarMensagem('Histórico exportado com sucesso!', 'success');
+    }
+    
+    atualizarEstatisticasOperacao() {
+        const stats = {
+            emLinha: this.equipamentos.filter(e => e.emLinha?.ativo).length,
+            tempoTotal: this.equipamentos.reduce((acc, e) => acc + (e.emLinha?.tempoTotalOperacao || 0), 0),
+            ligacoesHoje: 0
+        };
+        
+        const hoje = new Date().toDateString();
+        this.equipamentos.forEach(e => {
+            if (e.historicoAcionamentos) {
+                stats.ligacoesHoje += e.historicoAcionamentos.filter(h => {
+                    return h.tipo === 'LIGADO' && new Date(h.timestamp).toDateString() === hoje;
+                }).length;
+            }
+        });
+        
+        // Atualizar interface se houver elementos específicos
+        const statsElement = document.getElementById('operacao-stats');
+        if (statsElement) {
+            statsElement.innerHTML = `
+                <div><i class="fas fa-plug"></i> ${stats.emLinha} em linha</div>
+                <div><i class="fas fa-clock"></i> ${Math.floor(stats.tempoTotal / 60)}h totais</div>
+                <div><i class="fas fa-power-off"></i> ${stats.ligacoesHoje} ligações hoje</div>
+            `;
         }
     }
     
@@ -98,14 +538,12 @@ class EquipamentosApp {
             const sessaoData = JSON.parse(sessao);
             const agora = new Date().getTime();
             
-            // Verificar expiração
             if (agora > sessaoData.expira) {
                 this.limparSessao();
                 window.location.href = 'login.html?expired=true';
                 return false;
             }
             
-            // Renovar sessão (extender por mais 8 horas)
             sessaoData.expira = agora + (8 * 60 * 60 * 1000);
             localStorage.setItem('gestao_equipamentos_sessao', JSON.stringify(sessaoData));
             
@@ -130,19 +568,13 @@ class EquipamentosApp {
         this.userId = localStorage.getItem('gestao_equipamentos_user_id');
         this.isSystemAdmin = localStorage.getItem('gestao_equipamentos_is_system_admin') === 'true';
         
-        // Atualizar display do usuário
         this.atualizarDisplayUsuario();
     }
     
     registrarLogin() {
-        // Registrar atividade de login
         this.registrarAtividade('LOGIN', `Usuário ${this.usuarioAtual} (${this.getNomeNivel()}) acessou o sistema`);
-        
-        // Atualizar último acesso
         localStorage.setItem('gestao_equipamentos_ultimo_acesso', new Date().toISOString());
     }
-    
-    // ================== SISTEMA DE PERMISSÕES ==================
     
     verificarPermissao(permissao) {
         if (!this.nivelUsuario || !window.PERMISSOES) {
@@ -203,7 +635,6 @@ class EquipamentosApp {
     }
     
     adicionarIndicadorNivel() {
-        // Verificar se deve mostrar indicador
         if (!window.APP_CONFIG || !window.APP_CONFIG.appSettings.mostrarIndicadorNivel) {
             return;
         }
@@ -212,13 +643,11 @@ class EquipamentosApp {
         const nomeNivel = this.getNomeNivel();
         const icone = this.getIconeNivel();
         
-        // Remover indicador anterior se existir
         const indicadorAnterior = document.querySelector('.nivel-indicator');
         if (indicadorAnterior) {
             indicadorAnterior.remove();
         }
         
-        // Criar indicador
         const indicador = document.createElement('div');
         indicador.className = 'nivel-indicator no-select';
         indicador.style.cssText = `
@@ -232,7 +661,6 @@ class EquipamentosApp {
     }
     
     configurarInterfacePorPermissao() {
-        // Botão "Novo Equipamento" - Apenas admin/engenharia
         const addEquipamentoBtn = document.getElementById('add-equipamento');
         if (addEquipamentoBtn) {
             const podeCriar = this.verificarPermissao('criar_equipamentos');
@@ -240,7 +668,6 @@ class EquipamentosApp {
             addEquipamentoBtn.title = podeCriar ? 'Adicionar novo equipamento' : 'Sem permissão para criar equipamentos';
         }
         
-        // Botão "Exportar Dados" - Apenas supervisor+
         const exportDataBtn = document.getElementById('export-data');
         if (exportDataBtn) {
             const podeExportar = this.verificarPermissao('exportar_dados');
@@ -248,7 +675,6 @@ class EquipamentosApp {
             exportDataBtn.title = podeExportar ? 'Exportar dados para Excel' : 'Sem permissão para exportar dados';
         }
         
-        // Botão de admin - apenas administradores
         const adminBtn = document.getElementById('admin-btn');
         if (adminBtn) {
             adminBtn.style.display = this.nivelUsuario === 'administrador' ? 'flex' : 'none';
@@ -263,14 +689,12 @@ class EquipamentosApp {
         this.modals.detalhes = document.getElementById('detalhes-modal');
         this.modals.confirmacao = document.getElementById('modal-confirmacao');
         
-        // Fechar modais ao clicar no X
         document.querySelectorAll('.close-modal').forEach(closeBtn => {
             closeBtn.addEventListener('click', () => {
                 this.fecharTodosModais();
             });
         });
         
-        // Fechar modais ao clicar fora
         window.addEventListener('click', (event) => {
             if (event.target.classList.contains('modal')) {
                 this.fecharTodosModais();
@@ -279,7 +703,6 @@ class EquipamentosApp {
     }
     
     initEvents() {
-        // Filtros básicos
         document.getElementById('status-filter')?.addEventListener('change', (e) => {
             this.filtros.status = e.target.value;
             this.renderizarEquipamentos();
@@ -308,7 +731,6 @@ class EquipamentosApp {
             this.limparTodosFiltros();
         });
         
-        // Botões de ação (com verificação de permissão)
         document.getElementById('add-equipamento')?.addEventListener('click', () => {
             if (this.verificarPermissao('criar_equipamentos')) {
                 this.abrirModalEquipamento();
@@ -337,7 +759,6 @@ class EquipamentosApp {
             this.sincronizarDados();
         });
         
-        // Controles de visualização
         document.getElementById('view-list')?.addEventListener('click', () => {
             this.setViewMode('list');
         });
@@ -346,7 +767,6 @@ class EquipamentosApp {
             this.setViewMode('grid');
         });
         
-        // Formulários
         document.getElementById('equipamento-form')?.addEventListener('submit', (e) => {
             e.preventDefault();
             this.salvarEquipamento();
@@ -357,7 +777,6 @@ class EquipamentosApp {
             this.salvarPendencia();
         });
         
-        // Botões no modal de detalhes
         document.getElementById('editar-equipamento')?.addEventListener('click', () => {
             if (this.equipamentoSelecionado) {
                 const podeEditar = this.podeExecutar('editar', 'equipamento');
@@ -379,9 +798,6 @@ class EquipamentosApp {
             }
         });
         
-        // Botão de excluir equipamento (evento será configurado dinamicamente)
-        
-        // Botões de sistema
         document.getElementById('system-info')?.addEventListener('click', () => {
             if (window.mostrarInfoSistema) {
                 window.mostrarInfoSistema();
@@ -400,7 +816,6 @@ class EquipamentosApp {
     garantirIdsUnicos() {
         if (!this.equipamentos || this.equipamentos.length === 0) return;
         
-        // Verificar se há IDs duplicados
         const ids = new Set();
         const duplicados = [];
         
@@ -412,7 +827,6 @@ class EquipamentosApp {
             }
         });
         
-        // Corrigir IDs duplicados
         if (duplicados.length > 0) {
             console.warn(`Encontrados ${duplicados.length} equipamentos com ID duplicado. Corrigindo...`);
             
@@ -423,7 +837,6 @@ class EquipamentosApp {
                 this.equipamentos[index].id = maxId;
             });
             
-            // Atualizar nextEquipamentoId
             if (this.data) {
                 this.data.nextEquipamentoId = maxId + 1;
             }
@@ -431,7 +844,6 @@ class EquipamentosApp {
             this.mostrarMensagem(`${duplicados.length} IDs duplicados foram corrigidos`, 'info');
         }
         
-        // Garantir que nextEquipamentoId existe e é maior que todos os IDs
         if (this.equipamentos.length > 0) {
             const maxId = Math.max(...this.equipamentos.map(e => e.id));
             if (!this.data) this.data = {};
@@ -458,7 +870,6 @@ class EquipamentosApp {
                 const filtro = btn.dataset.filter;
                 this.aplicarFiltroRapido(filtro);
                 
-                // Marcar como ativo (exceto para "todos")
                 document.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
                 if (filtro !== 'todos') {
                     btn.classList.add('active');
@@ -525,7 +936,6 @@ class EquipamentosApp {
                 break;
                 
             case 'todos':
-                // Limpar todos os filtros
                 this.limparTodosFiltros();
                 return;
         }
@@ -555,14 +965,12 @@ class EquipamentosApp {
             }, 300);
         });
         
-        // Fechar sugestões ao clicar fora
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-container')) {
                 suggestionsContainer.classList.remove('show');
             }
         });
         
-        // Navegação por teclado nas sugestões
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                 e.preventDefault();
@@ -578,9 +986,7 @@ class EquipamentosApp {
         const sugestoes = [];
         const termoLower = termo.toLowerCase();
         
-        // Buscar em equipamentos
         this.equipamentos.forEach(equip => {
-            // Buscar por nome
             if (equip.nome.toLowerCase().includes(termoLower)) {
                 sugestoes.push({
                     texto: equip.nome,
@@ -590,7 +996,6 @@ class EquipamentosApp {
                 });
             }
             
-            // Buscar por ID
             if (equip.id.toString().includes(termoLower)) {
                 sugestoes.push({
                     texto: `ID: ${equip.id} - ${equip.nome}`,
@@ -600,7 +1005,6 @@ class EquipamentosApp {
                 });
             }
             
-            // Buscar em descrição
             if (equip.descricao && equip.descricao.toLowerCase().includes(termoLower)) {
                 sugestoes.push({
                     texto: equip.descricao.substring(0, 50) + '...',
@@ -611,7 +1015,6 @@ class EquipamentosApp {
             }
         });
         
-        // Buscar em pendências
         this.equipamentos.forEach(equip => {
             equip.pendencias?.forEach(pend => {
                 if (pend.titulo.toLowerCase().includes(termoLower)) {
@@ -628,7 +1031,6 @@ class EquipamentosApp {
             });
         });
         
-        // Remover duplicatas e limitar
         const sugestoesUnicas = this.removerDuplicatasSugestoes(sugestoes);
         this.mostrarSugestoes(sugestoesUnicas.slice(0, 5));
     }
@@ -662,7 +1064,6 @@ class EquipamentosApp {
         
         container.classList.add('show');
         
-        // Armazenar sugestões para navegação
         this.sugestoesAtuais = sugestoes;
         this.sugestaoSelecionada = -1;
     }
@@ -680,7 +1081,6 @@ class EquipamentosApp {
         
         const items = container.querySelectorAll('.suggestion-item');
         
-        // Remover seleção anterior
         items.forEach(item => item.classList.remove('selected'));
         
         if (tecla === 'ArrowDown') {
@@ -746,7 +1146,6 @@ class EquipamentosApp {
         const dataInicio = document.getElementById('data-inicio')?.value;
         const dataFim = document.getElementById('data-fim')?.value;
         
-        // Validar se data início é maior que data fim
         if (dataInicio && dataFim && dataInicio > dataFim) {
             this.mostrarMensagem('Data inicial não pode ser maior que data final', 'warning');
             return;
@@ -845,7 +1244,6 @@ class EquipamentosApp {
         
         this.filtros = { ...filtro.criterios };
         
-        // Atualizar interface
         this.atualizarInterfaceFiltros();
         this.renderizarEquipamentos();
         this.atualizarIndicadoresFiltros();
@@ -892,12 +1290,10 @@ class EquipamentosApp {
         document.getElementById('data-inicio').value = this.filtros.dataInicio || '';
         document.getElementById('data-fim').value = this.filtros.dataFim || '';
         
-        // Atualizar checkboxes de prioridade
         document.querySelectorAll('.priority-checkbox input').forEach(cb => {
             cb.checked = this.filtros.prioridades?.includes(cb.value) || false;
         });
         
-        // Atualizar select de responsáveis
         const selectResponsavel = document.getElementById('filtro-responsavel');
         if (selectResponsavel && this.filtros.responsaveis) {
             Array.from(selectResponsavel.options).forEach(opt => {
@@ -934,7 +1330,6 @@ class EquipamentosApp {
             filtrosAtivos.push({ tipo: 'busca', valor: this.filtros.busca, nome: `Busca: "${this.filtros.busca}"` });
         }
         
-        // Indicador de data das pendências
         if (this.filtros.dataInicio || this.filtros.dataFim) {
             let periodo = 'Data das Pendências: ';
             if (this.filtros.dataInicio && this.filtros.dataFim) {
@@ -1018,7 +1413,6 @@ class EquipamentosApp {
                 break;
             case 'responsavel':
                 this.filtros.responsavel = null;
-                // Remover active class do botão "Minhas Pendências"
                 document.querySelectorAll('.quick-filter-btn').forEach(btn => {
                     if (btn.dataset.filter === 'minhas-pendencias') {
                         btn.classList.remove('active');
@@ -1048,7 +1442,6 @@ class EquipamentosApp {
         this.renderizarEquipamentos();
         this.atualizarIndicadoresFiltros();
         
-        // Remover classe active de todos os botões de filtro rápido
         document.querySelectorAll('.quick-filter-btn').forEach(btn => {
             btn.classList.remove('active');
         });
@@ -1081,7 +1474,6 @@ class EquipamentosApp {
             
             console.log('Carregando dados do JSONBin...');
             
-            // Verificar se a configuração está disponível
             if (!window.JSONBIN_CONFIG || !window.JSONBIN_CONFIG.BASE_URL) {
                 throw new Error('Configuração do JSONBin não encontrada');
             }
@@ -1101,7 +1493,22 @@ class EquipamentosApp {
                 this.data = result.record;
                 this.equipamentos = this.data.equipamentos;
                 
-                // Garantir que nextEquipamentoId existe
+                // Garantir estrutura de controle de linha para equipamentos antigos
+                this.equipamentos.forEach(equip => {
+                    if (!equip.emLinha) {
+                        equip.emLinha = {
+                            ativo: false,
+                            ultimoAcionamento: null,
+                            ultimoDesligamento: null,
+                            tempoTotalOperacao: 0,
+                            operadorAtual: null
+                        };
+                    }
+                    if (!equip.historicoAcionamentos) {
+                        equip.historicoAcionamentos = [];
+                    }
+                });
+                
                 if (!this.data.nextEquipamentoId && this.equipamentos.length > 0) {
                     const maxId = Math.max(...this.equipamentos.map(e => e.id));
                     this.data.nextEquipamentoId = maxId + 1;
@@ -1109,21 +1516,33 @@ class EquipamentosApp {
                     this.data.nextEquipamentoId = 1;
                 }
                 
-                // Atualizar status baseado nas pendências
                 this.atualizarStatusTodosEquipamentos();
                 
-                // Registrar atividade
                 this.registrarAtividade('CARREGAR_DADOS', `Carregou ${this.equipamentos.length} equipamentos do servidor`);
                 
                 console.log(`Carregados ${this.equipamentos.length} equipamentos do JSONBin`);
             } else {
-                // Se não houver dados válidos, usar dados iniciais
                 console.log('Usando dados iniciais');
                 if (window.INITIAL_DATA) {
                     this.data = window.INITIAL_DATA;
                     this.equipamentos = window.INITIAL_DATA.equipamentos;
                     
-                    // Garantir nextEquipamentoId nos dados iniciais
+                    // Garantir estrutura de controle de linha
+                    this.equipamentos.forEach(equip => {
+                        if (!equip.emLinha) {
+                            equip.emLinha = {
+                                ativo: false,
+                                ultimoAcionamento: null,
+                                ultimoDesligamento: null,
+                                tempoTotalOperacao: 0,
+                                operadorAtual: null
+                            };
+                        }
+                        if (!equip.historicoAcionamentos) {
+                            equip.historicoAcionamentos = [];
+                        }
+                    });
+                    
                     if (!this.data.nextEquipamentoId && this.equipamentos.length > 0) {
                         const maxId = Math.max(...this.equipamentos.map(e => e.id));
                         this.data.nextEquipamentoId = maxId + 1;
@@ -1144,12 +1563,26 @@ class EquipamentosApp {
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             
-            // Fallback para dados iniciais
             if (window.INITIAL_DATA) {
                 this.data = window.INITIAL_DATA;
                 this.equipamentos = window.INITIAL_DATA.equipamentos;
                 
-                // Garantir nextEquipamentoId nos dados iniciais de fallback
+                // Garantir estrutura de controle de linha
+                this.equipamentos.forEach(equip => {
+                    if (!equip.emLinha) {
+                        equip.emLinha = {
+                            ativo: false,
+                            ultimoAcionamento: null,
+                            ultimoDesligamento: null,
+                            tempoTotalOperacao: 0,
+                            operadorAtual: null
+                        };
+                    }
+                    if (!equip.historicoAcionamentos) {
+                        equip.historicoAcionamentos = [];
+                    }
+                });
+                
                 if (!this.data.nextEquipamentoId && this.equipamentos.length > 0) {
                     const maxId = Math.max(...this.equipamentos.map(e => e.id));
                     this.data.nextEquipamentoId = maxId + 1;
@@ -1252,10 +1685,8 @@ class EquipamentosApp {
     
     filtrarEquipamentos() {
         return this.equipamentos.filter(equipamento => {
-            // Aplicar filtros básicos
             if (!this.filtrarBasico(equipamento)) return false;
             
-            // Aplicar filtros avançados
             if (this.filtrosAvancados.criterios.length > 0) {
                 return this.aplicarFiltrosAvancados(equipamento);
             }
@@ -1265,12 +1696,10 @@ class EquipamentosApp {
     }
     
     filtrarBasico(equipamento) {
-        // Filtrar por status
         if (this.filtros.status !== 'all' && equipamento.status !== this.filtros.status) {
             return false;
         }
         
-        // Filtrar por pendência
         if (this.filtros.pendencia !== 'all') {
             const temPendenciasAtivas = equipamento.pendencias && equipamento.pendencias.some(p => 
                 p.status === 'aberta' || p.status === 'em-andamento'
@@ -1293,12 +1722,10 @@ class EquipamentosApp {
             }
         }
         
-        // Filtrar por setor
         if (this.filtros.setor !== 'all' && equipamento.setor !== this.filtros.setor) {
             return false;
         }
         
-        // Filtrar por busca
         if (this.filtros.busca) {
             const busca = this.filtros.busca.toLowerCase();
             const nomeMatch = equipamento.nome.toLowerCase().includes(busca);
@@ -1310,21 +1737,17 @@ class EquipamentosApp {
             }
         }
         
-        // Filtrar por data das pendências
         if (this.filtros.dataInicio || this.filtros.dataFim) {
-            // Se não houver pendências, não atende ao filtro de data
             if (!equipamento.pendencias || equipamento.pendencias.length === 0) {
                 return false;
             }
             
-            // Verificar se alguma pendência está dentro do período
             const temPendenciaNoPeriodo = equipamento.pendencias.some(pendencia => {
-                // Usar a data da pendência (campo 'data')
                 const dataPendencia = pendencia.data;
                 if (!dataPendencia) return false;
                 
                 const data = new Date(dataPendencia);
-                data.setHours(0, 0, 0, 0); // Normalizar para início do dia
+                data.setHours(0, 0, 0, 0);
                 
                 if (this.filtros.dataInicio) {
                     const dataInicio = new Date(this.filtros.dataInicio);
@@ -1334,7 +1757,7 @@ class EquipamentosApp {
                 
                 if (this.filtros.dataFim) {
                     const dataFim = new Date(this.filtros.dataFim);
-                    dataFim.setHours(23, 59, 59, 999); // Final do dia
+                    dataFim.setHours(23, 59, 59, 999);
                     if (data > dataFim) return false;
                 }
                 
@@ -1346,7 +1769,6 @@ class EquipamentosApp {
             }
         }
         
-        // Filtrar por prioridades
         if (this.filtros.prioridades && this.filtros.prioridades.length > 0) {
             const temPrioridade = equipamento.pendencias?.some(p => 
                 this.filtros.prioridades.includes(p.prioridade) && 
@@ -1355,7 +1777,6 @@ class EquipamentosApp {
             if (!temPrioridade) return false;
         }
         
-        // Filtrar por responsáveis
         if (this.filtros.responsaveis && this.filtros.responsaveis.length > 0) {
             const temResponsavel = equipamento.pendencias?.some(p => 
                 this.filtros.responsaveis.includes(p.responsavel) && 
@@ -1364,7 +1785,6 @@ class EquipamentosApp {
             if (!temResponsavel) return false;
         }
         
-        // Filtrar por responsável atual (minhas pendências)
         if (this.filtros.responsavel) {
             const minhasPendencias = equipamento.pendencias?.some(p => 
                 p.responsavel === this.filtros.responsavel && 
@@ -1417,7 +1837,10 @@ class EquipamentosApp {
             'criadoPor': equipamento.criadoPor,
             'totalPendencias': equipamento.pendencias?.length || 0,
             'pendenciasAbertas': equipamento.pendencias?.filter(p => p.status === 'aberta').length || 0,
-            'pendenciasCriticas': equipamento.pendencias?.filter(p => p.prioridade === 'critica' && p.status !== 'resolvida').length || 0
+            'pendenciasCriticas': equipamento.pendencias?.filter(p => p.prioridade === 'critica' && p.status !== 'resolvida').length || 0,
+            // NOVO: Campos de operação
+            'emLinha': equipamento.emLinha?.ativo || false,
+            'tempoOperacao': equipamento.emLinha?.tempoTotalOperacao || 0
         };
         return campos[campo];
     }
@@ -1428,7 +1851,6 @@ class EquipamentosApp {
         const container = document.getElementById('equipamentos-container');
         const equipamentosFiltrados = this.filtrarEquipamentos();
         
-        // Atualizar contador
         const totalElement = document.getElementById('total-filtrado');
         if (totalElement) {
             totalElement.textContent = `(${equipamentosFiltrados.length})`;
@@ -1451,13 +1873,25 @@ class EquipamentosApp {
             return this.renderizarCardEquipamento(equipamento);
         }).join('');
         
-        // Adicionar eventos
         this.adicionarEventosCards(container);
         
-        // Atualizar estatísticas
         this.atualizarEstatisticas();
         this.atualizarContadoresPrioridade();
         this.atualizarEstatisticasFiltros();
+        this.atualizarEstatisticasOperacao();
+    }
+    
+    atualizarCardsEquipamentos() {
+        const container = document.getElementById('equipamentos-container');
+        if (!container) return;
+        
+        const equipamentosFiltrados = this.filtrarEquipamentos();
+        
+        container.innerHTML = equipamentosFiltrados.map(equipamento => {
+            return this.renderizarCardEquipamento(equipamento);
+        }).join('');
+        
+        this.adicionarEventosCards(container);
     }
     
     renderizarCardEquipamento(equipamento) {
@@ -1469,10 +1903,20 @@ class EquipamentosApp {
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         );
         
+        // NOVO: Dados de controle de linha
+        const emLinha = equipamento.emLinha?.ativo || false;
+        const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
+        const horasOperacao = Math.floor(tempoOperacao / 60);
+        const minutosOperacao = tempoOperacao % 60;
+        const tempoExcessivo = emLinha && tempoOperacao >= (window.APP_CONFIG?.controleLinha?.alertaTempoMaximo || 480);
+        
+        const podeOperar = this.verificarPermissao('operar_equipamentos');
+        
         let classesCard = 'equipamento-card';
         if (equipamento.status === 'nao-apto') classesCard += ' nao-apto';
         if (temPendenciasAtivas) classesCard += ' com-pendencia';
         if (temPendenciasCriticasAbertas) classesCard += ' critica';
+        if (emLinha) classesCard += ' em-linha';
         
         const dataInspecao = equipamento.ultimaInspecao ? 
             this.formatarData(equipamento.ultimaInspecao) : 
@@ -1482,7 +1926,6 @@ class EquipamentosApp {
             (window.APP_CONFIG.setores[equipamento.setor]?.nome || equipamento.setor) : 
             equipamento.setor;
         
-        // Contar pendencias
         const pendencias = equipamento.pendencias || [];
         const pendenciasAbertas = pendencias.filter(p => p.status === 'aberta').length;
         const pendenciasAndamento = pendencias.filter(p => p.status === 'em-andamento').length;
@@ -1491,8 +1934,11 @@ class EquipamentosApp {
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         ).length;
         
-        // Verificar permissões para ações
         const podeCriarPendencia = this.verificarPermissao('criar_pendencias');
+        
+        const toggleClass = emLinha ? 'toggle-btn active' : 'toggle-btn';
+        const toggleIcon = emLinha ? 'fa-stop-circle' : 'fa-play-circle';
+        const toggleText = emLinha ? 'Desligar' : 'Ligar';
         
         return `
             <div class="${classesCard}" data-id="${equipamento.id}">
@@ -1501,18 +1947,49 @@ class EquipamentosApp {
                         <h4>
                             <i class="fas fa-cog" style="color: var(--cor-secundaria);"></i>
                             ${this.escapeHTML(equipamento.nome)}
+                            ${emLinha ? '<span class="em-linha-indicator"><i class="fas fa-plug"></i> EM LINHA</span>' : ''}
                         </h4>
                         <div class="equipamento-codigo">
-                            <i class="fas fa-hashtag" style="color: var(--cor-secundaria);"></i> 
-                            ID: ${equipamento.id}
+                            <i class="fas fa-hashtag"></i> ID: ${equipamento.id}
                         </div>
                     </div>
                     <div class="status-chip ${equipamento.status}">
-                        ${window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
-                            window.APP_CONFIG.statusEquipamento[equipamento.status]?.nome || equipamento.status : 
-                            equipamento.status}
+                        ${window.APP_CONFIG?.statusEquipamento[equipamento.status]?.nome || equipamento.status}
                         ${temPendenciasCriticasAbertas ? ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>` : ''}
                     </div>
+                </div>
+                
+                <!-- NOVO: Controle de Linha -->
+                <div class="controle-linha ${tempoExcessivo ? 'alerta' : ''}">
+                    <div class="toggle-container">
+                        <button class="${toggleClass}" 
+                                onclick="app.toggleEquipamentoLinha(${equipamento.id})"
+                                ${!podeOperar ? 'disabled title="Sem permissão para operar equipamentos"' : ''}
+                                ${equipamento.status === 'nao-apto' && !emLinha ? 'title="Equipamento não apto"' : ''}>
+                            <i class="fas ${toggleIcon}"></i>
+                            <span>${toggleText}</span>
+                        </button>
+                        
+                        ${emLinha ? `
+                            <div class="tempo-operacao">
+                                <i class="fas fa-clock"></i>
+                                <span>${horasOperacao}h ${minutosOperacao}min</span>
+                                <small>desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)}</small>
+                            </div>
+                        ` : ''}
+                        
+                        ${equipamento.emLinha?.ultimoDesligamento ? `
+                            <div class="ultimo-desligamento">
+                                <small>Último desligamento: ${this.formatarDataHora(equipamento.emLinha.ultimoDesligamento)}</small>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${equipamento.historicoAcionamentos && equipamento.historicoAcionamentos.length > 0 ? `
+                        <button class="historico-btn" onclick="app.mostrarHistoricoAcionamentos(${equipamento.id})" title="Ver histórico de acionamentos">
+                            <i class="fas fa-history"></i> ${equipamento.historicoAcionamentos.length} acionamentos
+                        </button>
+                    ` : ''}
                 </div>
                 
                 <p class="equipamento-descricao">${this.escapeHTML(equipamento.descricao)}</p>
@@ -1569,6 +2046,7 @@ class EquipamentosApp {
         const totalEquipamentos = this.equipamentos.length;
         const aptosOperar = this.equipamentos.filter(e => e.status === 'apto').length;
         const naoAptos = this.equipamentos.filter(e => e.status === 'nao-apto').length;
+        const emLinha = this.equipamentos.filter(e => e.emLinha?.ativo).length;
         
         let totalPendenciasAtivas = 0;
         let totalPendenciasCriticas = 0;
@@ -1590,7 +2068,12 @@ class EquipamentosApp {
         document.getElementById('nao-aptos').textContent = naoAptos;
         document.getElementById('total-pendencias').textContent = totalPendenciasAtivas;
         
-        // Destacar se houver pendências críticas
+        // Adicionar estatística de equipamentos em linha (opcional)
+        const emLinhaElement = document.getElementById('em-linha');
+        if (emLinhaElement) {
+            emLinhaElement.textContent = emLinha;
+        }
+        
         if (totalPendenciasCriticas > 0) {
             const pendenciasElement = document.getElementById('total-pendencias');
             pendenciasElement.style.color = '#8b0000';
@@ -1672,24 +2155,20 @@ class EquipamentosApp {
         const titulo = document.getElementById('modal-title').querySelector('span');
         
         if (equipamentoId) {
-            // Modo edição
             const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
             if (!equipamento) return;
             
             titulo.textContent = 'Editar Equipamento';
             
-            // Campo código removido
             document.getElementById('equipamento-nome').value = equipamento.nome;
             document.getElementById('equipamento-descricao').value = equipamento.descricao;
             document.getElementById('equipamento-setor').value = equipamento.setor;
             document.getElementById('equipamento-ultima-inspecao').value = equipamento.ultimaInspecao || '';
             
-            // Status será determinado automaticamente
             this.atualizarDisplayStatusEquipamento(equipamento);
             
             form.dataset.editId = equipamentoId;
         } else {
-            // Modo criação
             titulo.textContent = 'Novo Equipamento';
             form.reset();
             
@@ -1785,7 +2264,6 @@ class EquipamentosApp {
         const form = document.getElementById('equipamento-form');
         const isEdit = form.dataset.editId;
         
-        // Garantir que data existe
         if (!this.data) {
             this.data = { nextEquipamentoId: 1 };
         }
@@ -1796,28 +2274,43 @@ class EquipamentosApp {
             setor: document.getElementById('equipamento-setor').value,
             status: 'apto',
             ultimaInspecao: document.getElementById('equipamento-ultima-inspecao').value || null,
-            pendencias: []
+            pendencias: [],
+            // NOVO: Inicializar estrutura de controle de linha
+            emLinha: {
+                ativo: false,
+                ultimoAcionamento: null,
+                ultimoDesligamento: null,
+                tempoTotalOperacao: 0,
+                operadorAtual: null
+            },
+            historicoAcionamentos: []
         };
         
-        // Validação - apenas nome é obrigatório
         if (!equipamento.nome) {
             this.mostrarMensagem('Nome do equipamento é obrigatório', 'error');
             return;
         }
         
         if (isEdit) {
-            // Atualizar equipamento existente
             const id = parseInt(isEdit);
             const index = this.equipamentos.findIndex(e => e.id === id);
             
             if (index !== -1) {
-                // Manter dados existentes
                 equipamento.id = id;
                 equipamento.pendencias = this.equipamentos[index].pendencias || [];
                 equipamento.dataCriacao = this.equipamentos[index].dataCriacao;
                 equipamento.criadoPor = this.equipamentos[index].criadoPor || this.usuarioAtual;
                 
-                // Atualizar status baseado nas pendências
+                // Manter dados de controle de linha existentes
+                equipamento.emLinha = this.equipamentos[index].emLinha || {
+                    ativo: false,
+                    ultimoAcionamento: null,
+                    ultimoDesligamento: null,
+                    tempoTotalOperacao: 0,
+                    operadorAtual: null
+                };
+                equipamento.historicoAcionamentos = this.equipamentos[index].historicoAcionamentos || [];
+                
                 const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
                     p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
                 );
@@ -1829,7 +2322,6 @@ class EquipamentosApp {
                 this.mostrarMensagem('Equipamento atualizado com sucesso', 'success');
             }
         } else {
-            // NOVO EQUIPAMENTO - Gerar ID automático
             let nextId = 1;
             
             if (this.equipamentos && this.equipamentos.length > 0) {
@@ -1853,10 +2345,8 @@ class EquipamentosApp {
             this.mostrarMensagem(`Equipamento criado com sucesso! ID: ${equipamento.id}`, 'success');
         }
         
-        // Salvar dados
         const salvou = await this.salvarDados();
         
-        // Fechar modal e atualizar
         this.fecharModal(this.modals.equipamento);
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
@@ -1880,41 +2370,34 @@ class EquipamentosApp {
             status: document.getElementById('pendencia-status').value
         };
         
-        // Validação
         if (!pendencia.titulo || !pendencia.descricao || !pendencia.responsavel) {
             this.mostrarMensagem('Título, descrição e responsável são obrigatórios', 'error');
             return;
         }
         
-        // Encontrar equipamento
         const equipamentoIndex = this.equipamentos.findIndex(e => e.id === equipamentoId);
         if (equipamentoIndex === -1) {
             this.mostrarMensagem('Equipamento não encontrado', 'error');
             return;
         }
         
-        // Garantir que o array de pendencias existe
         if (!this.equipamentos[equipamentoIndex].pendencias) {
             this.equipamentos[equipamentoIndex].pendencias = [];
         }
         
         if (isEdit) {
-            // MODO EDIÇÃO - Atualizar pendência existente
             const pendenciaId = parseInt(isEdit);
             const pendenciaIndex = this.equipamentos[equipamentoIndex].pendencias.findIndex(p => p.id === pendenciaId);
             
             if (pendenciaIndex !== -1) {
                 const pendenciaAntiga = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
                 
-                // Verificar se houve alteração de status
                 const statusAlterado = pendenciaAntiga.status !== pendencia.status;
                 
-                // Inicializar histórico se não existir
                 if (!pendenciaAntiga.historico) {
                     pendenciaAntiga.historico = [];
                 }
                 
-                // Registrar alteração no histórico
                 const alteracoes = this.detectarAlteracoesPendencia(pendenciaAntiga, pendencia);
                 
                 if (Object.keys(alteracoes).length > 0) {
@@ -1928,7 +2411,6 @@ class EquipamentosApp {
                     
                     pendenciaAntiga.historico.push(entradaHistorico);
                     
-                    // Se houve alteração de status, registrar separadamente
                     if (statusAlterado) {
                         if (!pendenciaAntiga.historicoStatus) {
                             pendenciaAntiga.historicoStatus = [];
@@ -1945,7 +2427,6 @@ class EquipamentosApp {
                         
                         pendenciaAntiga.historicoStatus.push(historicoStatus);
                         
-                        // Registrar quem concluiu se status for "resolvida"
                         if (pendencia.status === 'resolvida') {
                             pendenciaAntiga.resolvidoPor = usuarioAtual;
                             pendenciaAntiga.dataResolucao = timestamp;
@@ -1960,7 +2441,6 @@ class EquipamentosApp {
                     }
                 }
                 
-                // ATUALIZAR OS DADOS - Manter histórico e metadados existentes
                 pendencia.id = pendenciaId;
                 pendencia.criadoPor = pendenciaAntiga.criadoPor;
                 pendencia.criadoEm = pendenciaAntiga.criadoEm;
@@ -1969,21 +2449,16 @@ class EquipamentosApp {
                 pendencia.ultimaAtualizacao = timestamp;
                 pendencia.atualizadoPor = usuarioAtual;
                 
-                // Manter dados de resolução se existirem
                 if (pendenciaAntiga.resolvidoPor) pendencia.resolvidoPor = pendenciaAntiga.resolvidoPor;
                 if (pendenciaAntiga.dataResolucao) pendencia.dataResolucao = pendenciaAntiga.dataResolucao;
                 
-                // ATUALIZAR a pendência no array
                 this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex] = pendencia;
                 
                 this.registrarAtividade('EDITAR_PENDENCIA', `Editou pendência: ${pendencia.titulo} (${Object.keys(alteracoes).length} alterações)`);
                 this.mostrarMensagem('Pendência atualizada com sucesso', 'success');
             }
         } else {
-            // MODO CRIAÇÃO - Adicionar nova pendência
-            // Garantir que nextPendenciaId existe
             if (!this.data.nextPendenciaId) {
-                // Calcular próximo ID baseado nas pendências existentes
                 let maxPendenciaId = 0;
                 this.equipamentos.forEach(equip => {
                     if (equip.pendencias) {
@@ -2001,7 +2476,6 @@ class EquipamentosApp {
             pendencia.ultimaAtualizacao = timestamp;
             pendencia.atualizadoPor = usuarioAtual;
             
-            // Inicializar histórico
             pendencia.historico = [{
                 timestamp: timestamp,
                 usuario: usuarioAtual,
@@ -2019,30 +2493,23 @@ class EquipamentosApp {
                 comentario: 'Status inicial: Aberta'
             }];
             
-            // ADICIONAR a nova pendência ao array
             this.equipamentos[equipamentoIndex].pendencias.push(pendencia);
             
-            // Atualizar próximo ID
             this.data.nextPendenciaId = pendencia.id + 1;
             
             this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
             this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
         }
         
-        // Atualizar status do equipamento baseado nas pendências
         this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
         
-        // Salvar dados
         const salvou = await this.salvarDados();
         
-        // Fechar modal e atualizar
         this.fecharModal(this.modals.pendencia);
         
-        // Limpar o form
         document.getElementById('pendencia-form').reset();
         delete document.getElementById('pendencia-form').dataset.editId;
         
-        // Se o modal de detalhes estiver aberto com este equipamento, atualizar
         if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
             this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
             this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
@@ -2055,7 +2522,6 @@ class EquipamentosApp {
     detectarAlteracoesPendencia(pendenciaAntiga, pendenciaNova) {
         const alteracoes = {};
         
-        // Comparar cada campo
         const campos = ['titulo', 'descricao', 'responsavel', 'prioridade', 'data', 'status'];
         
         campos.forEach(campo => {
@@ -2095,12 +2561,10 @@ class EquipamentosApp {
         const pendencia = this.equipamentos[equipamentoIndex].pendencias[pendenciaIndex];
         const timestamp = new Date().toISOString();
         
-        // Inicializar histórico se não existir
         if (!pendencia.historico) {
             pendencia.historico = [];
         }
         
-        // Adicionar entrada de comentário
         pendencia.historico.push({
             timestamp: timestamp,
             usuario: this.usuarioAtual,
@@ -2111,7 +2575,6 @@ class EquipamentosApp {
         pendencia.ultimaAtualizacao = timestamp;
         pendencia.atualizadoPor = this.usuarioAtual;
         
-        // Salvar dados
         const salvou = await this.salvarDados();
         
         if (salvou) {
@@ -2131,7 +2594,6 @@ class EquipamentosApp {
         
         this.equipamentoSelecionado = equipamento;
         
-        // Preencher informações
         document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome}`;
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
         document.getElementById('detalhes-codigo').textContent = `ID: ${equipamento.id}`;
@@ -2146,13 +2608,11 @@ class EquipamentosApp {
         document.getElementById('detalhes-criador').textContent = equipamento.criadoPor || 'N/A';
         document.getElementById('detalhes-atualizacao').textContent = this.formatarDataHora(equipamento.ultimaAtualizacao || equipamento.dataCriacao);
         
-        // Data de inspeção
         const dataInspecao = equipamento.ultimaInspecao ? 
             this.formatarData(equipamento.ultimaInspecao) : 
             'Não registrada';
         document.getElementById('detalhes-inspecao').textContent = dataInspecao;
         
-        // Status
         const statusChip = document.getElementById('detalhes-status');
         const statusNome = window.APP_CONFIG && window.APP_CONFIG.statusEquipamento ? 
             window.APP_CONFIG.statusEquipamento[equipamento.status]?.nome || equipamento.status : 
@@ -2160,7 +2620,6 @@ class EquipamentosApp {
         statusChip.textContent = statusNome;
         statusChip.className = `status-chip ${equipamento.status}`;
         
-        // Adicionar ícone de alerta se houver pendências críticas
         const temPendenciasCriticasAbertas = equipamento.pendencias && equipamento.pendencias.some(p => 
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         );
@@ -2171,13 +2630,10 @@ class EquipamentosApp {
             statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
         }
         
-        // Renderizar pendencias
         this.renderizarPendenciasDetalhes(equipamento.pendencias || []);
         
-        // Configurar botões de ação baseado nas permissões
         this.configurarBotoesDetalhes();
         
-        // Abrir modal
         this.modals.detalhes.classList.add('active');
     }
     
@@ -2203,18 +2659,13 @@ class EquipamentosApp {
             }
         }
         
-        // Configurar botão de excluir - APENAS PARA ADMIN
         if (excluirBtn) {
-            // Verificar se é administrador
             const isAdmin = this.nivelUsuario === 'administrador';
             const temPendenciasAtivas = this.equipamentoSelecionado?.pendencias?.some(p => 
                 p.status === 'aberta' || p.status === 'em-andamento'
             ) || false;
             
-            // Mostrar apenas para admin
             excluirBtn.style.display = isAdmin ? 'flex' : 'none';
-            
-            // Desabilitar se houver pendências ativas
             excluirBtn.disabled = temPendenciasAtivas;
             
             if (temPendenciasAtivas) {
@@ -2225,7 +2676,6 @@ class EquipamentosApp {
                 excluirBtn.title = 'Excluir equipamento';
             }
             
-            // Adicionar evento de clique (remover eventos anteriores)
             excluirBtn.replaceWith(excluirBtn.cloneNode(true));
             const novoExcluirBtn = document.getElementById('excluir-equipamento');
             
@@ -2243,13 +2693,11 @@ class EquipamentosApp {
         const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
         if (!equipamento) return;
         
-        // Verificar permissão (apenas admin)
         if (this.nivelUsuario !== 'administrador') {
             this.mostrarMensagem('Apenas administradores podem excluir equipamentos', 'error');
             return;
         }
         
-        // Verificar se há pendências ativas
         const pendenciasAtivas = equipamento.pendencias?.filter(p => 
             p.status === 'aberta' || p.status === 'em-andamento'
         ) || [];
@@ -2259,10 +2707,8 @@ class EquipamentosApp {
             return;
         }
         
-        // Contar total de pendências (incluindo resolvidas)
         const totalPendencias = equipamento.pendencias?.length || 0;
         
-        // Mensagem personalizada se houver pendências resolvidas
         let mensagem = `Tem certeza que deseja excluir o equipamento "${equipamento.nome}" (ID: ${equipamento.id})?`;
         
         if (totalPendencias > 0) {
@@ -2271,7 +2717,6 @@ class EquipamentosApp {
         
         mensagem += `\n\nEsta ação não pode ser desfeita!`;
         
-        // Confirmar exclusão
         const confirmar = await this.mostrarConfirmacao(
             'Excluir Equipamento',
             mensagem
@@ -2279,7 +2724,6 @@ class EquipamentosApp {
         
         if (!confirmar) return;
         
-        // Segunda confirmação para equipamentos com histórico
         if (totalPendencias > 0) {
             const confirmarNovamente = await this.mostrarConfirmacao(
                 'Confirmação Adicional',
@@ -2289,26 +2733,20 @@ class EquipamentosApp {
             if (!confirmarNovamente) return;
         }
         
-        // Remover equipamento
         const index = this.equipamentos.findIndex(e => e.id === equipamentoId);
         if (index !== -1) {
-            // Remover
             this.equipamentos.splice(index, 1);
             
-            // Registrar atividade
             this.registrarAtividade('EXCLUIR_EQUIPAMENTO', 
                 `Administrador excluiu equipamento: ${equipamento.nome} (ID: ${equipamento.id}) com ${totalPendencias} pendências`);
             
-            // Salvar dados
             await this.salvarDados();
             
-            // Fechar modal de detalhes se estiver aberto
             if (this.equipamentoSelecionado && this.equipamentoSelecionado.id === equipamentoId) {
                 this.fecharModal(this.modals.detalhes);
                 this.equipamentoSelecionado = null;
             }
             
-            // Atualizar interface
             this.renderizarEquipamentos();
             this.atualizarEstatisticas();
             this.atualizarEstadoBotaoPendencia();
@@ -2330,14 +2768,12 @@ class EquipamentosApp {
             return;
         }
         
-        // Ordenar pendencias
         const pendenciasOrdenadas = this.ordenarPendencias(pendencias);
         
         container.innerHTML = pendenciasOrdenadas.map(pendencia => {
             return this.renderizarPendenciaItem(pendencia);
         }).join('');
         
-        // Adicionar eventos
         this.configurarEventosPendencias(container);
     }
     
@@ -2368,10 +2804,8 @@ class EquipamentosApp {
         const podeComentar = this.verificarPermissao('adicionar_comentarios');
         const podeVerHistorico = this.verificarPermissao('ver_historico_completo');
         
-        // Contar histórico
         const totalHistorico = pendencia.historico ? pendencia.historico.length : 0;
         
-        // Verificar se foi resolvida
         const foiResolvida = pendencia.status === 'resolvida';
         const resolvidoPor = pendencia.resolvidoPor || 'Não resolvida';
         const dataResolucao = pendencia.dataResolucao ? this.formatarDataHora(pendencia.dataResolucao) : '';
@@ -2390,9 +2824,7 @@ class EquipamentosApp {
                         </div>
                         <div class="pendencia-data">
                             <i class="far fa-calendar"></i> ${dataFormatada} 
-                            | Prioridade: ${window.APP_CONFIG && window.APP_CONFIG.prioridades ? 
-                                window.APP_CONFIG.prioridades[pendencia.prioridade]?.nome || pendencia.prioridade : 
-                                pendencia.prioridade}
+                            | Prioridade: ${window.APP_CONFIG?.prioridades[pendencia.prioridade]?.nome || pendencia.prioridade}
                             ${foiResolvida ? `| Resolvida por: ${this.escapeHTML(resolvidoPor)} em ${dataResolucao}` : ''}
                         </div>
                         <div class="pendencia-metadata">
@@ -2403,9 +2835,7 @@ class EquipamentosApp {
                         </div>
                     </div>
                     <div class="pendencia-badge ${pendencia.status}">
-                        ${window.APP_CONFIG && window.APP_CONFIG.statusPendencia ? 
-                            window.APP_CONFIG.statusPendencia[pendencia.status]?.nome || pendencia.status : 
-                            pendencia.status}
+                        ${window.APP_CONFIG?.statusPendencia[pendencia.status]?.nome || pendencia.status}
                     </div>
                 </div>
                 <p class="pendencia-descricao">${this.escapeHTML(pendencia.descricao)}</p>
@@ -2437,7 +2867,6 @@ class EquipamentosApp {
                     </div>
                 </div>
                 
-                <!-- Seção para adicionar comentário -->
                 <div class="comentario-section" id="comentario-${pendencia.id}" style="display: none; margin-top: 10px; padding: 10px; background: var(--cor-fundo-secundario); border-radius: 5px;">
                     <textarea class="comentario-textarea" id="comentario-text-${pendencia.id}" 
                               placeholder="Adicione um comentário sobre a alteração..." 
@@ -2456,7 +2885,6 @@ class EquipamentosApp {
     }
     
     configurarEventosPendencias(container) {
-        // Evento para editar
         container.querySelectorAll('.btn-editar-pendencia').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-editar-pendencia').dataset.id);
@@ -2464,7 +2892,6 @@ class EquipamentosApp {
             });
         });
         
-        // Evento para excluir
         container.querySelectorAll('.btn-excluir-pendencia').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-excluir-pendencia').dataset.id);
@@ -2472,13 +2899,11 @@ class EquipamentosApp {
             });
         });
         
-        // Evento para comentar
         container.querySelectorAll('.btn-comentar-pendencia').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-comentar-pendencia').dataset.id);
                 const comentarioSection = document.getElementById(`comentario-${pendenciaId}`);
                 
-                // Alternar visibilidade
                 if (comentarioSection.style.display === 'none') {
                     comentarioSection.style.display = 'block';
                     document.getElementById(`comentario-text-${pendenciaId}`).focus();
@@ -2488,7 +2913,6 @@ class EquipamentosApp {
             });
         });
         
-        // Evento para enviar comentário
         container.querySelectorAll('.btn-enviar-comentario').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-enviar-comentario').dataset.id);
@@ -2506,7 +2930,6 @@ class EquipamentosApp {
                     textarea.value = '';
                     document.getElementById(`comentario-${pendenciaId}`).style.display = 'none';
                     
-                    // Atualizar a visualização
                     if (this.equipamentoSelecionado) {
                         this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
                     }
@@ -2514,7 +2937,6 @@ class EquipamentosApp {
             });
         });
         
-        // Evento para cancelar comentário
         container.querySelectorAll('.btn-cancelar-comentario').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-cancelar-comentario').dataset.id);
@@ -2523,7 +2945,6 @@ class EquipamentosApp {
             });
         });
         
-        // Evento para ver histórico
         container.querySelectorAll('.btn-historico-pendencia').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pendenciaId = parseInt(e.target.closest('.btn-historico-pendencia').dataset.id);
@@ -2538,7 +2959,6 @@ class EquipamentosApp {
         const pendencia = this.equipamentoSelecionado.pendencias.find(p => p.id === pendenciaId);
         if (!pendencia) return;
         
-        // Verificar se usuário tem permissão para editar
         const podeEditar = this.podeExecutar('editar', 'pendencia', pendencia.criadoPor);
         if (!podeEditar) {
             this.mostrarMensagem('Você não tem permissão para editar esta pendência', 'error');
@@ -2551,7 +2971,6 @@ class EquipamentosApp {
         
         titulo.textContent = 'Editar Pendência';
         
-        // Preencher formulário
         document.getElementById('pendencia-titulo').value = pendencia.titulo;
         document.getElementById('pendencia-descricao').value = pendencia.descricao;
         document.getElementById('pendencia-responsavel').value = pendencia.responsavel;
@@ -2559,19 +2978,16 @@ class EquipamentosApp {
         document.getElementById('pendencia-data').value = pendencia.data;
         document.getElementById('pendencia-status').value = pendencia.status;
         
-        // Mostrar campo de comentário
         const comentarioGroup = document.getElementById('pendencia-comentario-group');
         if (comentarioGroup) {
             comentarioGroup.style.display = 'block';
             document.getElementById('pendencia-comentario').value = '';
         }
         
-        // Armazenar IDs
         document.getElementById('pendencia-equipamento-id').value = this.equipamentoSelecionado.id;
         document.getElementById('pendencia-id').value = pendenciaId;
         form.dataset.editId = pendenciaId;
         
-        // Fechar modal atual e abrir modal de pendência
         this.fecharModal(this.modals.detalhes);
         modal.classList.add('active');
     }
@@ -2582,7 +2998,6 @@ class EquipamentosApp {
         const pendencia = this.equipamentoSelecionado.pendencias.find(p => p.id === pendenciaId);
         if (!pendencia) return;
         
-        // Verificar se usuário tem permissão para excluir
         const podeExcluir = this.podeExecutar('excluir', 'pendencia', pendencia.criadoPor);
         if (!podeExcluir) {
             this.mostrarMensagem('Você não tem permissão para excluir esta pendência', 'error');
@@ -2599,22 +3014,16 @@ class EquipamentosApp {
         const equipamentoIndex = this.equipamentos.findIndex(e => e.id === this.equipamentoSelecionado.id);
         if (equipamentoIndex === -1) return;
         
-        // Remover pendência
         this.equipamentos[equipamentoIndex].pendencias = this.equipamentos[equipamentoIndex].pendencias.filter(p => p.id !== pendenciaId);
         
-        // Atualizar status do equipamento
         this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
         
-        // Atualizar equipamento selecionado
         this.equipamentoSelecionado = this.equipamentos[equipamentoIndex];
         
-        // Registrar atividade
         this.registrarAtividade('EXCLUIR_PENDENCIA', `Excluiu pendência: ${pendencia.titulo} do equipamento ${this.equipamentoSelecionado.nome}`);
         
-        // Salvar dados
         await this.salvarDados();
         
-        // Atualizar interface
         this.renderizarPendenciasDetalhes(this.equipamentoSelecionado.pendencias);
         this.renderizarEquipamentos();
         this.atualizarEstatisticas();
@@ -2631,7 +3040,6 @@ class EquipamentosApp {
         const historico = pendencia.historico || [];
         const historicoStatus = pendencia.historicoStatus || [];
         
-        // Criar modal para histórico
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
@@ -2724,7 +3132,6 @@ class EquipamentosApp {
         
         document.body.appendChild(modal);
         
-        // Fechar ao clicar fora
         modal.addEventListener('click', function(e) {
             if (e.target === this) {
                 this.remove();
@@ -2780,7 +3187,6 @@ class EquipamentosApp {
                 resolve(false);
             };
             
-            // Remover eventos anteriores
             confirmarBtn.replaceWith(confirmarBtn.cloneNode(true));
             const novoConfirmarBtn = document.getElementById('modal-confirmacao-confirmar');
             
@@ -2793,11 +3199,9 @@ class EquipamentosApp {
             
             modal.classList.add('active');
             
-            // Fechar ao clicar no X
             const closeBtn = modal.querySelector('.close-modal');
             closeBtn.onclick = handleCancelar;
             
-            // Fechar ao clicar fora
             modal.onclick = (e) => {
                 if (e.target === modal) handleCancelar();
             };
@@ -2851,7 +3255,6 @@ class EquipamentosApp {
     
     exportarDadosExcel() {
         try {
-            // Verificar permissão
             if (!this.verificarPermissao('exportar_dados')) {
                 this.mostrarMensagem('Você não tem permissão para exportar dados', 'error');
                 return;
@@ -2860,10 +3263,8 @@ class EquipamentosApp {
             const dataAtual = new Date().toISOString().split('T')[0];
             const usuario = this.usuarioAtual || 'sistema';
             
-            // Criar cabeçalhos - removido campo de código
-            let csvEquipamentos = 'ID,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas\n';
+            let csvEquipamentos = 'ID,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas,Em Linha,Tempo Total Operação (min),Total Acionamentos\n';
             
-            // Adicionar dados dos equipamentos
             this.equipamentos.forEach(equipamento => {
                 const pendencias = equipamento.pendencias || [];
                 const totalPendencias = pendencias.length;
@@ -2873,6 +3274,11 @@ class EquipamentosApp {
                 const pendenciasCriticas = pendencias.filter(p => 
                     p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
                 ).length;
+                
+                // NOVO: Dados de controle de linha
+                const emLinha = equipamento.emLinha?.ativo ? 'Sim' : 'Não';
+                const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
+                const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
                 
                 const escapeCSV = (str) => {
                     if (str === null || str === undefined) return '';
@@ -2904,11 +3310,13 @@ class EquipamentosApp {
                     pendenciasAbertas,
                     pendenciasAndamento,
                     pendenciasResolvidas,
-                    pendenciasCriticas
+                    pendenciasCriticas,
+                    emLinha,
+                    tempoOperacao,
+                    totalAcionamentos
                 ].join(',') + '\n';
             });
             
-            // Criar arquivo de pendências
             let csvPendencias = 'ID Pendência,ID Equipamento,Nome Equipamento,Título,Descrição,Responsável,Prioridade,Data,Status,Criado Por,Criado Em,Última Atualização,Atualizado Por,Resolvido Por,Data Resolução\n';
             
             this.equipamentos.forEach(equipamento => {
@@ -2951,11 +3359,65 @@ class EquipamentosApp {
                 });
             });
             
-            // Criar arquivo ZIP ou CSV
-            this.criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual, usuario);
+            // NOVO: Exportar histórico de acionamentos
+            let csvAcionamentos = 'ID Equipamento,Nome Equipamento,Data,Hora,Ação,Operador,Turno,Tempo Operação,Observação\n';
             
-            // Registrar atividade
-            this.registrarAtividade('EXPORTAR_DADOS', `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + (eqp.pendencias ? eqp.pendencias.length : 0), 0)}`);
+            this.equipamentos.forEach(equipamento => {
+                if (equipamento.historicoAcionamentos) {
+                    equipamento.historicoAcionamentos.forEach(h => {
+                        const data = new Date(h.timestamp);
+                        const dataStr = data.toLocaleDateString('pt-BR');
+                        const horaStr = data.toLocaleTimeString('pt-BR');
+                        
+                        const escapeCSV = (str) => {
+                            if (str === null || str === undefined) return '';
+                            const string = String(str);
+                            if (string.includes(',') || string.includes('"') || string.includes('\n')) {
+                                return `"${string.replace(/"/g, '""')}"`;
+                            }
+                            return string;
+                        };
+                        
+                        csvAcionamentos += [
+                            equipamento.id,
+                            escapeCSV(equipamento.nome),
+                            dataStr,
+                            horaStr,
+                            h.tipo,
+                            h.operador,
+                            h.turno || '',
+                            h.tempoOperacao || h.tempoTotal || '',
+                            escapeCSV(h.observacao || '')
+                        ].join(',') + '\n';
+                    });
+                }
+            });
+            
+            if (typeof JSZip !== 'undefined') {
+                const zip = new JSZip();
+                zip.file(`equipamentos_${dataAtual}_${usuario}.csv`, csvEquipamentos);
+                zip.file(`pendencias_${dataAtual}_${usuario}.csv`, csvPendencias);
+                zip.file(`acionamentos_${dataAtual}_${usuario}.csv`, csvAcionamentos);
+                
+                zip.generateAsync({type: "blob"})
+                    .then(function(content) {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(content);
+                        link.download = `gestao_equipamentos_${dataAtual}_${usuario}.zip`;
+                        link.click();
+                        URL.revokeObjectURL(link.href);
+                    });
+            } else {
+                this.downloadCSV(csvEquipamentos, `equipamentos_${dataAtual}_${usuario}.csv`);
+                setTimeout(() => {
+                    this.downloadCSV(csvPendencias, `pendencias_${dataAtual}_${usuario}.csv`);
+                }, 500);
+                setTimeout(() => {
+                    this.downloadCSV(csvAcionamentos, `acionamentos_${dataAtual}_${usuario}.csv`);
+                }, 1000);
+            }
+            
+            this.registrarAtividade('EXPORTAR_DADOS', `Exportou dados para Excel. Equipamentos: ${this.equipamentos.length}, Pendências: ${this.equipamentos.reduce((acc, eqp) => acc + (eqp.pendencias ? eqp.pendencias.length : 0), 0)}, Acionamentos: ${this.equipamentos.reduce((acc, eqp) => acc + (eqp.historicoAcionamentos ? eqp.historicoAcionamentos.length : 0), 0)}`);
             
             this.mostrarMensagem('Dados exportados para Excel com sucesso', 'success');
             
@@ -2964,30 +3426,6 @@ class EquipamentosApp {
             this.mostrarMensagem('Erro ao exportar dados para Excel', 'error');
             
             this.registrarAtividade('ERRO_EXPORTAR', `Erro ao exportar dados: ${error.message}`);
-        }
-    }
-    
-    criarArquivoZIP(csvEquipamentos, csvPendencias, dataAtual, usuario) {
-        // Usar a biblioteca JSZip se disponível
-        if (typeof JSZip !== 'undefined') {
-            const zip = new JSZip();
-            zip.file(`equipamentos_${dataAtual}_${usuario}.csv`, csvEquipamentos);
-            zip.file(`pendencias_${dataAtual}_${usuario}.csv`, csvPendencias);
-            
-            zip.generateAsync({type: "blob"})
-                .then(function(content) {
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(content);
-                    link.download = `gestao_equipamentos_${dataAtual}_${usuario}.zip`;
-                    link.click();
-                    URL.revokeObjectURL(link.href);
-                });
-        } else {
-            // Fallback: criar dois arquivos CSV separados
-            this.downloadCSV(csvEquipamentos, `equipamentos_${dataAtual}_${usuario}.csv`);
-            setTimeout(() => {
-                this.downloadCSV(csvPendencias, `pendencias_${dataAtual}_${usuario}.csv`);
-            }, 500);
         }
     }
     
@@ -3023,13 +3461,11 @@ class EquipamentosApp {
     }
     
     mostrarMensagem(texto, tipo = 'info') {
-        // Remover mensagem anterior
         const mensagemAnterior = document.querySelector('.mensagem-flutuante');
         if (mensagemAnterior) {
             mensagemAnterior.remove();
         }
         
-        // Criar nova mensagem
         const mensagem = document.createElement('div');
         mensagem.className = `mensagem-flutuante ${tipo}`;
         
@@ -3095,6 +3531,22 @@ class EquipamentosApp {
         }
     }
     
+    formatarHora(dataString) {
+        if (!dataString) return '';
+        
+        try {
+            const data = new Date(dataString);
+            if (isNaN(data.getTime())) return '';
+            
+            return data.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return '';
+        }
+    }
+    
     escapeHTML(texto) {
         if (!texto) return '';
         const div = document.createElement('div');
@@ -3111,17 +3563,14 @@ class EquipamentosApp {
     }
     
     configurarAtualizacoes() {
-        // Atualizar informações de sessão periodicamente
         setInterval(() => {
             this.atualizarInfoSessao();
-        }, 60000); // A cada minuto
+        }, 60000);
         
-        // Atualizar informações de sincronização
         setInterval(() => {
             this.atualizarInfoSincronizacao();
-        }, 30000); // A cada 30 segundos
+        }, 30000);
         
-        // Executar inicialmente
         this.atualizarInfoSessao();
         this.atualizarInfoSincronizacao();
     }
@@ -3167,7 +3616,6 @@ class EquipamentosApp {
                 
                 lastSyncElement.innerHTML = `<i class="fas fa-sync-alt"></i> Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
                 
-                // Destacar se faz mais de 10 minutos
                 if (diffMinutos > 10) {
                     lastSyncElement.style.color = '#f39c12';
                 } else {
@@ -3186,15 +3634,14 @@ class EquipamentosApp {
 // ================== INICIALIZAÇÃO DA APLICAÇÃO ==================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Configurar eventos globais
     configurarEventosGlobais();
     
-    // Inicializar aplicação
     try {
         const app = new EquipamentosApp();
-        window.app = app; // Para acesso global
+        window.app = app;
         
         console.log('Sistema carregado com sucesso');
+        console.log('Controle de Linha: Ativado');
     } catch (error) {
         console.error('Erro ao inicializar aplicação:', error);
         alert('Erro ao carregar o sistema. Verifique o console para mais detalhes.');
@@ -3202,33 +3649,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function configurarEventosGlobais() {
-    // Botão de logout
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
             if (confirm('Tem certeza que deseja sair do sistema?')) {
-                // Registrar atividade
                 if (window.registrarAtividade) {
                     const usuario = localStorage.getItem('gestao_equipamentos_usuario');
                     window.registrarAtividade('LOGOUT', `Usuário ${usuario} saiu do sistema`);
                 }
                 
-                // Limpar sessão
                 ['gestao_equipamentos_sessao', 'gestao_equipamentos_usuario', 
                  'gestao_equipamentos_nivel', 'gestao_equipamentos_user_id',
                  'gestao_equipamentos_is_system_admin'].forEach(item => localStorage.removeItem(item));
                 
-                // Redirecionar para login
                 window.location.href = 'login.html?logout=true';
             }
         });
     }
     
-    // Atalhos de teclado
     document.addEventListener('keydown', function(e) {
-        // Ctrl+T para alternar tema
         if ((e.ctrlKey || e.metaKey) && e.key === 't') {
             e.preventDefault();
             const themeToggle = document.getElementById('theme-toggle');
@@ -3237,7 +3678,6 @@ function configurarEventosGlobais() {
             }
         }
         
-        // Ctrl+F para focar na busca
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();
             const searchInput = document.getElementById('search');
@@ -3247,7 +3687,6 @@ function configurarEventosGlobais() {
             }
         }
         
-        // Esc para limpar busca
         if (e.key === 'Escape') {
             const searchInput = document.getElementById('search');
             if (searchInput && document.activeElement === searchInput) {
