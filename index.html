@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
+    <!-- JSZip para exportação -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏭</text></svg>">
     
@@ -32,6 +35,11 @@
             --cor-fundo-secundario: #f8f9fa;
             --cor-borda: #bdc3c7;
             --cor-card: #ffffff;
+            
+            /* NOVAS CORES PARA CONTROLE DE LINHA */
+            --cor-em-linha: #27ae60;
+            --cor-fora-linha: #95a5a6;
+            --cor-alerta-tempo: #e67e22;
             
             /* Transições */
             --transicao-rapida: 0.2s ease;
@@ -62,6 +70,11 @@
             --cor-fundo-secundario: #34495e;
             --cor-borda: #4a6572;
             --cor-card: #34495e;
+            
+            /* NOVAS CORES PARA CONTROLE DE LINHA NO TEMA ESCURO */
+            --cor-em-linha: #2ecc71;
+            --cor-fora-linha: #7f8c8d;
+            --cor-alerta-tempo: #f39c12;
         }
         
         /* Layout principal */
@@ -974,7 +987,7 @@
         }
         
         .equipamentos-container.grid-view {
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
         }
         
         .equipamentos-container.list-view {
@@ -997,6 +1010,11 @@
             transform: translateY(-5px);
             box-shadow: var(--sombra-media);
             border-color: var(--cor-secundaria);
+        }
+        
+        .equipamento-card.em-linha {
+            border: 2px solid var(--cor-em-linha);
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.3);
         }
         
         @keyframes slideIn {
@@ -1118,6 +1136,199 @@
             background: rgba(149, 165, 166, 0.1);
             color: #95a5a6;
             border: 1px solid rgba(149, 165, 166, 0.3);
+        }
+        
+        /* NOVOS ESTILOS PARA CONTROLE DE LINHA */
+        .controle-linha {
+            margin: 15px 0;
+            padding: 15px;
+            background: var(--cor-fundo-secundario);
+            border-radius: var(--raio-borda);
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .controle-linha.alerta {
+            border-color: var(--cor-alerta-tempo);
+            animation: alerta-pulse 2s infinite;
+        }
+        
+        @keyframes alerta-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(230, 126, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); }
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--cor-fora-linha);
+            color: white;
+            min-width: 120px;
+            justify-content: center;
+        }
+        
+        .toggle-btn i {
+            font-size: 16px;
+        }
+        
+        .toggle-btn.active {
+            background: var(--cor-em-linha);
+            animation: pulse-linha 2s infinite;
+        }
+        
+        .toggle-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-btn.active:hover:not(:disabled) {
+            background: #2ecc71;
+        }
+        
+        .toggle-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        @keyframes pulse-linha {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        
+        .tempo-operacao {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--cor-texto);
+            font-size: 14px;
+            background: var(--cor-card);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .tempo-operacao i {
+            color: var(--cor-alerta-tempo);
+        }
+        
+        .tempo-operacao small {
+            color: var(--cor-texto-secundario);
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        .ultimo-desligamento {
+            width: 100%;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--cor-borda);
+            color: var(--cor-texto-secundario);
+            font-size: 11px;
+        }
+        
+        .historico-btn {
+            background: none;
+            border: none;
+            color: var(--cor-secundaria);
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        
+        .historico-btn:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        .em-linha-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 3px 10px;
+            background: var(--cor-em-linha);
+            color: white;
+            border-radius: 15px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: pulse-linha 2s infinite;
+        }
+        
+        /* Estilos para tabela de histórico */
+        .historico-tabs {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--cor-borda);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 20px;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn:hover {
+            background: var(--cor-fundo-secundario);
+            color: var(--cor-texto);
+        }
+        
+        .tab-btn.active {
+            background: var(--cor-secundaria);
+            color: white;
+        }
+        
+        .historico-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .historico-table th {
+            background: var(--cor-fundo-secundario);
+            color: var(--cor-texto);
+            font-weight: 600;
+        }
+        
+        .historico-table tr:hover {
+            background: var(--cor-fundo-secundario);
+        }
+        
+        .stat-card {
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--sombra-leve);
         }
         
         /* Descrição */
@@ -1473,6 +1684,29 @@
             
             .filter-stats {
                 grid-template-columns: 1fr;
+            }
+            
+            .toggle-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toggle-btn {
+                width: 100%;
+            }
+            
+            .tempo-operacao {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .historico-table {
+                font-size: 11px;
+            }
+            
+            .historico-table th,
+            .historico-table td {
+                padding: 5px !important;
             }
         }
         
@@ -1883,7 +2117,7 @@
                     <div style="margin-bottom: 10px; padding: 10px; background: var(--cor-fundo); border-radius: var(--raio-borda-pequeno);">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span>Versão:</span>
-                            <strong>2.2.0</strong>
+                            <strong>2.3.0</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span>Ambiente:</span>
@@ -2200,6 +2434,11 @@
                             <p><i class="fas fa-calendar-plus"></i> <strong>Data de criação:</strong> <span id="detalhes-criacao"></span></p>
                             <p><i class="fas fa-user"></i> <strong>Criado por:</strong> <span id="detalhes-criador"></span></p>
                             <p><i class="fas fa-clock"></i> <strong>Última atualização:</strong> <span id="detalhes-atualizacao"></span></p>
+                            
+                            <!-- NOVO: Informações de operação -->
+                            <p><i class="fas fa-plug"></i> <strong>Em linha:</strong> <span id="detalhes-em-linha"></span></p>
+                            <p><i class="fas fa-clock"></i> <strong>Tempo total operação:</strong> <span id="detalhes-tempo-operacao"></span></p>
+                            <p><i class="fas fa-history"></i> <strong>Total acionamentos:</strong> <span id="detalhes-total-acionamentos"></span></p>
                         </div>
                     </div>
                     <div class="detalhes-actions">
@@ -2288,7 +2527,6 @@
                         const expiracao = new Date(sessaoData.expira);
                         const agora = new Date();
                         
-                        // Calcular tempo restante
                         const diffMs = expiracao - agora;
                         const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
                         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -2320,7 +2558,6 @@
                             const syncDate = new Date(lastSync);
                             lastSyncElement.innerHTML = `<i class="fas fa-sync-alt"></i> Última sincronização: ${syncDate.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`;
                             
-                            // Destacar se faz mais de 10 minutos
                             const agora = new Date();
                             const diffMinutos = Math.floor((agora - syncDate) / (1000 * 60));
                             if (diffMinutos > 10) {
@@ -2352,21 +2589,18 @@
             }
             
             // Iniciar atualizações periódicas
-            setInterval(atualizarInfoSessao, 60000); // A cada minuto
-            setInterval(atualizarUltimaSincronizacao, 30000); // A cada 30 segundos
-            setInterval(atualizarStatusConexao, 5000); // A cada 5 segundos
+            setInterval(atualizarInfoSessao, 60000);
+            setInterval(atualizarUltimaSincronizacao, 30000);
+            setInterval(atualizarStatusConexao, 5000);
             
-            // Executar inicialmente
             atualizarInfoSessao();
             atualizarUltimaSincronizacao();
             atualizarStatusConexao();
             
             // ========== MELHORIAS DE USABILIDADE ==========
             
-            // Foco automático nos campos de busca
             const searchInput = document.getElementById('search');
             if (searchInput) {
-                // Atalho Ctrl+F para focar na busca
                 document.addEventListener('keydown', function(e) {
                     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
                         e.preventDefault();
@@ -2375,7 +2609,6 @@
                     }
                 });
                 
-                // Limpar busca com Escape
                 searchInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape') {
                         this.value = '';
@@ -2390,24 +2623,21 @@
             
             // ========== VALIDAÇÕES ==========
             
-            // Validar data de inspeção não futura
             const dataInspecaoInput = document.getElementById('equipamento-ultima-inspecao');
             if (dataInspecaoInput) {
                 const hoje = new Date().toISOString().split('T')[0];
                 dataInspecaoInput.max = hoje;
             }
             
-            // Validar data de pendência não futura
             const dataPendenciaInput = document.getElementById('pendencia-data');
             if (dataPendenciaInput) {
                 const hoje = new Date().toISOString().split('T')[0];
                 dataPendenciaInput.max = hoje;
-                dataPendenciaInput.value = hoje; // Data padrão
+                dataPendenciaInput.value = hoje;
             }
             
             // ========== NOTIFICAÇÕES ==========
             
-            // Verificar sessão próxima do vencimento
             setInterval(function() {
                 const sessao = localStorage.getItem('gestao_equipamentos_sessao');
                 if (sessao) {
@@ -2417,7 +2647,6 @@
                         const agora = new Date();
                         const diffMs = expiracao - agora;
                         
-                        // Notificar se faltar menos de 5 minutos
                         if (diffMs > 0 && diffMs < 5 * 60 * 1000) {
                             if (!document.querySelector('.sessao-expiracao-alerta')) {
                                 mostrarMensagem(`Sua sessão expira em ${Math.ceil(diffMs / (60 * 1000))} minutos`, 'warning');
@@ -2427,11 +2656,8 @@
                         console.error('Erro ao verificar expiração:', e);
                     }
                 }
-            }, 60000); // Verificar a cada minuto
+            }, 60000);
             
-            // ========== INDICADOR DE NÍVEL ==========
-            
-            // Adicionar indicador visual do nível do usuário
             setTimeout(adicionarIndicadorNivel, 1000);
         });
         
@@ -2456,7 +2682,6 @@
                     nivelCor = window.PERMISSOES.getCorNivel(nivel);
                     nivelIcone = window.PERMISSOES.getIconeNivel(nivel);
                 } else {
-                    // Fallback
                     const niveis = {
                         'operador': { nome: 'Operador', icone: 'fa-user', cor: '#3498db' },
                         'supervisor': { nome: 'Supervisor', icone: 'fa-user-tie', cor: '#f39c12' },
@@ -2501,7 +2726,6 @@
                 nivelNome = window.PERMISSOES.getNomeNivel(usuarioNivel);
                 corNivel = window.PERMISSOES.getCorNivel(usuarioNivel);
             } else {
-                // Fallback
                 const niveis = {
                     'operador': { nome: 'Operador', cor: '#3498db' },
                     'supervisor': { nome: 'Supervisor', cor: '#f39c12' },
@@ -2514,13 +2738,11 @@
                 corNivel = info.cor;
             }
             
-            // Remover indicador anterior se existir
             const indicadorAnterior = document.querySelector('.nivel-indicator');
             if (indicadorAnterior) {
                 indicadorAnterior.remove();
             }
             
-            // Criar indicador
             const indicador = document.createElement('div');
             indicador.className = 'nivel-indicator no-select';
             indicador.style.cssText = `
@@ -2534,13 +2756,11 @@
         }
         
         function mostrarMensagem(texto, tipo = 'info') {
-            // Remover mensagem anterior
             const mensagemAnterior = document.querySelector('.mensagem-flutuante');
             if (mensagemAnterior) {
                 mensagemAnterior.remove();
             }
             
-            // Criar nova mensagem
             const mensagem = document.createElement('div');
             mensagem.className = `mensagem-flutuante ${tipo}`;
             
@@ -2572,25 +2792,21 @@
         
         // ========== GERENCIAMENTO DE FILTROS SALVOS ==========
         
-        // Carregar filtros salvos
         window.addEventListener('load', function() {
             const filtrosSalvos = localStorage.getItem('gestao_equipamentos_filtros_salvos');
             if (filtrosSalvos) {
                 try {
                     const filtros = JSON.parse(filtrosSalvos);
-                    // Os filtros serão carregados pelo app.js
                 } catch (e) {
                     console.error('Erro ao carregar filtros salvos:', e);
                 }
             }
             
-            // Carregar total de usuários
             if (window.USUARIOS_AUTORIZADOS) {
                 document.getElementById('info-total-usuarios').textContent = window.USUARIOS_AUTORIZADOS.length;
             }
         });
         
-        // Salvar filtros antes de sair
         window.addEventListener('beforeunload', function() {
             if (window.app && window.app.filtros) {
                 const filtrosParaSalvar = {
@@ -2611,22 +2827,17 @@
         
         // ========== TRATAMENTO DE ERROS ==========
         
-        // Tratar erros não capturados
         window.addEventListener('error', function(event) {
             console.error('Erro não tratado:', event.error);
-            
-            // Mostrar mensagem amigável para o usuário
             mostrarMensagem('Ocorreu um erro inesperado. Recarregue a página se o problema persistir.', 'error');
         });
         
-        // Tratar promessas não tratadas
         window.addEventListener('unhandledrejection', function(event) {
             console.error('Promise rejeitada não tratada:', event.reason);
         });
         
         // ========== OFFLINE SUPPORT ==========
         
-        // Monitorar mudanças de conexão
         window.addEventListener('online', function() {
             document.getElementById('connection-status').innerHTML = '<i class="fas fa-wifi"></i> Conectado';
             document.getElementById('connection-status').style.color = '#2ecc71';
@@ -2646,7 +2857,6 @@
         // ========== SHORTCUTS DE TECLADO ==========
         
         document.addEventListener('keydown', function(e) {
-            // Ctrl+E para novo equipamento (se permitido)
             if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
                 e.preventDefault();
                 const addEquipamentoBtn = document.getElementById('add-equipamento');
@@ -2655,7 +2865,6 @@
                 }
             }
             
-            // Ctrl+P para nova pendência (se permitido)
             if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
                 e.preventDefault();
                 const addPendenciaBtn = document.getElementById('add-pendencia');
@@ -2664,7 +2873,6 @@
                 }
             }
             
-            // Ctrl+S para sincronizar
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
                 const syncBtn = document.getElementById('manual-sync');
@@ -2673,7 +2881,6 @@
                 }
             }
             
-            // Ctrl+L para logout
             if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
                 e.preventDefault();
                 const logoutBtn = document.getElementById('logout-btn');
@@ -2682,7 +2889,6 @@
                 }
             }
             
-            // Ctrl+R para recarregar dados (sem recarregar página)
             if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
                 if (e.shiftKey) {
                     e.preventDefault();
@@ -2695,42 +2901,35 @@
         
         // ========== BOTÕES DE SISTEMA ==========
         
-        // Botão de logout
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 
                 if (confirm('Tem certeza que deseja sair do sistema?')) {
-                    // Registrar atividade
                     if (window.registrarAtividade) {
                         window.registrarAtividade('LOGOUT', 'Usuário saiu do sistema');
                     }
                     
-                    // Limpar sessão
                     localStorage.removeItem('gestao_equipamentos_sessao');
                     localStorage.removeItem('gestao_equipamentos_usuario');
                     localStorage.removeItem('gestao_equipamentos_nivel');
                     localStorage.removeItem('gestao_equipamentos_user_id');
                     localStorage.removeItem('gestao_equipamentos_is_system_admin');
                     
-                    // Redirecionar para login
                     window.location.href = 'login.html';
                 }
             });
         }
         
-        // Botão de tema
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
             themeToggle.addEventListener('click', function(e) {
                 e.preventDefault();
                 
-                // Alternar tema usando a função global
                 if (window.alternarTema) {
                     const novoTema = window.alternarTema();
                     
-                    // Atualizar ícone
                     const icon = this.querySelector('i');
                     if (icon) {
                         if (novoTema === 'escuro') {
@@ -2744,7 +2943,6 @@
                 }
             });
             
-            // Configurar título inicial
             const temaAtual = localStorage.getItem('gestao_equipamentos_tema') || 'claro';
             if (temaAtual === 'escuro') {
                 themeToggle.querySelector('i').className = 'fas fa-sun';
@@ -2755,7 +2953,6 @@
             }
         }
         
-        // Botão de informações do sistema
         const systemInfoBtn = document.getElementById('system-info');
         if (systemInfoBtn) {
             systemInfoBtn.addEventListener('click', function() {
@@ -2768,7 +2965,6 @@
             });
         }
         
-        // Botão de exportar configurações
         const exportConfigBtn = document.getElementById('export-config');
         if (exportConfigBtn) {
             exportConfigBtn.addEventListener('click', function() {
@@ -2780,7 +2976,6 @@
             });
         }
         
-        // Botão de admin - verificar permissão
         const adminBtn = document.getElementById('admin-btn');
         if (adminBtn) {
             const nivel = localStorage.getItem('gestao_equipamentos_nivel');
