@@ -110,18 +110,8 @@ class EquipamentosApp {
         
         this.equipamentos.forEach(equip => {
             if (equip.emLinha && equip.emLinha.ativo) {
-                const agora = new Date();
-                const ultimoAcionamento = new Date(equip.emLinha.ultimoAcionamento);
-                const diferencaMinutos = Math.floor((agora - ultimoAcionamento) / (1000 * 60));
-                
                 // Atualizar tempo total
                 equip.emLinha.tempoTotalOperacao += 1; // +1 minuto
-                
-                // Registrar no histórico se atingir marcos importantes
-                if (equip.emLinha.tempoTotalOperacao % 60 === 0) { // A cada hora
-                    this.registrarMarcoOperacao(equip.id, equip.emLinha.tempoTotalOperacao);
-                }
-                
                 atualizacoes = true;
             }
         });
@@ -130,23 +120,6 @@ class EquipamentosApp {
             this.atualizarCardsEquipamentos();
             this.salvarDados();
         }
-    }
-    
-    registrarMarcoOperacao(equipamentoId, tempoTotal) {
-        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
-        if (!equipamento) return;
-        
-        if (!equipamento.historicoAcionamentos) {
-            equipamento.historicoAcionamentos = [];
-        }
-        
-        equipamento.historicoAcionamentos.push({
-            tipo: 'MARCO_OPERACAO',
-            timestamp: new Date().toISOString(),
-            tempoTotal: tempoTotal,
-            operador: 'sistema',
-            observacao: `${tempoTotal} minutos de operação contínua`
-        });
     }
     
     verificarTempoExcessivo() {
@@ -441,8 +414,7 @@ class EquipamentosApp {
                         }
                         
                         const tempoFormatado = h.tempoOperacao ? 
-                            `${Math.floor(h.tempoOperacao / 60)}h ${h.tempoOperacao % 60}min` : 
-                            (h.tempoTotal ? `${Math.floor(h.tempoTotal / 60)}h ${h.tempoTotal % 60}min` : '-');
+                            `${Math.floor(h.tempoOperacao / 60)}h ${h.tempoOperacao % 60}min` : '-';
                         
                         return `
                             <tr style="border-bottom: 1px solid var(--cor-borda);">
@@ -483,7 +455,7 @@ class EquipamentosApp {
                 acao,
                 h.operador,
                 h.turno || '',
-                h.tempoOperacao || h.tempoTotal || '',
+                h.tempoOperacao || '',
                 `"${(h.observacao || '').replace(/"/g, '""')}"`
             ].join(',') + '\n';
         });
@@ -3400,7 +3372,7 @@ class EquipamentosApp {
                             acao,
                             h.operador,
                             h.turno || '',
-                            h.tempoOperacao || h.tempoTotal || '',
+                            h.tempoOperacao || '',
                             escapeCSV(h.observacao || '')
                         ].join(',') + '\n';
                     });
