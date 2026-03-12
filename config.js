@@ -708,7 +708,7 @@ const APP_CONFIG = {
             descricao: "Equipamento em condições operacionais normais"
         },
         "nao-apto": {
-            nome: "Não Apto",
+            nome: "Inapto",
             cor: "#e74c3c",
             icone: "fa-times-circle",
             descricao: "Equipamento com pendências críticas em aberto"
