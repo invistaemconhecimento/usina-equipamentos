@@ -1943,3 +1943,369 @@ table tr:hover {
 [data-tema="escuro"] .em-linha-indicator {
     box-shadow: 0 2px 8px rgba(46, 204, 113, 0.2);
 }
+/* ===========================================
+   TOGGLE SWITCH INOPERANTE/OPERANTE
+   =========================================== */
+
+/* Container do toggle */
+.toggle-switch-container {
+    margin: 15px 0;
+    padding: 20px 15px;
+    background: var(--cor-fundo-secundario);
+    border-radius: var(--raio-borda);
+    border: 1px solid var(--cor-borda);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.toggle-switch-container.operante {
+    border-color: var(--cor-em-linha);
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
+    background: linear-gradient(145deg, var(--cor-fundo-secundario), rgba(46, 204, 113, 0.05));
+}
+
+.toggle-switch-container.inoperante {
+    border-color: var(--cor-fora-linha);
+}
+
+/* Título do controle */
+.toggle-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: var(--cor-texto-secundario);
+}
+
+.toggle-title span i {
+    margin-right: 5px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.operante {
+    background: rgba(46, 204, 113, 0.2);
+    color: #27ae60;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.status-badge.inoperante {
+    background: rgba(149, 165, 166, 0.2);
+    color: #7f8c8d;
+    border: 1px solid rgba(149, 165, 166, 0.3);
+}
+
+/* Wrapper do toggle */
+.toggle-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+/* Labels laterais */
+.toggle-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.toggle-label.left {
+    color: var(--cor-texto-secundario);
+}
+
+.toggle-label.left.active {
+    background: rgba(149, 165, 166, 0.2);
+    color: #7f8c8d;
+}
+
+.toggle-label.right {
+    color: var(--cor-texto-secundario);
+}
+
+.toggle-label.right.active {
+    background: rgba(46, 204, 113, 0.2);
+    color: #27ae60;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 120px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(145deg, #95a5a6, #7f8c8d);
+    transition: .3s;
+    border-radius: 34px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 36px;
+    width: 36px;
+    left: 4px;
+    bottom: 4px;
+    background: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+
+/* Ícones dentro do slider */
+.slider-icon-left,
+.slider-icon-right {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: white;
+    z-index: 1;
+    transition: opacity 0.2s;
+}
+
+.slider-icon-left {
+    left: 12px;
+    opacity: 0.7;
+}
+
+.slider-icon-right {
+    right: 12px;
+    opacity: 0.7;
+}
+
+/* Texto dentro do slider (para telas maiores) */
+.slider-text-left,
+.slider-text-right {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: white;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.slider-text-left {
+    left: 35px;
+    opacity: 1;
+}
+
+.slider-text-right {
+    right: 35px;
+    opacity: 0.5;
+}
+
+/* Estado OPERANTE (checked) */
+.switch input:checked + .slider {
+    background: linear-gradient(145deg, #27ae60, #229954);
+}
+
+.switch input:checked + .slider:before {
+    transform: translateX(76px);
+}
+
+.switch input:checked + .slider .slider-text-left {
+    opacity: 0.5;
+}
+
+.switch input:checked + .slider .slider-text-right {
+    opacity: 1;
+}
+
+/* Hover effects */
+.switch:hover .slider:before {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.switch:hover input:checked + .slider {
+    filter: brightness(1.1);
+}
+
+/* Focus */
+.switch input:focus + .slider {
+    box-shadow: 0 0 1px #27ae60, 0 0 0 2px rgba(46, 204, 113, 0.3);
+}
+
+/* Estado disabled */
+.switch input:disabled + .slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.7);
+}
+
+.switch input:disabled + .slider:before {
+    box-shadow: none;
+}
+
+/* Informações adicionais */
+.toggle-info {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--cor-borda);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    font-size: 12px;
+    color: var(--cor-texto-secundario);
+}
+
+.tempo-info, .operador-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tempo-info i, .operador-info i {
+    font-size: 12px;
+}
+
+.tempo-info i {
+    color: #f39c12;
+}
+
+.operador-info i {
+    color: #3498db;
+}
+
+.tempo-info span, .operador-info span {
+    font-weight: 600;
+    color: var(--cor-texto);
+}
+
+/* Alerta de tempo excessivo */
+.toggle-switch-container.alerta {
+    border-color: #e67e22;
+    animation: alerta-pulse-toggle 2s infinite;
+    background: rgba(230, 126, 34, 0.05);
+}
+
+@keyframes alerta-pulse-toggle {
+    0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.3); }
+    70% { box-shadow: 0 0 0 10px rgba(230, 126, 34, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); }
+}
+
+/* Indicador de último desligamento */
+.ultimo-desligamento-info {
+    width: 100%;
+    margin-top: 5px;
+    padding: 8px;
+    background: var(--cor-fundo);
+    border-radius: 5px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ultimo-desligamento-info i {
+    color: #e74c3c;
+    font-size: 11px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .toggle-wrapper {
+        flex-direction: column;
+    }
+    
+    .switch {
+        width: 100px;
+        height: 40px;
+    }
+    
+    .slider:before {
+        height: 32px;
+        width: 32px;
+    }
+    
+    .switch input:checked + .slider:before {
+        transform: translateX(60px);
+    }
+    
+    .slider-text-left, .slider-text-right {
+        font-size: 9px;
+    }
+    
+    .slider-text-left {
+        left: 30px;
+    }
+    
+    .slider-text-right {
+        right: 30px;
+    }
+    
+    .toggle-label {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .toggle-wrapper {
+        gap: 10px;
+    }
+    
+    .toggle-label {
+        display: none;
+    }
+    
+    .switch {
+        width: 80px;
+        height: 36px;
+    }
+    
+    .slider:before {
+        height: 28px;
+        width: 28px;
+    }
+    
+    .switch input:checked + .slider:before {
+        transform: translateX(44px);
+    }
+    
+    .slider-icon-left,
+    .slider-icon-right {
+        font-size: 12px;
+    }
+    
+    .slider-text-left,
+    .slider-text-right {
+        display: none;
+    }
+}
