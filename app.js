@@ -183,7 +183,7 @@ class EquipamentosApp {
         if (equipamento.status === 'nao-apto' && !equipamento.emLinha?.ativo) {
             const confirmar = await this.mostrarConfirmacao(
                 'Equipamento Não Apto',
-                'Este equipamento possui pendências críticas. Deseja ligá-lo mesmo assim?'
+                'Este equipamento possui pendências críticas. Deseja torná-lo OPERANTE mesmo assim?'
             );
             if (!confirmar) return;
         }
@@ -207,7 +207,7 @@ class EquipamentosApp {
             if (diferencaMinutos < tempoMinimo) {
                 const confirmar = await this.mostrarConfirmacao(
                     'Tempo Mínimo não Respeitado',
-                    `Aguarde ${tempoMinimo - diferencaMinutos} minutos antes de religar. Deseja prosseguir mesmo assim?`
+                    `Aguarde ${tempoMinimo - diferencaMinutos} minutos antes de tornar OPERANTE novamente. Deseja prosseguir mesmo assim?`
                 );
                 if (!confirmar) return;
             }
@@ -232,7 +232,7 @@ class EquipamentosApp {
         equipamento.emLinha.ativo = novoEstado;
         
         if (novoEstado) {
-            // LIGANDO (OPERANTE)
+            // TORNANDO OPERANTE
             equipamento.emLinha.ultimoAcionamento = timestamp;
             equipamento.emLinha.operadorAtual = this.usuarioAtual;
             this.equipamentosEmLinha.add(equipamentoId);
@@ -242,16 +242,16 @@ class EquipamentosApp {
                 timestamp: timestamp,
                 operador: this.usuarioAtual,
                 turno: this.obterTurnoAtual(),
-                observacao: justificativa || 'Equipamento em operação'
+                observacao: justificativa || 'Equipamento tornou-se OPERANTE'
             });
             
             this.registrarAtividade('EQUIPAMENTO_LIGADO', 
-                `${equipamento.nome} em OPERANTE por ${this.usuarioAtual}`);
+                `${equipamento.nome} tornou-se OPERANTE por ${this.usuarioAtual}`);
             
-            this.mostrarMensagem(`✅ ${equipamento.nome} em OPERANTE`, 'success');
+            this.mostrarMensagem(`✅ ${equipamento.nome} agora está OPERANTE`, 'success');
             
         } else {
-            // DESLIGANDO (INOPERANTE)
+            // TORNANDO INOPERANTE
             const tempoOperacao = equipamento.emLinha.tempoTotalOperacao || 0;
             equipamento.emLinha.ultimoDesligamento = timestamp;
             equipamento.emLinha.operadorAtual = null;
@@ -263,13 +263,13 @@ class EquipamentosApp {
                 operador: this.usuarioAtual,
                 tempoOperacao: tempoOperacao,
                 turno: this.obterTurnoAtual(),
-                observacao: justificativa || 'Equipamento inoperante'
+                observacao: justificativa || 'Equipamento tornou-se INOPERANTE'
             });
             
             this.registrarAtividade('EQUIPAMENTO_DESLIGADO', 
-                `${equipamento.nome} em INOPERANTE por ${this.usuarioAtual} (${tempoOperacao} min operação)`);
+                `${equipamento.nome} tornou-se INOPERANTE por ${this.usuarioAtual} (${tempoOperacao} min operação)`);
             
-            this.mostrarMensagem(`⏹️ ${equipamento.nome} em INOPERANTE`, 'info');
+            this.mostrarMensagem(`⏹️ ${equipamento.nome} agora está INOPERANTE`, 'info');
         }
         
         // Salvar dados
@@ -293,11 +293,7 @@ class EquipamentosApp {
     solicitarJustificativa() {
         return new Promise((resolve) => {
             const justificativa = prompt('Por favor, informe o motivo da alteração para INOPERANTE:');
-            if (justificativa === null) {
-                resolve(false); // Usuário cancelou
-            } else {
-                resolve(justificativa ? justificativa.trim() : '');
-            }
+            resolve(justificativa ? justificativa.trim() : '');
         });
     }
     
@@ -1926,6 +1922,7 @@ class EquipamentosApp {
         if (equipamento.status === 'nao-apto') classesCard += ' nao-apto';
         if (temPendenciasAtivas) classesCard += ' com-pendencia';
         if (temPendenciasCriticasAbertas) classesCard += ' critica';
+        if (operante) classesCard += ' operante';
         
         const dataInspecao = equipamento.ultimaInspecao ? 
             this.formatarData(equipamento.ultimaInspecao) : 
@@ -1963,65 +1960,36 @@ class EquipamentosApp {
                     </div>
                 </div>
                 
-                <!-- NOVO: Toggle Switch INOPERANTE/OPERANTE -->
-                <div class="toggle-switch-container ${operante ? 'operante' : 'inoperante'} ${tempoExcessivo ? 'alerta' : ''}">
-                    <div class="toggle-title">
-                        <span><i class="fas fa-plug"></i> Status Operacional</span>
-                        <span class="status-badge ${operante ? 'operante' : 'inoperante'}">
-                            ${operante ? 'OPERANTE' : 'INOPERANTE'}
-                        </span>
-                    </div>
-                    
-                    <div class="toggle-wrapper">
-                        <span class="toggle-label left ${!operante ? 'active' : ''}">
-                            <i class="fas fa-power-off"></i> INOPERANTE
-                        </span>
-                        
-                        <label class="switch">
-                            <input type="checkbox" 
-                                   class="toggle-operacao"
-                                   data-id="${equipamento.id}"
-                                   ${operante ? 'checked' : ''}
-                                   ${!podeOperar ? 'disabled' : ''}
-                                   ${equipamento.status === 'nao-apto' && !operante ? 'disabled' : ''}>
-                            <span class="slider">
-                                <span class="slider-icon-left"><i class="fas fa-power-off"></i></span>
-                                <span class="slider-icon-right"><i class="fas fa-bolt"></i></span>
-                                <span class="slider-text-left">INOP</span>
-                                <span class="slider-text-right">OPER</span>
-                            </span>
-                        </label>
-                        
-                        <span class="toggle-label right ${operante ? 'active' : ''}">
-                            OPERANTE <i class="fas fa-bolt"></i>
-                        </span>
-                    </div>
+                <!-- CHAVE TOGGLE SIMPLES: OPERANTE / INOPERANTE -->
+                <div class="toggle-container">
+                    <button class="toggle-btn ${operante ? 'active' : ''}" 
+                            onclick="app.toggleEquipamentoLinha(${equipamento.id})"
+                            ${!podeOperar ? 'disabled title="Sem permissão para operar equipamentos"' : ''}
+                            ${equipamento.status === 'nao-apto' && !operante ? 'title="Equipamento não apto"' : ''}>
+                        <i class="fas ${operante ? 'fa-bolt' : 'fa-power-off'}"></i>
+                        <span>${operante ? 'OPERANTE' : 'INOPERANTE'}</span>
+                    </button>
                     
                     ${operante ? `
-                        <div class="toggle-info">
-                            <div class="tempo-info">
-                                <i class="fas fa-clock"></i>
-                                <span>${horasOperacao}h ${minutosOperacao}min</span>
-                                <small>desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)}</small>
-                            </div>
-                            <div class="operador-info">
-                                <i class="fas fa-user"></i>
-                                <span>${equipamento.emLinha.operadorAtual || 'N/A'}</span>
-                            </div>
-                        </div>
-                    ` : equipamento.emLinha?.ultimoDesligamento ? `
-                        <div class="ultimo-desligamento-info">
-                            <i class="fas fa-history"></i>
-                            Último desligamento: ${this.formatarDataHora(equipamento.emLinha.ultimoDesligamento)}
+                        <div class="tempo-operacao">
+                            <i class="fas fa-clock"></i>
+                            <span>${horasOperacao}h ${minutosOperacao}min</span>
+                            <small>desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)}</small>
                         </div>
                     ` : ''}
                     
-                    ${equipamento.historicoAcionamentos && equipamento.historicoAcionamentos.length > 0 ? `
-                        <button class="historico-btn" onclick="app.mostrarHistoricoAcionamentos(${equipamento.id})" title="Ver histórico de acionamentos">
-                            <i class="fas fa-history"></i> ${equipamento.historicoAcionamentos.length} acionamentos
-                        </button>
+                    ${equipamento.emLinha?.ultimoDesligamento ? `
+                        <div class="ultimo-desligamento">
+                            <small>Último inoperante: ${this.formatarDataHora(equipamento.emLinha.ultimoDesligamento)}</small>
+                        </div>
                     ` : ''}
                 </div>
+                
+                ${equipamento.historicoAcionamentos && equipamento.historicoAcionamentos.length > 0 ? `
+                    <button class="historico-btn" onclick="app.mostrarHistoricoAcionamentos(${equipamento.id})" title="Ver histórico de acionamentos">
+                        <i class="fas fa-history"></i> ${equipamento.historicoAcionamentos.length} acionamentos
+                    </button>
+                ` : ''}
                 
                 <p class="equipamento-descricao">${this.escapeHTML(equipamento.descricao)}</p>
                 
@@ -2069,40 +2037,6 @@ class EquipamentosApp {
                 this.abrirModalPendencia(id);
             });
         });
-        
-        // NOVO: Evento para o toggle switch
-        container.querySelectorAll('.toggle-operacao').forEach(toggle => {
-            toggle.addEventListener('change', (e) => {
-                e.stopPropagation();
-                const equipamentoId = parseInt(e.target.dataset.id);
-                const operante = e.target.checked;
-                
-                // Determinar justificativa baseada na ação
-                if (!operante) {
-                    // Se for desligar (inoperante), solicitar justificativa
-                    setTimeout(() => {
-                        this.solicitarJustificativaESelecionar(equipamentoId);
-                    }, 100);
-                } else {
-                    // Se for ligar (operante), chamar diretamente
-                    this.toggleEquipamentoLinha(equipamentoId, '');
-                }
-            });
-        });
-    }
-    
-    // NOVO: Método auxiliar para solicitar justificativa e depois alternar
-    async solicitarJustificativaESelecionar(equipamentoId) {
-        const justificativa = await this.solicitarJustificativa();
-        if (justificativa !== false) { // Se não cancelou
-            await this.toggleEquipamentoLinha(equipamentoId, justificativa);
-        } else {
-            // Se cancelou, reverter o toggle
-            const toggle = document.querySelector(`.toggle-operacao[data-id="${equipamentoId}"]`);
-            if (toggle) {
-                toggle.checked = true;
-            }
-        }
     }
     
     // ================== ESTATÍSTICAS ==================
@@ -2111,7 +2045,7 @@ class EquipamentosApp {
         const totalEquipamentos = this.equipamentos.length;
         const aptosOperar = this.equipamentos.filter(e => e.status === 'apto').length;
         const naoAptos = this.equipamentos.filter(e => e.status === 'nao-apto').length;
-        const emLinha = this.equipamentos.filter(e => e.emLinha?.ativo).length;
+        const operantes = this.equipamentos.filter(e => e.emLinha?.ativo).length;
         
         let totalPendenciasAtivas = 0;
         let totalPendenciasCriticas = 0;
@@ -2136,7 +2070,7 @@ class EquipamentosApp {
         // Adicionar estatística de equipamentos operantes
         const operantesElement = document.getElementById('operantes');
         if (operantesElement) {
-            operantesElement.textContent = emLinha;
+            operantesElement.textContent = operantes;
         }
         
         if (totalPendenciasCriticas > 0) {
@@ -2695,15 +2629,15 @@ class EquipamentosApp {
             statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
         }
         
-        // Adicionar informações de operante nos detalhes
-        const emLinha = equipamento.emLinha?.ativo || false;
+        // Informações de operação
+        const operante = equipamento.emLinha?.ativo || false;
         const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
         const horasOperacao = Math.floor(tempoOperacao / 60);
         const minutosOperacao = tempoOperacao % 60;
         const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
         
-        document.getElementById('detalhes-em-linha').textContent = emLinha ? 'OPERANTE' : 'INOPERANTE';
-        document.getElementById('detalhes-tempo-operacao').textContent = emLinha ? 
+        document.getElementById('detalhes-em-linha').textContent = operante ? 'OPERANTE' : 'INOPERANTE';
+        document.getElementById('detalhes-tempo-operacao').textContent = operante ? 
             `${horasOperacao}h ${minutosOperacao}min (desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)})` : 
             `${horasOperacao}h ${minutosOperacao}min (total histórico)`;
         document.getElementById('detalhes-total-acionamentos').textContent = totalAcionamentos;
@@ -3341,7 +3275,7 @@ class EquipamentosApp {
             const dataAtual = new Date().toISOString().split('T')[0];
             const usuario = this.usuarioAtual || 'sistema';
             
-            let csvEquipamentos = 'ID,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas,Em Linha,Tempo Total Operação (min),Total Acionamentos\n';
+            let csvEquipamentos = 'ID,Nome,Descrição,Setor,Status Operacional,Última Inspeção,Data Criação,Criado Por,Total Pendências,Pendências Abertas,Pendências Em Andamento,Pendências Resolvidas,Pendências Críticas,Status Operacional,Tempo Total Operação (min),Total Acionamentos\n';
             
             this.equipamentos.forEach(equipamento => {
                 const pendencias = equipamento.pendencias || [];
@@ -3353,8 +3287,8 @@ class EquipamentosApp {
                     p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
                 ).length;
                 
-                // NOVO: Dados de controle de linha
-                const emLinha = equipamento.emLinha?.ativo ? 'OPERANTE' : 'INOPERANTE';
+                // Dados de controle de linha
+                const statusOperacional = equipamento.emLinha?.ativo ? 'OPERANTE' : 'INOPERANTE';
                 const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
                 const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
                 
@@ -3389,7 +3323,7 @@ class EquipamentosApp {
                     pendenciasAndamento,
                     pendenciasResolvidas,
                     pendenciasCriticas,
-                    emLinha,
+                    statusOperacional,
                     tempoOperacao,
                     totalAcionamentos
                 ].join(',') + '\n';
@@ -3437,7 +3371,7 @@ class EquipamentosApp {
                 });
             });
             
-            // NOVO: Exportar histórico de acionamentos
+            // Exportar histórico de acionamentos
             let csvAcionamentos = 'ID Equipamento,Nome Equipamento,Data,Hora,Ação,Operador,Turno,Tempo Operação,Observação\n';
             
             this.equipamentos.forEach(equipamento => {
