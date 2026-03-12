@@ -232,7 +232,7 @@ class EquipamentosApp {
         equipamento.emLinha.ativo = novoEstado;
         
         if (novoEstado) {
-            // LIGANDO
+            // LIGANDO (OPERANTE)
             equipamento.emLinha.ultimoAcionamento = timestamp;
             equipamento.emLinha.operadorAtual = this.usuarioAtual;
             this.equipamentosEmLinha.add(equipamentoId);
@@ -242,16 +242,16 @@ class EquipamentosApp {
                 timestamp: timestamp,
                 operador: this.usuarioAtual,
                 turno: this.obterTurnoAtual(),
-                observacao: justificativa || 'Equipamento ligado para operação'
+                observacao: justificativa || 'Equipamento em operação'
             });
             
             this.registrarAtividade('EQUIPAMENTO_LIGADO', 
-                `${equipamento.nome} ligado por ${this.usuarioAtual}`);
+                `${equipamento.nome} em OPERANTE por ${this.usuarioAtual}`);
             
-            this.mostrarMensagem(`✅ ${equipamento.nome} ligado com sucesso`, 'success');
+            this.mostrarMensagem(`✅ ${equipamento.nome} em OPERANTE`, 'success');
             
         } else {
-            // DESLIGANDO
+            // DESLIGANDO (INOPERANTE)
             const tempoOperacao = equipamento.emLinha.tempoTotalOperacao || 0;
             equipamento.emLinha.ultimoDesligamento = timestamp;
             equipamento.emLinha.operadorAtual = null;
@@ -263,13 +263,13 @@ class EquipamentosApp {
                 operador: this.usuarioAtual,
                 tempoOperacao: tempoOperacao,
                 turno: this.obterTurnoAtual(),
-                observacao: justificativa || 'Equipamento desligado'
+                observacao: justificativa || 'Equipamento inoperante'
             });
             
             this.registrarAtividade('EQUIPAMENTO_DESLIGADO', 
-                `${equipamento.nome} desligado por ${this.usuarioAtual} (${tempoOperacao} min operação)`);
+                `${equipamento.nome} em INOPERANTE por ${this.usuarioAtual} (${tempoOperacao} min operação)`);
             
-            this.mostrarMensagem(`⏹️ ${equipamento.nome} desligado com sucesso`, 'info');
+            this.mostrarMensagem(`⏹️ ${equipamento.nome} em INOPERANTE`, 'info');
         }
         
         // Salvar dados
@@ -292,8 +292,12 @@ class EquipamentosApp {
     
     solicitarJustificativa() {
         return new Promise((resolve) => {
-            const justificativa = prompt('Por favor, informe o motivo do desligamento:');
-            resolve(justificativa ? justificativa.trim() : '');
+            const justificativa = prompt('Por favor, informe o motivo da alteração para INOPERANTE:');
+            if (justificativa === null) {
+                resolve(false); // Usuário cancelou
+            } else {
+                resolve(justificativa ? justificativa.trim() : '');
+            }
         });
     }
     
@@ -335,14 +339,14 @@ class EquipamentosApp {
                 <div class="modal-body" style="overflow-y: auto;">
                     <div class="historico-stats" style="display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px;">
                         <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
-                            <i class="fas fa-power-off" style="color: #27ae60; font-size: 20px;"></i>
+                            <i class="fas fa-bolt" style="color: #27ae60; font-size: 20px;"></i>
                             <div style="font-size: 24px; font-weight: bold;">${historico.filter(h => h.tipo === 'LIGADO').length}</div>
-                            <div style="font-size: 12px;">Ligações</div>
+                            <div style="font-size: 12px;">Operante</div>
                         </div>
                         <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
-                            <i class="fas fa-stop" style="color: #e74c3c; font-size: 20px;"></i>
+                            <i class="fas fa-power-off" style="color: #e74c3c; font-size: 20px;"></i>
                             <div style="font-size: 24px; font-weight: bold;">${historico.filter(h => h.tipo === 'DESLIGADO').length}</div>
-                            <div style="font-size: 12px;">Desligamentos</div>
+                            <div style="font-size: 12px;">Inoperante</div>
                         </div>
                         <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
                             <i class="fas fa-clock" style="color: #f39c12; font-size: 20px;"></i>
@@ -424,16 +428,20 @@ class EquipamentosApp {
                         
                         let acaoClass = '';
                         let acaoIcon = '';
+                        let acaoTexto = '';
                         
                         if (h.tipo === 'LIGADO') {
                             acaoClass = 'status-chip apto';
-                            acaoIcon = 'fa-play';
+                            acaoIcon = 'fa-bolt';
+                            acaoTexto = 'OPERANTE';
                         } else if (h.tipo === 'DESLIGADO') {
                             acaoClass = 'status-chip nao-apto';
-                            acaoIcon = 'fa-stop';
+                            acaoIcon = 'fa-power-off';
+                            acaoTexto = 'INOPERANTE';
                         } else {
                             acaoClass = 'status-chip cancelada';
                             acaoIcon = 'fa-flag';
+                            acaoTexto = 'MARCO';
                         }
                         
                         const tempoFormatado = h.tempoOperacao ? 
@@ -445,7 +453,7 @@ class EquipamentosApp {
                                 <td style="padding: 8px;">${dataStr} ${horaStr}</td>
                                 <td style="padding: 8px;">
                                     <span class="${acaoClass}" style="display: inline-flex; align-items: center; gap: 5px;">
-                                        <i class="fas ${acaoIcon}"></i> ${h.tipo}
+                                        <i class="fas ${acaoIcon}"></i> ${acaoTexto}
                                     </span>
                                 </td>
                                 <td style="padding: 8px;">${this.escapeHTML(h.operador)}</td>
@@ -471,10 +479,12 @@ class EquipamentosApp {
             const dataStr = data.toLocaleDateString('pt-BR');
             const horaStr = data.toLocaleTimeString('pt-BR');
             
+            const acao = h.tipo === 'LIGADO' ? 'OPERANTE' : (h.tipo === 'DESLIGADO' ? 'INOPERANTE' : h.tipo);
+            
             csv += [
                 dataStr,
                 horaStr,
-                h.tipo,
+                acao,
                 h.operador,
                 h.turno || '',
                 h.tempoOperacao || h.tempoTotal || '',
@@ -517,7 +527,7 @@ class EquipamentosApp {
         const statsElement = document.getElementById('operacao-stats');
         if (statsElement) {
             statsElement.innerHTML = `
-                <div><i class="fas fa-plug"></i> ${stats.emLinha} em linha</div>
+                <div><i class="fas fa-bolt"></i> ${stats.emLinha} operante(s)</div>
                 <div><i class="fas fa-clock"></i> ${Math.floor(stats.tempoTotal / 60)}h totais</div>
                 <div><i class="fas fa-power-off"></i> ${stats.ligacoesHoje} ligações hoje</div>
             `;
@@ -1903,12 +1913,12 @@ class EquipamentosApp {
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         );
         
-        // NOVO: Dados de controle de linha
-        const emLinha = equipamento.emLinha?.ativo || false;
+        // Dados de controle de linha
+        const operante = equipamento.emLinha?.ativo || false;
         const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
         const horasOperacao = Math.floor(tempoOperacao / 60);
         const minutosOperacao = tempoOperacao % 60;
-        const tempoExcessivo = emLinha && tempoOperacao >= (window.APP_CONFIG?.controleLinha?.alertaTempoMaximo || 480);
+        const tempoExcessivo = operante && tempoOperacao >= (window.APP_CONFIG?.controleLinha?.alertaTempoMaximo || 480);
         
         const podeOperar = this.verificarPermissao('operar_equipamentos');
         
@@ -1916,7 +1926,6 @@ class EquipamentosApp {
         if (equipamento.status === 'nao-apto') classesCard += ' nao-apto';
         if (temPendenciasAtivas) classesCard += ' com-pendencia';
         if (temPendenciasCriticasAbertas) classesCard += ' critica';
-        if (emLinha) classesCard += ' em-linha';
         
         const dataInspecao = equipamento.ultimaInspecao ? 
             this.formatarData(equipamento.ultimaInspecao) : 
@@ -1936,10 +1945,6 @@ class EquipamentosApp {
         
         const podeCriarPendencia = this.verificarPermissao('criar_pendencias');
         
-        const toggleClass = emLinha ? 'toggle-btn active' : 'toggle-btn';
-        const toggleIcon = emLinha ? 'fa-stop-circle' : 'fa-play-circle';
-        const toggleText = emLinha ? 'Desligar' : 'Ligar';
-        
         return `
             <div class="${classesCard}" data-id="${equipamento.id}">
                 <div class="equipamento-header">
@@ -1947,7 +1952,6 @@ class EquipamentosApp {
                         <h4>
                             <i class="fas fa-cog" style="color: var(--cor-secundaria);"></i>
                             ${this.escapeHTML(equipamento.nome)}
-                            ${emLinha ? '<span class="em-linha-indicator"><i class="fas fa-plug"></i> EM LINHA</span>' : ''}
                         </h4>
                         <div class="equipamento-codigo">
                             <i class="fas fa-hashtag"></i> ID: ${equipamento.id}
@@ -1959,31 +1963,58 @@ class EquipamentosApp {
                     </div>
                 </div>
                 
-                <!-- NOVO: Controle de Linha -->
-                <div class="controle-linha ${tempoExcessivo ? 'alerta' : ''}">
-                    <div class="toggle-container">
-                        <button class="${toggleClass}" 
-                                onclick="app.toggleEquipamentoLinha(${equipamento.id})"
-                                ${!podeOperar ? 'disabled title="Sem permissão para operar equipamentos"' : ''}
-                                ${equipamento.status === 'nao-apto' && !emLinha ? 'title="Equipamento não apto"' : ''}>
-                            <i class="fas ${toggleIcon}"></i>
-                            <span>${toggleText}</span>
-                        </button>
+                <!-- NOVO: Toggle Switch INOPERANTE/OPERANTE -->
+                <div class="toggle-switch-container ${operante ? 'operante' : 'inoperante'} ${tempoExcessivo ? 'alerta' : ''}">
+                    <div class="toggle-title">
+                        <span><i class="fas fa-plug"></i> Status Operacional</span>
+                        <span class="status-badge ${operante ? 'operante' : 'inoperante'}">
+                            ${operante ? 'OPERANTE' : 'INOPERANTE'}
+                        </span>
+                    </div>
+                    
+                    <div class="toggle-wrapper">
+                        <span class="toggle-label left ${!operante ? 'active' : ''}">
+                            <i class="fas fa-power-off"></i> INOPERANTE
+                        </span>
                         
-                        ${emLinha ? `
-                            <div class="tempo-operacao">
+                        <label class="switch">
+                            <input type="checkbox" 
+                                   class="toggle-operacao"
+                                   data-id="${equipamento.id}"
+                                   ${operante ? 'checked' : ''}
+                                   ${!podeOperar ? 'disabled' : ''}
+                                   ${equipamento.status === 'nao-apto' && !operante ? 'disabled' : ''}>
+                            <span class="slider">
+                                <span class="slider-icon-left"><i class="fas fa-power-off"></i></span>
+                                <span class="slider-icon-right"><i class="fas fa-bolt"></i></span>
+                                <span class="slider-text-left">INOP</span>
+                                <span class="slider-text-right">OPER</span>
+                            </span>
+                        </label>
+                        
+                        <span class="toggle-label right ${operante ? 'active' : ''}">
+                            OPERANTE <i class="fas fa-bolt"></i>
+                        </span>
+                    </div>
+                    
+                    ${operante ? `
+                        <div class="toggle-info">
+                            <div class="tempo-info">
                                 <i class="fas fa-clock"></i>
                                 <span>${horasOperacao}h ${minutosOperacao}min</span>
                                 <small>desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)}</small>
                             </div>
-                        ` : ''}
-                        
-                        ${equipamento.emLinha?.ultimoDesligamento ? `
-                            <div class="ultimo-desligamento">
-                                <small>Último desligamento: ${this.formatarDataHora(equipamento.emLinha.ultimoDesligamento)}</small>
+                            <div class="operador-info">
+                                <i class="fas fa-user"></i>
+                                <span>${equipamento.emLinha.operadorAtual || 'N/A'}</span>
                             </div>
-                        ` : ''}
-                    </div>
+                        </div>
+                    ` : equipamento.emLinha?.ultimoDesligamento ? `
+                        <div class="ultimo-desligamento-info">
+                            <i class="fas fa-history"></i>
+                            Último desligamento: ${this.formatarDataHora(equipamento.emLinha.ultimoDesligamento)}
+                        </div>
+                    ` : ''}
                     
                     ${equipamento.historicoAcionamentos && equipamento.historicoAcionamentos.length > 0 ? `
                         <button class="historico-btn" onclick="app.mostrarHistoricoAcionamentos(${equipamento.id})" title="Ver histórico de acionamentos">
@@ -2038,6 +2069,40 @@ class EquipamentosApp {
                 this.abrirModalPendencia(id);
             });
         });
+        
+        // NOVO: Evento para o toggle switch
+        container.querySelectorAll('.toggle-operacao').forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const equipamentoId = parseInt(e.target.dataset.id);
+                const operante = e.target.checked;
+                
+                // Determinar justificativa baseada na ação
+                if (!operante) {
+                    // Se for desligar (inoperante), solicitar justificativa
+                    setTimeout(() => {
+                        this.solicitarJustificativaESelecionar(equipamentoId);
+                    }, 100);
+                } else {
+                    // Se for ligar (operante), chamar diretamente
+                    this.toggleEquipamentoLinha(equipamentoId, '');
+                }
+            });
+        });
+    }
+    
+    // NOVO: Método auxiliar para solicitar justificativa e depois alternar
+    async solicitarJustificativaESelecionar(equipamentoId) {
+        const justificativa = await this.solicitarJustificativa();
+        if (justificativa !== false) { // Se não cancelou
+            await this.toggleEquipamentoLinha(equipamentoId, justificativa);
+        } else {
+            // Se cancelou, reverter o toggle
+            const toggle = document.querySelector(`.toggle-operacao[data-id="${equipamentoId}"]`);
+            if (toggle) {
+                toggle.checked = true;
+            }
+        }
     }
     
     // ================== ESTATÍSTICAS ==================
@@ -2068,10 +2133,10 @@ class EquipamentosApp {
         document.getElementById('nao-aptos').textContent = naoAptos;
         document.getElementById('total-pendencias').textContent = totalPendenciasAtivas;
         
-        // Adicionar estatística de equipamentos em linha (opcional)
-        const emLinhaElement = document.getElementById('em-linha');
-        if (emLinhaElement) {
-            emLinhaElement.textContent = emLinha;
+        // Adicionar estatística de equipamentos operantes
+        const operantesElement = document.getElementById('operantes');
+        if (operantesElement) {
+            operantesElement.textContent = emLinha;
         }
         
         if (totalPendenciasCriticas > 0) {
@@ -2629,6 +2694,19 @@ class EquipamentosApp {
             ).length;
             statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
         }
+        
+        // Adicionar informações de operante nos detalhes
+        const emLinha = equipamento.emLinha?.ativo || false;
+        const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
+        const horasOperacao = Math.floor(tempoOperacao / 60);
+        const minutosOperacao = tempoOperacao % 60;
+        const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
+        
+        document.getElementById('detalhes-em-linha').textContent = emLinha ? 'OPERANTE' : 'INOPERANTE';
+        document.getElementById('detalhes-tempo-operacao').textContent = emLinha ? 
+            `${horasOperacao}h ${minutosOperacao}min (desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)})` : 
+            `${horasOperacao}h ${minutosOperacao}min (total histórico)`;
+        document.getElementById('detalhes-total-acionamentos').textContent = totalAcionamentos;
         
         this.renderizarPendenciasDetalhes(equipamento.pendencias || []);
         
@@ -3276,7 +3354,7 @@ class EquipamentosApp {
                 ).length;
                 
                 // NOVO: Dados de controle de linha
-                const emLinha = equipamento.emLinha?.ativo ? 'Sim' : 'Não';
+                const emLinha = equipamento.emLinha?.ativo ? 'OPERANTE' : 'INOPERANTE';
                 const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
                 const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
                 
@@ -3369,6 +3447,8 @@ class EquipamentosApp {
                         const dataStr = data.toLocaleDateString('pt-BR');
                         const horaStr = data.toLocaleTimeString('pt-BR');
                         
+                        const acao = h.tipo === 'LIGADO' ? 'OPERANTE' : (h.tipo === 'DESLIGADO' ? 'INOPERANTE' : h.tipo);
+                        
                         const escapeCSV = (str) => {
                             if (str === null || str === undefined) return '';
                             const string = String(str);
@@ -3383,7 +3463,7 @@ class EquipamentosApp {
                             escapeCSV(equipamento.nome),
                             dataStr,
                             horaStr,
-                            h.tipo,
+                            acao,
                             h.operador,
                             h.turno || '',
                             h.tempoOperacao || h.tempoTotal || '',
