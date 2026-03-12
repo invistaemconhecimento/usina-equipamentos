@@ -514,45 +514,6 @@
             border-color: var(--cor-secundaria);
         }
         
-        /* Filtros rápidos */
-        .quick-filters {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        
-        .quick-filter-btn {
-            background: var(--cor-fundo);
-            border: 1px solid var(--cor-borda);
-            border-radius: var(--raio-borda-pequeno);
-            padding: 10px;
-            font-size: 12px;
-            color: var(--cor-texto);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.2s;
-        }
-        
-        .quick-filter-btn:hover {
-            background: var(--cor-secundaria);
-            color: white;
-            border-color: var(--cor-secundaria);
-            transform: translateY(-2px);
-        }
-        
-        .quick-filter-btn i {
-            font-size: 16px;
-        }
-        
-        .quick-filter-btn.active {
-            background: var(--cor-secundaria);
-            color: white;
-            border-color: var(--cor-secundaria);
-        }
-        
         /* Filtros por prioridade */
         .priority-filters {
             display: flex;
@@ -1012,7 +973,7 @@
             border-color: var(--cor-secundaria);
         }
         
-        .equipamento-card.em-linha {
+        .equipamento-card.operante {
             border: 2px solid var(--cor-em-linha);
             box-shadow: 0 0 15px rgba(46, 204, 113, 0.3);
         }
@@ -1072,22 +1033,6 @@
             gap: 8px;
         }
         
-        .equipamento-codigo {
-            font-size: 12px;
-            color: var(--cor-texto-secundario);
-            font-weight: 500;
-            background: var(--cor-card);
-            padding: 2px 8px;
-            border-radius: 12px;
-            display: inline-block;
-            border: 1px solid var(--cor-borda);
-        }
-        
-        .equipamento-codigo i {
-            color: var(--cor-secundaria);
-            margin-right: 3px;
-        }
-        
         /* Status chips */
         .status-chip {
             display: inline-flex;
@@ -1139,7 +1084,7 @@
         }
         
         /* NOVOS ESTILOS PARA CONTROLE DE LINHA */
-        .controle-linha {
+        .toggle-container {
             margin: 15px 0;
             padding: 15px;
             background: var(--cor-fundo-secundario);
@@ -1147,7 +1092,7 @@
             border: 1px solid var(--cor-borda);
         }
         
-        .controle-linha.alerta {
+        .toggle-container.alerta {
             border-color: var(--cor-alerta-tempo);
             animation: alerta-pulse 2s infinite;
         }
@@ -1156,13 +1101,6 @@
             0% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.4); }
             70% { box-shadow: 0 0 0 10px rgba(230, 126, 34, 0); }
             100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0); }
-        }
-        
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
         }
         
         .toggle-btn {
@@ -1222,6 +1160,7 @@
             padding: 8px 15px;
             border-radius: 20px;
             border: 1px solid var(--cor-borda);
+            margin-top: 10px;
         }
         
         .tempo-operacao i {
@@ -1260,20 +1199,6 @@
         .historico-btn:hover {
             color: #2980b9;
             text-decoration: underline;
-        }
-        
-        .em-linha-indicator {
-            display: inline-block;
-            margin-left: 10px;
-            padding: 3px 10px;
-            background: var(--cor-em-linha);
-            color: white;
-            border-radius: 15px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            animation: pulse-linha 2s infinite;
         }
         
         /* Estilos para tabela de histórico */
@@ -1674,30 +1599,12 @@
                 align-items: flex-start;
             }
             
-            .quick-filters {
-                grid-template-columns: 1fr;
-            }
-            
             .quick-date-filters {
                 grid-template-columns: 1fr;
             }
             
             .filter-stats {
                 grid-template-columns: 1fr;
-            }
-            
-            .toggle-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .toggle-btn {
-                width: 100%;
-            }
-            
-            .tempo-operacao {
-                width: 100%;
-                justify-content: center;
             }
             
             .historico-table {
@@ -1874,8 +1781,6 @@
                     </button>
                 </div>
 
-                
-
                 <!-- Filtros Básicos -->
                 <div class="sidebar-section">
                     <h3><i class="fas fa-filter"></i> Filtros</h3>
@@ -1888,6 +1793,18 @@
                             <option value="all">Todos</option>
                             <option value="apto">Apto a Operar</option>
                             <option value="nao-apto">Não Apto</option>
+                        </select>
+                    </div>
+                    
+                    <!-- NOVO: Filtro por Status Operacional (OPERANTE/INOPERANTE) -->
+                    <div class="filter-group">
+                        <label for="status-operacional-filter">
+                            <i class="fas fa-plug"></i> Status de Linha:
+                        </label>
+                        <select id="status-operacional-filter">
+                            <option value="all">Todos</option>
+                            <option value="operante">OPERANTE</option>
+                            <option value="inoperante">INOPERANTE</option>
                         </select>
                     </div>
                     
@@ -1946,7 +1863,7 @@
                             <i class="fas fa-search"></i> Buscar Equipamento:
                         </label>
                         <div class="search-container">
-                            <input type="text" id="search" placeholder="Nome, descrição ou ID..." autocomplete="off">
+                            <input type="text" id="search" placeholder="Nome ou descrição..." autocomplete="off">
                             <div class="search-suggestions" id="search-suggestions"></div>
                         </div>
                     </div>
@@ -2186,9 +2103,6 @@
                                placeholder="Ex: Turbina Principal"
                                title="Nome descritivo do equipamento"
                                maxlength="100">
-                        <small style="color: var(--cor-texto-secundario); display: block; margin-top: 5px;">
-                            <i class="fas fa-info-circle"></i> ID será gerado automaticamente
-                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -2400,7 +2314,7 @@
                         <h4 id="detalhes-nome"></h4>
                         <div style="display: flex; gap: 10px; align-items: center; margin: 10px 0;">
                             <span class="status-chip" id="detalhes-status"></span>
-                            <span class="equipamento-codigo" id="detalhes-codigo"></span>
+                            <span class="equipamento-codigo" id="detalhes-codigo">Código interno</span>
                         </div>
                         <p id="detalhes-descricao" style="margin: 15px 0;"></p>
                         
@@ -2794,7 +2708,8 @@
                     dataInicio: window.app.filtros.dataInicio,
                     dataFim: window.app.filtros.dataFim,
                     prioridades: window.app.filtros.prioridades,
-                    responsaveis: window.app.filtros.responsaveis
+                    responsaveis: window.app.filtros.responsaveis,
+                    statusOperacional: window.app.filtros.statusOperacional
                 };
                 
                 localStorage.setItem('gestao_equipamentos_filtros', JSON.stringify(filtrosParaSalvar));
