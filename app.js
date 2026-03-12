@@ -16,7 +16,8 @@ class EquipamentosApp {
             dataFim: null,
             prioridades: [],
             responsaveis: [],
-            responsavel: null
+            // NOVO: Filtro para status operacional (operante/inoperante)
+            statusOperacional: 'all' // 'all', 'operante', 'inoperante'
         };
         this.filtrosAvancados = {
             criterios: [],
@@ -699,6 +700,13 @@ class EquipamentosApp {
             this.atualizarIndicadoresFiltros();
         });
         
+        // NOVO: Evento para filtro de status operacional
+        document.getElementById('status-operacional-filter')?.addEventListener('change', (e) => {
+            this.filtros.statusOperacional = e.target.value;
+            this.renderizarEquipamentos();
+            this.atualizarIndicadoresFiltros();
+        });
+        
         document.getElementById('search')?.addEventListener('input', (e) => {
             this.filtros.busca = e.target.value.toLowerCase();
             this.renderizarEquipamentos();
@@ -835,16 +843,11 @@ class EquipamentosApp {
     // ================== FILTROS AVANÇADOS ==================
     
     initFiltrosAvancados() {
-        // FILTROS RÁPIDOS REMOVIDOS
         this.configurarBuscaSugestoes();
         this.configurarFiltrosData();
         this.configurarFiltrosPrioridade();
         this.configurarFiltrosResponsavel();
     }
-    
-    // MÉTODO configurarFiltrosRapidos REMOVIDO
-    
-    // MÉTODO aplicarFiltroRapido REMOVIDO
     
     configurarBuscaSugestoes() {
         const searchInput = document.getElementById('search');
@@ -1179,6 +1182,8 @@ class EquipamentosApp {
         document.getElementById('status-filter').value = this.filtros.status || 'all';
         document.getElementById('pendencia-filter').value = this.filtros.pendencia || 'all';
         document.getElementById('setor-filter').value = this.filtros.setor || 'all';
+        // NOVO: Atualizar filtro de status operacional
+        document.getElementById('status-operacional-filter').value = this.filtros.statusOperacional || 'all';
         document.getElementById('search').value = this.filtros.busca || '';
         document.getElementById('data-inicio').value = this.filtros.dataInicio || '';
         document.getElementById('data-fim').value = this.filtros.dataFim || '';
@@ -1219,6 +1224,12 @@ class EquipamentosApp {
             filtrosAtivos.push({ tipo: 'setor', valor: this.filtros.setor, nome: `Setor: ${nome}` });
         }
         
+        // NOVO: Indicador para status operacional
+        if (this.filtros.statusOperacional !== 'all') {
+            const nome = this.filtros.statusOperacional === 'operante' ? 'OPERANTE' : 'INOPERANTE';
+            filtrosAtivos.push({ tipo: 'statusOperacional', valor: this.filtros.statusOperacional, nome: `Status Operacional: ${nome}` });
+        }
+        
         if (this.filtros.busca) {
             filtrosAtivos.push({ tipo: 'busca', valor: this.filtros.busca, nome: `Busca: "${this.filtros.busca}"` });
         }
@@ -1250,8 +1261,6 @@ class EquipamentosApp {
             filtrosAtivos.push({ tipo: 'responsaveis', valor: 'responsaveis', nome: `Responsáveis: ${this.filtros.responsaveis.join(', ')}` });
         }
         
-        // Responsável removido dos filtros rápidos
-        
         if (filtrosAtivos.length === 0) {
             container.style.display = 'none';
             return;
@@ -1281,6 +1290,11 @@ class EquipamentosApp {
                 this.filtros.setor = 'all';
                 document.getElementById('setor-filter').value = 'all';
                 break;
+            // NOVO: Remover filtro de status operacional
+            case 'statusOperacional':
+                this.filtros.statusOperacional = 'all';
+                document.getElementById('status-operacional-filter').value = 'all';
+                break;
             case 'busca':
                 this.filtros.busca = '';
                 document.getElementById('search').value = '';
@@ -1302,7 +1316,6 @@ class EquipamentosApp {
                     Array.from(selectResponsavel.options).forEach(opt => opt.selected = false);
                 }
                 break;
-            // Case 'responsavel' removido
         }
         
         this.renderizarEquipamentos();
@@ -1319,7 +1332,8 @@ class EquipamentosApp {
             dataFim: null,
             prioridades: [],
             responsaveis: [],
-            responsavel: null
+            // NOVO: Incluir status operacional no reset
+            statusOperacional: 'all'
         };
         
         this.atualizarInterfaceFiltros();
@@ -1548,12 +1562,13 @@ class EquipamentosApp {
             dataFim: null,
             prioridades: [],
             responsaveis: [],
-            responsavel: null
+            statusOperacional: 'all'
         };
         
         document.getElementById('status-filter').value = 'all';
         document.getElementById('pendencia-filter').value = 'all';
         document.getElementById('setor-filter').value = 'all';
+        document.getElementById('status-operacional-filter').value = 'all';
         document.getElementById('search').value = '';
         document.getElementById('data-inicio').value = '';
         document.getElementById('data-fim').value = '';
@@ -1576,10 +1591,12 @@ class EquipamentosApp {
     }
     
     filtrarBasico(equipamento) {
+        // Filtro por status operacional (apto/não apto)
         if (this.filtros.status !== 'all' && equipamento.status !== this.filtros.status) {
             return false;
         }
         
+        // Filtro por pendência
         if (this.filtros.pendencia !== 'all') {
             const temPendenciasAtivas = equipamento.pendencias && equipamento.pendencias.some(p => 
                 p.status === 'aberta' || p.status === 'em-andamento'
@@ -1602,10 +1619,23 @@ class EquipamentosApp {
             }
         }
         
+        // Filtro por setor
         if (this.filtros.setor !== 'all' && equipamento.setor !== this.filtros.setor) {
             return false;
         }
         
+        // NOVO: Filtro por status operacional (operante/inoperante)
+        if (this.filtros.statusOperacional !== 'all') {
+            const operante = equipamento.emLinha?.ativo || false;
+            if (this.filtros.statusOperacional === 'operante' && !operante) {
+                return false;
+            }
+            if (this.filtros.statusOperacional === 'inoperante' && operante) {
+                return false;
+            }
+        }
+        
+        // Filtro por busca textual
         if (this.filtros.busca) {
             const busca = this.filtros.busca.toLowerCase();
             const nomeMatch = equipamento.nome.toLowerCase().includes(busca);
@@ -1616,6 +1646,7 @@ class EquipamentosApp {
             }
         }
         
+        // Filtro por data
         if (this.filtros.dataInicio || this.filtros.dataFim) {
             if (!equipamento.pendencias || equipamento.pendencias.length === 0) {
                 return false;
@@ -1648,6 +1679,7 @@ class EquipamentosApp {
             }
         }
         
+        // Filtro por prioridade
         if (this.filtros.prioridades && this.filtros.prioridades.length > 0) {
             const temPrioridade = equipamento.pendencias?.some(p => 
                 this.filtros.prioridades.includes(p.prioridade) && 
@@ -1656,20 +1688,13 @@ class EquipamentosApp {
             if (!temPrioridade) return false;
         }
         
+        // Filtro por responsável
         if (this.filtros.responsaveis && this.filtros.responsaveis.length > 0) {
             const temResponsavel = equipamento.pendencias?.some(p => 
                 this.filtros.responsaveis.includes(p.responsavel) && 
                 (p.status === 'aberta' || p.status === 'em-andamento')
             );
             if (!temResponsavel) return false;
-        }
-        
-        if (this.filtros.responsavel) {
-            const minhasPendencias = equipamento.pendencias?.some(p => 
-                p.responsavel === this.filtros.responsavel && 
-                (p.status === 'aberta' || p.status === 'em-andamento')
-            );
-            if (!minhasPendencias) return false;
         }
         
         return true;
