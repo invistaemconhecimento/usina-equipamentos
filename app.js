@@ -974,14 +974,7 @@ class EquipamentosApp {
                 });
             }
             
-            if (equip.id.toString().includes(termoLower)) {
-                sugestoes.push({
-                    texto: `ID: ${equip.id} - ${equip.nome}`,
-                    tipo: 'ID',
-                    icone: 'fa-hashtag',
-                    acao: () => this.verDetalhesEquipamento(equip.id)
-                });
-            }
+            // REMOVIDO: Sugestão por ID não é mais necessária
             
             if (equip.descricao && equip.descricao.toLowerCase().includes(termoLower)) {
                 sugestoes.push({
@@ -1707,10 +1700,9 @@ class EquipamentosApp {
         if (this.filtros.busca) {
             const busca = this.filtros.busca.toLowerCase();
             const nomeMatch = equipamento.nome.toLowerCase().includes(busca);
-            const idMatch = equipamento.id.toString().includes(busca);
             const descricaoMatch = equipamento.descricao.toLowerCase().includes(busca);
             
-            if (!nomeMatch && !idMatch && !descricaoMatch) {
+            if (!nomeMatch && !descricaoMatch) {
                 return false;
             }
         }
@@ -1922,9 +1914,7 @@ class EquipamentosApp {
                             <i class="fas fa-cog" style="color: var(--cor-secundaria);"></i>
                             ${this.escapeHTML(equipamento.nome)}
                         </h4>
-                        <div class="equipamento-codigo">
-                            <i class="fas fa-hashtag"></i> ID: ${equipamento.id}
-                        </div>
+                        <!-- ID removido da interface -->
                     </div>
                     <div class="status-chip ${equipamento.status}">
                         ${window.APP_CONFIG?.statusEquipamento[equipamento.status]?.nome || equipamento.status}
@@ -2313,7 +2303,7 @@ class EquipamentosApp {
             this.data.nextEquipamentoId = nextId + 1;
             
             this.registrarAtividade('CRIAR_EQUIPAMENTO', `Criou equipamento: ${equipamento.nome} (ID: ${equipamento.id})`);
-            this.mostrarMensagem(`Equipamento criado com sucesso! ID: ${equipamento.id}`, 'success');
+            this.mostrarMensagem(`Equipamento criado com sucesso!`, 'success');
         }
         
         const salvou = await this.salvarDados();
@@ -2468,8 +2458,8 @@ class EquipamentosApp {
             
             this.data.nextPendenciaId = pendencia.id + 1;
             
-            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome} (ID: ${pendencia.id})`);
-            this.mostrarMensagem(`Pendência registrada com sucesso! ID: ${pendencia.id}`, 'success');
+            this.registrarAtividade('CRIAR_PENDENCIA', `Criou pendência: ${pendencia.titulo} no equipamento ${this.equipamentos[equipamentoIndex].nome}`);
+            this.mostrarMensagem(`Pendência registrada com sucesso!`, 'success');
         }
         
         this.atualizarStatusEquipamentoPorPendencias(equipamentoIndex);
@@ -2567,7 +2557,8 @@ class EquipamentosApp {
         
         document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome}`;
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
-        document.getElementById('detalhes-codigo').textContent = `ID: ${equipamento.id}`;
+        // ID removido da interface de detalhes
+        document.getElementById('detalhes-codigo').textContent = `Código interno`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         
         const setorFormatado = window.APP_CONFIG && window.APP_CONFIG.setores ? 
@@ -2693,7 +2684,7 @@ class EquipamentosApp {
         
         const totalPendencias = equipamento.pendencias?.length || 0;
         
-        let mensagem = `Tem certeza que deseja excluir o equipamento "${equipamento.nome}" (ID: ${equipamento.id})?`;
+        let mensagem = `Tem certeza que deseja excluir o equipamento "${equipamento.nome}"?`;
         
         if (totalPendencias > 0) {
             mensagem += `\n\n⚠️ Este equipamento possui ${totalPendencias} pendência(s) no histórico que também serão excluídas.`;
@@ -2722,7 +2713,7 @@ class EquipamentosApp {
             this.equipamentos.splice(index, 1);
             
             this.registrarAtividade('EXCLUIR_EQUIPAMENTO', 
-                `Administrador excluiu equipamento: ${equipamento.nome} (ID: ${equipamento.id}) com ${totalPendencias} pendências`);
+                `Administrador excluiu equipamento: ${equipamento.nome} com ${totalPendencias} pendências`);
             
             await this.salvarDados();
             
@@ -2802,7 +2793,6 @@ class EquipamentosApp {
                             ${isCritica ? '<i class="fas fa-exclamation-triangle"></i> ' : ''}
                             ${this.escapeHTML(pendencia.titulo)}
                             <small style="color: var(--cor-texto-secundario); margin-left: 8px;">
-                                <i class="fas fa-hashtag"></i> ID: ${pendencia.id} | 
                                 Criada por: ${this.escapeHTML(pendencia.criadoPor || 'N/A')} em ${criadoEmFormatado}
                             </small>
                         </div>
@@ -3029,7 +3019,7 @@ class EquipamentosApp {
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 800px; max-height: 80vh;">
                 <div class="modal-header">
-                    <h3><i class="fas fa-history"></i> Histórico da Pendência: ${this.escapeHTML(pendencia.titulo)} (ID: ${pendencia.id})</h3>
+                    <h3><i class="fas fa-history"></i> Histórico da Pendência: ${this.escapeHTML(pendencia.titulo)}</h3>
                     <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
                 </div>
                 <div class="modal-body" style="overflow-y: auto;">
