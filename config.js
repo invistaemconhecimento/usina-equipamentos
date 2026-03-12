@@ -702,7 +702,7 @@ const APP_CONFIG = {
     // Configuração de status
     statusEquipamento: {
         "apto": {
-            nome: "Apto a Operar",
+            nome: "Apto",
             cor: "#27ae60",
             icone: "fa-check-circle",
             descricao: "Equipamento em condições operacionais normais"
