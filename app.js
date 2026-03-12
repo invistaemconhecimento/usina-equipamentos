@@ -835,92 +835,16 @@ class EquipamentosApp {
     // ================== FILTROS AVANÇADOS ==================
     
     initFiltrosAvancados() {
-        this.configurarFiltrosRapidos();
+        // FILTROS RÁPIDOS REMOVIDOS
         this.configurarBuscaSugestoes();
         this.configurarFiltrosData();
         this.configurarFiltrosPrioridade();
         this.configurarFiltrosResponsavel();
     }
     
-    configurarFiltrosRapidos() {
-        document.querySelectorAll('.quick-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const filtro = btn.dataset.filter;
-                this.aplicarFiltroRapido(filtro);
-                
-                document.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
-                if (filtro !== 'todos') {
-                    btn.classList.add('active');
-                }
-            });
-        });
-    }
+    // MÉTODO configurarFiltrosRapidos REMOVIDO
     
-    aplicarFiltroRapido(tipo) {
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        const hojeStr = hoje.toISOString().split('T')[0];
-        
-        switch(tipo) {
-            case 'hoje':
-                this.filtros.dataInicio = hojeStr;
-                this.filtros.dataFim = hojeStr;
-                document.getElementById('data-inicio').value = hojeStr;
-                document.getElementById('data-fim').value = hojeStr;
-                break;
-                
-            case 'semana': {
-                const umaSemanaAtras = new Date(hoje);
-                umaSemanaAtras.setDate(hoje.getDate() - 7);
-                this.filtros.dataInicio = umaSemanaAtras.toISOString().split('T')[0];
-                this.filtros.dataFim = hojeStr;
-                document.getElementById('data-inicio').value = this.filtros.dataInicio;
-                document.getElementById('data-fim').value = hojeStr;
-                break;
-            }
-            
-            case 'mes': {
-                const umMesAtras = new Date(hoje);
-                umMesAtras.setMonth(hoje.getMonth() - 1);
-                this.filtros.dataInicio = umMesAtras.toISOString().split('T')[0];
-                this.filtros.dataFim = hojeStr;
-                document.getElementById('data-inicio').value = this.filtros.dataInicio;
-                document.getElementById('data-fim').value = hojeStr;
-                break;
-            }
-            
-            case 'trimestre': {
-                const tresMesesAtras = new Date(hoje);
-                tresMesesAtras.setMonth(hoje.getMonth() - 3);
-                this.filtros.dataInicio = tresMesesAtras.toISOString().split('T')[0];
-                this.filtros.dataFim = hojeStr;
-                document.getElementById('data-inicio').value = this.filtros.dataInicio;
-                document.getElementById('data-fim').value = hojeStr;
-                break;
-            }
-            
-            case 'criticos':
-                this.filtros.pendencia = 'com-criticas';
-                document.getElementById('pendencia-filter').value = 'com-criticas';
-                break;
-                
-            case 'sem-pendencias':
-                this.filtros.pendencia = 'sem-pendencia';
-                document.getElementById('pendencia-filter').value = 'sem-pendencia';
-                break;
-                
-            case 'minhas-pendencias':
-                this.filtros.responsavel = this.usuarioAtual;
-                break;
-                
-            case 'todos':
-                this.limparTodosFiltros();
-                return;
-        }
-        
-        this.renderizarEquipamentos();
-        this.atualizarIndicadoresFiltros();
-    }
+    // MÉTODO aplicarFiltroRapido REMOVIDO
     
     configurarBuscaSugestoes() {
         const searchInput = document.getElementById('search');
@@ -973,8 +897,6 @@ class EquipamentosApp {
                     acao: () => this.verDetalhesEquipamento(equip.id)
                 });
             }
-            
-            // REMOVIDO: Sugestão por ID não é mais necessária
             
             if (equip.descricao && equip.descricao.toLowerCase().includes(termoLower)) {
                 sugestoes.push({
@@ -1328,9 +1250,7 @@ class EquipamentosApp {
             filtrosAtivos.push({ tipo: 'responsaveis', valor: 'responsaveis', nome: `Responsáveis: ${this.filtros.responsaveis.join(', ')}` });
         }
         
-        if (this.filtros.responsavel) {
-            filtrosAtivos.push({ tipo: 'responsavel', valor: this.filtros.responsavel, nome: `Minhas pendências` });
-        }
+        // Responsável removido dos filtros rápidos
         
         if (filtrosAtivos.length === 0) {
             container.style.display = 'none';
@@ -1382,14 +1302,7 @@ class EquipamentosApp {
                     Array.from(selectResponsavel.options).forEach(opt => opt.selected = false);
                 }
                 break;
-            case 'responsavel':
-                this.filtros.responsavel = null;
-                document.querySelectorAll('.quick-filter-btn').forEach(btn => {
-                    if (btn.dataset.filter === 'minhas-pendencias') {
-                        btn.classList.remove('active');
-                    }
-                });
-                break;
+            // Case 'responsavel' removido
         }
         
         this.renderizarEquipamentos();
@@ -1412,10 +1325,6 @@ class EquipamentosApp {
         this.atualizarInterfaceFiltros();
         this.renderizarEquipamentos();
         this.atualizarIndicadoresFiltros();
-        
-        document.querySelectorAll('.quick-filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
         
         this.mostrarMensagem('Todos os filtros foram removidos', 'info');
     }
