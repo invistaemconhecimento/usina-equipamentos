@@ -16,8 +16,7 @@ class EquipamentosApp {
             dataFim: null,
             prioridades: [],
             responsaveis: [],
-            // NOVO: Filtro para status operacional (operante/inoperante)
-            statusOperacional: 'all' // 'all', 'operante', 'inoperante'
+            statusOperacional: 'all'
         };
         this.filtrosAvancados = {
             criterios: [],
@@ -43,47 +42,28 @@ class EquipamentosApp {
     
     async init() {
         try {
-            // 1. Verificar sessão
             if (!this.verificarSessao()) {
                 return;
             }
             
-            // 2. Carregar informações do usuário
             this.carregarUsuario();
-            
-            // 3. Registrar login no sistema
             this.registrarLogin();
-            
-            // 4. Configurar interface baseada nas permissões
             this.configurarInterfacePorPermissao();
-            
-            // 5. Inicializar componentes
             this.initModals();
             this.initEvents();
             this.initFiltrosAvancados();
             
-            // 6. Carregar dados
             await this.carregarDados();
-            
-            // 7. Garantir IDs únicos após carregar dados
             this.garantirIdsUnicos();
-            
-            // 8. Inicializar controle de linha
             this.initControleLinha();
-            
-            // 9. Inicializar interface
             this.renderizarEquipamentos();
             this.atualizarEstatisticas();
             this.atualizarStatusSincronizacao(true);
             this.atualizarContadoresPrioridade();
             this.carregarFiltrosSalvos();
-            
-            // 10. Configurar atualizações automáticas
             this.configurarAtualizacoes();
             
             console.log('Aplicação inicializada com sucesso');
-            
-            // 11. Adicionar indicador de nível
             this.adicionarIndicadorNivel();
             
         } catch (error) {
@@ -106,20 +86,25 @@ class EquipamentosApp {
         }, 300000); // 5 minutos
     }
     
+    /**
+     * CORRIGIDO: Não incrementa mais, apenas atualiza a interface
+     * O cálculo real é feito dinamicamente por calcularTempoOperacaoAtual()
+     */
     atualizarTempoOperacao() {
+        const agora = new Date().getTime();
         let atualizacoes = false;
         
         this.equipamentos.forEach(equip => {
-            if (equip.emLinha && equip.emLinha.ativo) {
-                // Atualizar tempo total
-                equip.emLinha.tempoTotalOperacao += 1; // +1 minuto
+            // Só processa equipamentos ativos que têm timestamp de início
+            if (equip.emLinha?.ativo && equip.emLinha.inicioOperacaoAtual) {
+                // Marca que algo mudou para atualizar a UI
                 atualizacoes = true;
             }
         });
         
         if (atualizacoes) {
+            // Atualiza apenas os cards para mostrar o tempo atualizado
             this.atualizarCardsEquipamentos();
-            this.salvarDados();
         }
     }
     
@@ -128,19 +113,83 @@ class EquipamentosApp {
         
         this.equipamentos.forEach(equip => {
             if (equip.emLinha && equip.emLinha.ativo) {
-                if (equip.emLinha.tempoTotalOperacao >= limite) {
+                // Usar o método correto para calcular o tempo atual
+                const tempoAtual = this.calcularTempoOperacaoAtual(equip);
+                
+                if (tempoAtual >= limite) {
                     this.mostrarMensagem(
                         `⚠️ ATENÇÃO: ${equip.nome} está em operação há mais de ${Math.floor(limite/60)} horas!`,
                         'warning'
                     );
                     
                     this.registrarAtividade('ALERTA_TEMPO_EXCESSIVO', 
-                        `${equip.nome} em operação por ${equip.emLinha.tempoTotalOperacao} minutos`);
+                        `${equip.nome} em operação por ${tempoAtual} minutos`);
                 }
             }
         });
     }
     
+    /**
+     * NOVO: Calcula o tempo total correto de operação
+     * @param {Object} equipamento - O equipamento para calcular
+     * @returns {number} Tempo total em minutos
+     */
+    calcularTempoOperacaoAtual(equipamento) {
+        if (!equipamento.emLinha) return 0;
+        
+        // Se não está ativo, retorna o tempo total acumulado
+        if (!equipamento.emLinha.ativo) {
+            return equipamento.emLinha.tempoTotalOperacao || 0;
+        }
+        
+        // Se está ativo e tem timestamp de início, calcula diferença
+        if (equipamento.emLinha.ativo && equipamento.emLinha.inicioOperacaoAtual) {
+            const inicio = new Date(equipamento.emLinha.inicioOperacaoAtual).getTime();
+            const agora = new Date().getTime();
+            const minutosSessaoAtual = Math.floor((agora - inicio) / (1000 * 60));
+            
+            // Tempo total = histórico + minutos da sessão atual
+            return (equipamento.emLinha.tempoTotalOperacao || 0) + minutosSessaoAtual;
+        }
+        
+        // Fallback
+        return equipamento.emLinha.tempoTotalOperacao || 0;
+    }
+    
+    /**
+     * NOVO: Formata tempo em minutos para exibição amigável
+     * @param {number} minutos - Tempo em minutos
+     * @returns {string} Tempo formatado (ex: "2h 30min" ou "1d 4h")
+     */
+    formatarTempoAmigavel(minutos) {
+        if (minutos < 60) {
+            return `${minutos} min`;
+        }
+        
+        const horas = Math.floor(minutos / 60);
+        const minsRestantes = minutos % 60;
+        
+        if (minsRestantes === 0) {
+            return `${horas}h`;
+        }
+        
+        if (horas < 24) {
+            return `${horas}h ${minsRestantes}min`;
+        }
+        
+        const dias = Math.floor(horas / 24);
+        const horasRestantes = horas % 24;
+        
+        if (horasRestantes === 0) {
+            return `${dias}d`;
+        }
+        
+        return `${dias}d ${horasRestantes}h`;
+    }
+    
+    /**
+     * CORRIGIDO: Agora calcula o tempo REAL da sessão ao desligar
+     */
     async toggleEquipamentoLinha(equipamentoId, justificativa = '') {
         const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
         if (!equipamento) return;
@@ -206,9 +255,13 @@ class EquipamentosApp {
         equipamento.emLinha.ativo = novoEstado;
         
         if (novoEstado) {
-            // TORNANDO OPERANTE
+            // ===== TORNANDO OPERANTE =====
             equipamento.emLinha.ultimoAcionamento = timestamp;
             equipamento.emLinha.operadorAtual = this.usuarioAtual;
+            
+            // NOVO: Guarda o timestamp de início para cálculo futuro
+            equipamento.emLinha.inicioOperacaoAtual = timestamp;
+            
             this.equipamentosEmLinha.add(equipamentoId);
             
             equipamento.historicoAcionamentos.push({
@@ -225,25 +278,55 @@ class EquipamentosApp {
             this.mostrarMensagem(`✅ ${equipamento.nome} agora está OPERANTE`, 'success');
             
         } else {
-            // TORNANDO INOPERANTE
-            const tempoOperacao = equipamento.emLinha.tempoTotalOperacao || 0;
+            // ===== TORNANDO INOPERANTE =====
+            
+            // CORRIGIDO: Calcular o tempo REAL desde o último acionamento
+            let tempoOperacaoSessao = 0;
+            
+            if (equipamento.emLinha.inicioOperacaoAtual) {
+                const inicio = new Date(equipamento.emLinha.inicioOperacaoAtual).getTime();
+                const fim = new Date(timestamp).getTime();
+                tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60)); // em minutos
+            }
+            
+            // Se não conseguiu calcular, usa o tempo desde o último acionamento registrado
+            if (tempoOperacaoSessao <= 0 && equipamento.emLinha.ultimoAcionamento) {
+                const inicio = new Date(equipamento.emLinha.ultimoAcionamento).getTime();
+                const fim = new Date(timestamp).getTime();
+                tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
+            }
+            
+            // Garantir um valor mínimo (1 minuto) se tudo falhar
+            if (tempoOperacaoSessao <= 0) {
+                tempoOperacaoSessao = 1;
+            }
+            
+            // Atualizar o tempo total acumulado
+            equipamento.emLinha.tempoTotalOperacao += tempoOperacaoSessao;
             equipamento.emLinha.ultimoDesligamento = timestamp;
             equipamento.emLinha.operadorAtual = null;
+            
+            // NOVO: Limpar o timestamp de início da sessão atual
+            delete equipamento.emLinha.inicioOperacaoAtual;
+            
             this.equipamentosEmLinha.delete(equipamentoId);
+            
+            // Registrar no histórico COM o tempo real da sessão
+            const observacao = justificativa || `Equipamento tornou-se INOPERANTE (operou ${this.formatarTempoAmigavel(tempoOperacaoSessao)})`;
             
             equipamento.historicoAcionamentos.push({
                 tipo: 'DESLIGADO',
                 timestamp: timestamp,
                 operador: this.usuarioAtual,
-                tempoOperacao: tempoOperacao,
+                tempoOperacao: tempoOperacaoSessao, // tempo REAL desta sessão
                 turno: this.obterTurnoAtual(),
-                observacao: justificativa || 'Equipamento tornou-se INOPERANTE'
+                observacao: observacao
             });
             
             this.registrarAtividade('EQUIPAMENTO_DESLIGADO', 
-                `${equipamento.nome} tornou-se INOPERANTE por ${this.usuarioAtual} (${tempoOperacao} min operação)`);
+                `${equipamento.nome} tornou-se INOPERANTE por ${this.usuarioAtual} (operou ${tempoOperacaoSessao} min)`);
             
-            this.mostrarMensagem(`⏹️ ${equipamento.nome} agora está INOPERANTE`, 'info');
+            this.mostrarMensagem(`⏹️ ${equipamento.nome} agora está INOPERANTE (operou ${this.formatarTempoAmigavel(tempoOperacaoSessao)})`, 'info');
         }
         
         // Salvar dados
@@ -293,8 +376,10 @@ class EquipamentosApp {
             return (agora - data) <= 7 * 24 * 60 * 60 * 1000;
         });
         
-        const tempoTotalHoras = Math.floor((equipamento.emLinha?.tempoTotalOperacao || 0) / 60);
-        const tempoTotalMinutos = (equipamento.emLinha?.tempoTotalOperacao || 0) % 60;
+        // CORRIGIDO: Usar o método correto para calcular o tempo total
+        const tempoTotal = this.calcularTempoOperacaoAtual(equipamento);
+        const tempoTotalHoras = Math.floor(tempoTotal / 60);
+        const tempoTotalMinutos = tempoTotal % 60;
         
         // Criar modal
         const modal = document.createElement('div');
@@ -415,7 +500,7 @@ class EquipamentosApp {
                         }
                         
                         const tempoFormatado = h.tempoOperacao ? 
-                            `${Math.floor(h.tempoOperacao / 60)}h ${h.tempoOperacao % 60}min` : '-';
+                            this.formatarTempoAmigavel(h.tempoOperacao) : '-';
                         
                         return `
                             <tr style="border-bottom: 1px solid var(--cor-borda);">
@@ -479,7 +564,7 @@ class EquipamentosApp {
     atualizarEstatisticasOperacao() {
         const stats = {
             emLinha: this.equipamentos.filter(e => e.emLinha?.ativo).length,
-            tempoTotal: this.equipamentos.reduce((acc, e) => acc + (e.emLinha?.tempoTotalOperacao || 0), 0),
+            tempoTotal: this.equipamentos.reduce((acc, e) => acc + (this.calcularTempoOperacaoAtual(e)), 0),
             ligacoesHoje: 0
         };
         
@@ -1182,7 +1267,6 @@ class EquipamentosApp {
         document.getElementById('status-filter').value = this.filtros.status || 'all';
         document.getElementById('pendencia-filter').value = this.filtros.pendencia || 'all';
         document.getElementById('setor-filter').value = this.filtros.setor || 'all';
-        // NOVO: Atualizar filtro de status operacional
         document.getElementById('status-operacional-filter').value = this.filtros.statusOperacional || 'all';
         document.getElementById('search').value = this.filtros.busca || '';
         document.getElementById('data-inicio').value = this.filtros.dataInicio || '';
@@ -1224,7 +1308,6 @@ class EquipamentosApp {
             filtrosAtivos.push({ tipo: 'setor', valor: this.filtros.setor, nome: `Setor: ${nome}` });
         }
         
-        // NOVO: Indicador para status operacional
         if (this.filtros.statusOperacional !== 'all') {
             const nome = this.filtros.statusOperacional === 'operante' ? 'OPERANTE' : 'INOPERANTE';
             filtrosAtivos.push({ tipo: 'statusOperacional', valor: this.filtros.statusOperacional, nome: `Status Operacional: ${nome}` });
@@ -1290,7 +1373,6 @@ class EquipamentosApp {
                 this.filtros.setor = 'all';
                 document.getElementById('setor-filter').value = 'all';
                 break;
-            // NOVO: Remover filtro de status operacional
             case 'statusOperacional':
                 this.filtros.statusOperacional = 'all';
                 document.getElementById('status-operacional-filter').value = 'all';
@@ -1332,7 +1414,6 @@ class EquipamentosApp {
             dataFim: null,
             prioridades: [],
             responsaveis: [],
-            // NOVO: Incluir status operacional no reset
             statusOperacional: 'all'
         };
         
@@ -1398,6 +1479,17 @@ class EquipamentosApp {
                             operadorAtual: null
                         };
                     }
+                    
+                    // CORRIGIDO: Se estiver ativo, garantir que tenha timestamp de início
+                    if (equip.emLinha.ativo && !equip.emLinha.inicioOperacaoAtual) {
+                        if (equip.emLinha.ultimoAcionamento) {
+                            equip.emLinha.inicioOperacaoAtual = equip.emLinha.ultimoAcionamento;
+                        } else {
+                            // Fallback: considera que começou agora
+                            equip.emLinha.inicioOperacaoAtual = new Date().toISOString();
+                        }
+                    }
+                    
                     if (!equip.historicoAcionamentos) {
                         equip.historicoAcionamentos = [];
                     }
@@ -1432,6 +1524,16 @@ class EquipamentosApp {
                                 operadorAtual: null
                             };
                         }
+                        
+                        // CORRIGIDO: Se estiver ativo, garantir timestamp de início
+                        if (equip.emLinha.ativo && !equip.emLinha.inicioOperacaoAtual) {
+                            if (equip.emLinha.ultimoAcionamento) {
+                                equip.emLinha.inicioOperacaoAtual = equip.emLinha.ultimoAcionamento;
+                            } else {
+                                equip.emLinha.inicioOperacaoAtual = new Date().toISOString();
+                            }
+                        }
+                        
                         if (!equip.historicoAcionamentos) {
                             equip.historicoAcionamentos = [];
                         }
@@ -1472,6 +1574,16 @@ class EquipamentosApp {
                             operadorAtual: null
                         };
                     }
+                    
+                    // CORRIGIDO: Se estiver ativo, garantir timestamp de início
+                    if (equip.emLinha.ativo && !equip.emLinha.inicioOperacaoAtual) {
+                        if (equip.emLinha.ultimoAcionamento) {
+                            equip.emLinha.inicioOperacaoAtual = equip.emLinha.ultimoAcionamento;
+                        } else {
+                            equip.emLinha.inicioOperacaoAtual = new Date().toISOString();
+                        }
+                    }
+                    
                     if (!equip.historicoAcionamentos) {
                         equip.historicoAcionamentos = [];
                     }
@@ -1624,7 +1736,7 @@ class EquipamentosApp {
             return false;
         }
         
-        // NOVO: Filtro por status operacional (operante/inoperante)
+        // Filtro por status operacional (operante/inoperante)
         if (this.filtros.statusOperacional !== 'all') {
             const operante = equipamento.emLinha?.ativo || false;
             if (this.filtros.statusOperacional === 'operante' && !operante) {
@@ -1742,9 +1854,8 @@ class EquipamentosApp {
             'totalPendencias': equipamento.pendencias?.length || 0,
             'pendenciasAbertas': equipamento.pendencias?.filter(p => p.status === 'aberta').length || 0,
             'pendenciasCriticas': equipamento.pendencias?.filter(p => p.prioridade === 'critica' && p.status !== 'resolvida').length || 0,
-            // NOVO: Campos de operação
             'emLinha': equipamento.emLinha?.ativo || false,
-            'tempoOperacao': equipamento.emLinha?.tempoTotalOperacao || 0
+            'tempoOperacao': this.calcularTempoOperacaoAtual(equipamento)
         };
         return campos[campo];
     }
@@ -1807,9 +1918,9 @@ class EquipamentosApp {
             p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
         );
         
-        // Dados de controle de linha
+        // Dados de controle de linha - CORRIGIDO: usar método de cálculo
         const operante = equipamento.emLinha?.ativo || false;
-        const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
+        const tempoOperacao = this.calcularTempoOperacaoAtual(equipamento);
         const horasOperacao = Math.floor(tempoOperacao / 60);
         const minutosOperacao = tempoOperacao % 60;
         const tempoExcessivo = operante && tempoOperacao >= (window.APP_CONFIG?.controleLinha?.alertaTempoMaximo || 480);
@@ -1848,7 +1959,6 @@ class EquipamentosApp {
                             <i class="fas fa-cog" style="color: var(--cor-secundaria);"></i>
                             ${this.escapeHTML(equipamento.nome)}
                         </h4>
-                        <!-- ID removido da interface -->
                     </div>
                     <div class="status-chip ${equipamento.status}">
                         ${window.APP_CONFIG?.statusEquipamento[equipamento.status]?.nome || equipamento.status}
@@ -2170,7 +2280,6 @@ class EquipamentosApp {
             status: 'apto',
             ultimaInspecao: document.getElementById('equipamento-ultima-inspecao').value || null,
             pendencias: [],
-            // NOVO: Inicializar estrutura de controle de linha
             emLinha: {
                 ativo: false,
                 ultimoAcionamento: null,
@@ -2204,6 +2313,16 @@ class EquipamentosApp {
                     tempoTotalOperacao: 0,
                     operadorAtual: null
                 };
+                
+                // Se estiver ativo, garantir timestamp de início
+                if (equipamento.emLinha.ativo && !equipamento.emLinha.inicioOperacaoAtual) {
+                    if (equipamento.emLinha.ultimoAcionamento) {
+                        equipamento.emLinha.inicioOperacaoAtual = equipamento.emLinha.ultimoAcionamento;
+                    } else {
+                        equipamento.emLinha.inicioOperacaoAtual = new Date().toISOString();
+                    }
+                }
+                
                 equipamento.historicoAcionamentos = this.equipamentos[index].historicoAcionamentos || [];
                 
                 const temPendenciasCriticasAbertas = equipamento.pendencias.some(p => 
@@ -2491,7 +2610,6 @@ class EquipamentosApp {
         
         document.getElementById('detalhes-titulo').querySelector('span').textContent = `Detalhes: ${equipamento.nome}`;
         document.getElementById('detalhes-nome').textContent = equipamento.nome;
-        // ID removido da interface de detalhes
         document.getElementById('detalhes-codigo').textContent = `Código interno`;
         document.getElementById('detalhes-descricao').textContent = equipamento.descricao;
         
@@ -2526,9 +2644,9 @@ class EquipamentosApp {
             statusChip.innerHTML += ` <i class="fas fa-exclamation-triangle" title="${pendenciasCriticas} pendência(s) crítica(s)"></i>`;
         }
         
-        // Informações de operação
+        // Informações de operação - CORRIGIDO: usar método de cálculo
         const operante = equipamento.emLinha?.ativo || false;
-        const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
+        const tempoOperacao = this.calcularTempoOperacaoAtual(equipamento);
         const horasOperacao = Math.floor(tempoOperacao / 60);
         const minutosOperacao = tempoOperacao % 60;
         const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
@@ -3183,9 +3301,9 @@ class EquipamentosApp {
                     p.prioridade === 'critica' && (p.status === 'aberta' || p.status === 'em-andamento')
                 ).length;
                 
-                // Dados de controle de linha
+                // Dados de controle de linha - CORRIGIDO: usar método de cálculo
                 const statusOperacional = equipamento.emLinha?.ativo ? 'OPERANTE' : 'INOPERANTE';
-                const tempoOperacao = equipamento.emLinha?.tempoTotalOperacao || 0;
+                const tempoOperacao = this.calcularTempoOperacaoAtual(equipamento);
                 const totalAcionamentos = equipamento.historicoAcionamentos?.length || 0;
                 
                 const escapeCSV = (str) => {
@@ -3551,7 +3669,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.app = app;
         
         console.log('Sistema carregado com sucesso');
-        console.log('Controle de Linha: Ativado');
+        console.log('Controle de Linha: Ativado - Cálculo de tempo corrigido');
     } catch (error) {
         console.error('Erro ao inicializar aplicação:', error);
         alert('Erro ao carregar o sistema. Verifique o console para mais detalhes.');
