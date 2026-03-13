@@ -12,11 +12,12 @@
     
     <!-- JSZip para exportação -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <!-- Bibliotecas para PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-<!-- Chart.js para gráficos nos relatórios -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Chart.js para gráficos nos relatórios -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏭</text></svg>">
@@ -1812,6 +1813,23 @@
                     </select>
                 </div>
 
+                <!-- Seção de Relatórios - NOVO -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-file-pdf"></i> Relatórios</h3>
+                    
+                    <button onclick="app.gerarRelatorioGeral()" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                        <i class="fas fa-file-pdf" style="color: #e74c3c;"></i> Relatório Geral
+                    </button>
+                    
+                    <button onclick="app.gerarRelatorioPendencias()" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                        <i class="fas fa-exclamation-triangle" style="color: #f39c12;"></i> Relatório de Pendências
+                    </button>
+                    
+                    <p style="font-size: 12px; color: var(--cor-texto-secundario); margin-top: 10px; text-align: center;">
+                        <i class="fas fa-info-circle"></i> Relatórios individuais disponíveis nos detalhes do equipamento
+                    </p>
+                </div>
+
                 <!-- Estatísticas dos Filtros -->
                 <div class="sidebar-section">
                     <h3><i class="fas fa-chart-pie"></i> Estatísticas</h3>
@@ -1876,7 +1894,7 @@
                     <div style="margin-bottom: 10px; padding: 10px; background: var(--cor-fundo); border-radius: var(--raio-borda-pequeno);">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span>Versão:</span>
-                            <strong>2.3.0</strong>
+                            <strong>2.4.0</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                             <span>Ambiente:</span>
@@ -2204,6 +2222,10 @@
                         <button id="nova-pendencia-detalhes" class="btn-primary">
                             <i class="fas fa-plus-circle"></i> Nova Pendência
                         </button>
+                        <!-- NOVO: Botão de relatório individual -->
+                        <button onclick="app.gerarRelatorioEquipamento(app.equipamentoSelecionado.id)" class="btn-secondary">
+                            <i class="fas fa-file-pdf" style="color: #e74c3c;"></i> Relatório PDF
+                        </button>
                         <button id="excluir-equipamento" class="btn-danger" style="display: none;">
                             <i class="fas fa-trash"></i> Excluir Equipamento
                         </button>
@@ -2249,6 +2271,7 @@
     <!-- Scripts do Sistema -->
     <script src="config.js"></script>
     <script src="app.js"></script>
+    <script src="relatorios.js"></script>
     
     <!-- Scripts de Interface e Controles -->
     <script>
