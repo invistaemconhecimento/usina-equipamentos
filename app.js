@@ -228,133 +228,146 @@ class EquipamentosApp {
     /**
      * CORRIGIDO: Agora calcula o tempo REAL da sessão ao desligar
      */
-    async toggleEquipamentoLinha(equipamentoId, justificativa = '') {
-        const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
-        if (!equipamento) return;
+    /**
+ * CORRIGIDO: Agora registra o tempo na linha do OPERANTE
+ */
+async toggleEquipamentoLinha(equipamentoId, justificativa = '') {
+    const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
+    if (!equipamento) return;
+    
+    const podeOperar = this.verificarPermissao('operar_equipamentos');
+    
+    if (!podeOperar) {
+        this.mostrarMensagem('Você não tem permissão para operar equipamentos', 'error');
+        return;
+    }
+    
+    if (equipamento.status === 'nao-apto' && !equipamento.emLinha?.ativo) {
+        const confirmar = await this.mostrarConfirmacao(
+            'Equipamento Não Apto',
+            'Este equipamento possui pendências críticas. Deseja torná-lo OPERANTE mesmo assim?'
+        );
+        if (!confirmar) return;
+    }
+    
+    const novoEstado = !equipamento.emLinha?.ativo;
+    const timestamp = new Date().toISOString();
+    
+    if (!novoEstado && !justificativa && window.APP_CONFIG?.controleLinha?.exigirJustificativaDesligamento) {
+        justificativa = await this.solicitarJustificativa();
+        if (!justificativa) return;
+    }
+    
+    if (novoEstado && equipamento.emLinha?.ultimoDesligamento) {
+        const ultimoDesligamento = new Date(equipamento.emLinha.ultimoDesligamento);
+        const agora = new Date();
+        const diferencaMinutos = Math.floor((agora - ultimoDesligamento) / (1000 * 60));
+        const tempoMinimo = window.APP_CONFIG?.controleLinha?.tempoMinimoEntreAcionamentos || 5;
         
-        const podeOperar = this.verificarPermissao('operar_equipamentos');
-        
-        if (!podeOperar) {
-            this.mostrarMensagem('Você não tem permissão para operar equipamentos', 'error');
-            return;
-        }
-        
-        if (equipamento.status === 'nao-apto' && !equipamento.emLinha?.ativo) {
+        if (diferencaMinutos < tempoMinimo) {
             const confirmar = await this.mostrarConfirmacao(
-                'Equipamento Não Apto',
-                'Este equipamento possui pendências críticas. Deseja torná-lo OPERANTE mesmo assim?'
+                'Tempo Mínimo não Respeitado',
+                `Aguarde ${tempoMinimo - diferencaMinutos} minutos antes de tornar OPERANTE novamente. Deseja prosseguir mesmo assim?`
             );
             if (!confirmar) return;
         }
-        
-        const novoEstado = !equipamento.emLinha?.ativo;
-        const timestamp = new Date().toISOString();
-        
-        if (!novoEstado && !justificativa && window.APP_CONFIG?.controleLinha?.exigirJustificativaDesligamento) {
-            justificativa = await this.solicitarJustificativa();
-            if (!justificativa) return;
-        }
-        
-        if (novoEstado && equipamento.emLinha?.ultimoDesligamento) {
-            const ultimoDesligamento = new Date(equipamento.emLinha.ultimoDesligamento);
-            const agora = new Date();
-            const diferencaMinutos = Math.floor((agora - ultimoDesligamento) / (1000 * 60));
-            const tempoMinimo = window.APP_CONFIG?.controleLinha?.tempoMinimoEntreAcionamentos || 5;
-            
-            if (diferencaMinutos < tempoMinimo) {
-                const confirmar = await this.mostrarConfirmacao(
-                    'Tempo Mínimo não Respeitado',
-                    `Aguarde ${tempoMinimo - diferencaMinutos} minutos antes de tornar OPERANTE novamente. Deseja prosseguir mesmo assim?`
-                );
-                if (!confirmar) return;
-            }
-        }
-        
-        if (!equipamento.emLinha) {
-            equipamento.emLinha = {
-                ativo: false,
-                ultimoAcionamento: null,
-                ultimoDesligamento: null,
-                tempoTotalOperacao: 0,
-                operadorAtual: null,
-                inicioOperacaoAtual: null
-            };
-        }
-        
-        if (!equipamento.historicoAcionamentos) {
-            equipamento.historicoAcionamentos = [];
-        }
-        
-        equipamento.emLinha.ativo = novoEstado;
-        
-        if (novoEstado) {
-            // LIGANDO O EQUIPAMENTO
-            equipamento.emLinha.ultimoAcionamento = timestamp;
-            equipamento.emLinha.operadorAtual = this.usuarioAtual;
-            equipamento.emLinha.inicioOperacaoAtual = timestamp;
-            
-            this.equipamentosEmLinha.add(equipamentoId);
-            
-            equipamento.historicoAcionamentos.push({
-                tipo: 'LIGADO',
-                timestamp: timestamp,
-                operador: this.usuarioAtual,
-                turno: this.obterTurnoAtual(),
-                observacao: justificativa || 'Equipamento tornou-se OPERANTE'
-            });
-            
-            this.registrarAtividade('EQUIPAMENTO_LIGADO', 
-                `${equipamento.nome} tornou-se OPERANTE por ${this.usuarioAtual}`);
-            
-            this.mostrarMensagem(`✅ ${equipamento.nome} agora está OPERANTE`, 'success');
-            
-        } else {
-            // DESLIGANDO O EQUIPAMENTO
-            let tempoOperacaoSessao = 0;
-            
-            if (equipamento.emLinha.inicioOperacaoAtual) {
-                const inicio = new Date(equipamento.emLinha.inicioOperacaoAtual).getTime();
-                const fim = new Date(timestamp).getTime();
-                tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
-            } else if (equipamento.emLinha.ultimoAcionamento) {
-                const inicio = new Date(equipamento.emLinha.ultimoAcionamento).getTime();
-                const fim = new Date(timestamp).getTime();
-                tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
-            }
-            
-            if (tempoOperacaoSessao <= 0) {
-                tempoOperacaoSessao = 1;
-            }
-            
-            equipamento.emLinha.tempoTotalOperacao = (equipamento.emLinha.tempoTotalOperacao || 0) + tempoOperacaoSessao;
-            equipamento.emLinha.ultimoDesligamento = timestamp;
-            equipamento.emLinha.operadorAtual = null;
-            
-            delete equipamento.emLinha.inicioOperacaoAtual;
-            
-            this.equipamentosEmLinha.delete(equipamentoId);
-            
-            const observacao = justificativa || `Equipamento tornou-se INOPERANTE (operou ${this.formatarTempoAmigavel(tempoOperacaoSessao)})`;
-            
-            equipamento.historicoAcionamentos.push({
-                tipo: 'DESLIGADO',
-                timestamp: timestamp,
-                operador: this.usuarioAtual,
-                tempoOperacao: tempoOperacaoSessao,
-                turno: this.obterTurnoAtual(),
-                observacao: observacao
-            });
-            
-            this.registrarAtividade('EQUIPAMENTO_DESLIGADO', 
-                `${equipamento.nome} tornou-se INOPERANTE por ${this.usuarioAtual} (operou ${tempoOperacaoSessao} min)`);
-            
-            this.mostrarMensagem(`⏹️ ${equipamento.nome} agora está INOPERANTE (operou ${this.formatarTempoAmigavel(tempoOperacaoSessao)})`, 'info');
-        }
-        
-        await this.salvarDados();
-        this.atualizarCardsEquipamentos();
-        this.atualizarEstatisticasOperacao();
     }
+    
+    if (!equipamento.emLinha) {
+        equipamento.emLinha = {
+            ativo: false,
+            ultimoAcionamento: null,
+            ultimoDesligamento: null,
+            tempoTotalOperacao: 0,
+            operadorAtual: null,
+            inicioOperacaoAtual: null
+        };
+    }
+    
+    if (!equipamento.historicoAcionamentos) {
+        equipamento.historicoAcionamentos = [];
+    }
+    
+    equipamento.emLinha.ativo = novoEstado;
+    
+    if (novoEstado) {
+        // LIGANDO O EQUIPAMENTO - registra sem tempo ainda
+        equipamento.emLinha.ultimoAcionamento = timestamp;
+        equipamento.emLinha.operadorAtual = this.usuarioAtual;
+        equipamento.emLinha.inicioOperacaoAtual = timestamp;
+        
+        this.equipamentosEmLinha.add(equipamentoId);
+        
+        equipamento.historicoAcionamentos.push({
+            tipo: 'LIGADO',
+            timestamp: timestamp,
+            operador: this.usuarioAtual,
+            turno: this.obterTurnoAtual(),
+            tempoOperacao: null, // Será preenchido quando desligar
+            observacao: justificativa || 'Equipamento tornou-se OPERANTE'
+        });
+        
+        this.registrarAtividade('EQUIPAMENTO_LIGADO', 
+            `${equipamento.nome} tornou-se OPERANTE por ${this.usuarioAtual}`);
+        
+        this.mostrarMensagem(`✅ ${equipamento.nome} agora está OPERANTE`, 'success');
+        
+    } else {
+        // DESLIGANDO O EQUIPAMENTO - calcula o tempo e atualiza o registro anterior
+        let tempoOperacaoSessao = 0;
+        
+        if (equipamento.emLinha.inicioOperacaoAtual) {
+            const inicio = new Date(equipamento.emLinha.inicioOperacaoAtual).getTime();
+            const fim = new Date(timestamp).getTime();
+            tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
+        } else if (equipamento.emLinha.ultimoAcionamento) {
+            const inicio = new Date(equipamento.emLinha.ultimoAcionamento).getTime();
+            const fim = new Date(timestamp).getTime();
+            tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
+        }
+        
+        if (tempoOperacaoSessao <= 0) {
+            tempoOperacaoSessao = 1;
+        }
+        
+        // ATUALIZA O REGISTRO ANTERIOR (LIGADO) COM O TEMPO DE OPERAÇÃO
+        const ultimoRegistro = equipamento.historicoAcionamentos
+            .filter(h => h.tipo === 'LIGADO' && !h.tempoOperacao)
+            .pop();
+        
+        if (ultimoRegistro) {
+            ultimoRegistro.tempoOperacao = tempoOperacaoSessao;
+        }
+        
+        // Atualiza o tempo total acumulado (para histórico)
+        equipamento.emLinha.tempoTotalOperacao = (equipamento.emLinha.tempoTotalOperacao || 0) + tempoOperacaoSessao;
+        equipamento.emLinha.ultimoDesligamento = timestamp;
+        equipamento.emLinha.operadorAtual = null;
+        
+        delete equipamento.emLinha.inicioOperacaoAtual;
+        
+        this.equipamentosEmLinha.delete(equipamentoId);
+        
+        // Registra o desligamento (agora sem o tempo, pois já foi atribuído ao LIGADO)
+        equipamento.historicoAcionamentos.push({
+            tipo: 'DESLIGADO',
+            timestamp: timestamp,
+            operador: this.usuarioAtual,
+            tempoOperacao: null, // Não precisa mais do tempo aqui
+            turno: this.obterTurnoAtual(),
+            observacao: justificativa || 'Equipamento tornou-se INOPERANTE'
+        });
+        
+        this.registrarAtividade('EQUIPAMENTO_DESLIGADO', 
+            `${equipamento.nome} tornou-se INOPERANTE por ${this.usuarioAtual} (operou ${tempoOperacaoSessao} min)`);
+        
+        this.mostrarMensagem(`⏹️ ${equipamento.nome} agora está INOPERANTE (operou ${this.formatarTempoAmigavel(tempoOperacaoSessao)})`, 'info');
+    }
+    
+    await this.salvarDados();
+    this.atualizarCardsEquipamentos();
+    this.atualizarEstatisticasOperacao();
+}
     
     obterTurnoAtual() {
         const hora = new Date().getHours();
@@ -393,8 +406,15 @@ class EquipamentosApp {
         });
         
         const tempoTotal = this.calcularTempoOperacaoAtual(equipamento);
-        const tempoTotalHoras = Math.floor(tempoTotal / 60);
-        const tempoTotalMinutos = tempoTotal % 60;
+const tempoTotalHoras = Math.floor(tempoTotal / 60);
+const tempoTotalMinutos = tempoTotal % 60;
+
+// Calcular tempo total baseado nos registros de LIGADO com tempoOperacao
+const tempoTotalHistorico = equipamento.historicoAcionamentos
+    .filter(h => h.tipo === 'LIGADO' && h.tempoOperacao)
+    .reduce((acc, h) => acc + (h.tempoOperacao || 0), 0);
+const tempoTotalHistoricoHoras = Math.floor(tempoTotalHistorico / 60);
+const tempoTotalHistoricoMinutos = tempoTotalHistorico % 60;
         
         const modal = document.createElement('div');
         modal.className = 'modal active';
@@ -471,69 +491,75 @@ class EquipamentosApp {
             `Visualizou histórico de acionamentos do equipamento ${equipamento.nome}`);
     }
     
-    renderizarTabelaHistorico(historico) {
-        if (!historico || historico.length === 0) {
-            return '<p style="text-align: center; padding: 40px; color: var(--cor-texto-secundario);"><i class="fas fa-info-circle"></i> Nenhum registro neste período</p>';
-        }
-        
-        return `
-            <table class="historico-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                <thead>
-                    <tr style="background: var(--cor-fundo-secundario);">
-                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Data/Hora</th>
-                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Ação</th>
-                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Operador</th>
-                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Turno</th>
-                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Tempo</th>
-                        <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Observação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${historico.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map(h => {
-                        const data = new Date(h.timestamp);
-                        const dataStr = data.toLocaleDateString('pt-BR');
-                        const horaStr = data.toLocaleTimeString('pt-BR');
-                        
-                        let acaoClass = '';
-                        let acaoIcon = '';
-                        let acaoTexto = '';
-                        
-                        if (h.tipo === 'LIGADO') {
-                            acaoClass = 'status-chip apto';
-                            acaoIcon = 'fa-bolt';
-                            acaoTexto = 'OPERANTE';
-                        } else if (h.tipo === 'DESLIGADO') {
-                            acaoClass = 'status-chip nao-apto';
-                            acaoIcon = 'fa-power-off';
-                            acaoTexto = 'INOPERANTE';
-                        } else {
-                            acaoClass = 'status-chip cancelada';
-                            acaoIcon = 'fa-flag';
-                            acaoTexto = 'MARCO';
-                        }
-                        
-                        const tempoFormatado = h.tempoOperacao ? 
-                            this.formatarTempoAmigavel(h.tempoOperacao) : '-';
-                        
-                        return `
-                            <tr style="border-bottom: 1px solid var(--cor-borda);">
-                                <td style="padding: 8px;">${dataStr} ${horaStr}</td>
-                                <td style="padding: 8px;">
-                                    <span class="${acaoClass}" style="display: inline-flex; align-items: center; gap: 5px;">
-                                        <i class="fas ${acaoIcon}"></i> ${acaoTexto}
-                                    </span>
-                                </td>
-                                <td style="padding: 8px;">${this.escapeHTML(h.operador)}</td>
-                                <td style="padding: 8px;">${h.turno || '-'}</td>
-                                <td style="padding: 8px;">${tempoFormatado}</td>
-                                <td style="padding: 8px;">${h.observacao || '-'}</td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        `;
+   renderizarTabelaHistorico(historico) {
+    if (!historico || historico.length === 0) {
+        return '<p style="text-align: center; padding: 40px; color: var(--cor-texto-secundario);"><i class="fas fa-info-circle"></i> Nenhum registro neste período</p>';
     }
+    
+    return `
+        <table class="historico-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+                <tr style="background: var(--cor-fundo-secundario);">
+                    <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Data/Hora</th>
+                    <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Ação</th>
+                    <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Operador</th>
+                    <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Turno</th>
+                    <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Tempo</th>
+                    <th style="padding: 10px; border-bottom: 2px solid var(--cor-borda); text-align: left;">Observação</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${historico.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map(h => {
+                    const data = new Date(h.timestamp);
+                    const dataStr = data.toLocaleDateString('pt-BR');
+                    const horaStr = data.toLocaleTimeString('pt-BR');
+                    
+                    let acaoClass = '';
+                    let acaoIcon = '';
+                    let acaoTexto = '';
+                    
+                    if (h.tipo === 'LIGADO') {
+                        acaoClass = 'status-chip apto';
+                        acaoIcon = 'fa-bolt';
+                        acaoTexto = 'OPERANTE';
+                    } else if (h.tipo === 'DESLIGADO') {
+                        acaoClass = 'status-chip nao-apto';
+                        acaoIcon = 'fa-power-off';
+                        acaoTexto = 'INOPERANTE';
+                    } else {
+                        acaoClass = 'status-chip cancelada';
+                        acaoIcon = 'fa-flag';
+                        acaoTexto = 'MARCO';
+                    }
+                    
+                    // CORREÇÃO: Mostra o tempo na linha do LIGADO (se tiver) ou do DESLIGADO (para compatibilidade)
+                    let tempoFormatado = '-';
+                    if (h.tipo === 'LIGADO' && h.tempoOperacao) {
+                        tempoFormatado = this.formatarTempoAmigavel(h.tempoOperacao);
+                    } else if (h.tipo === 'DESLIGADO' && h.tempoOperacao) {
+                        // Para compatibilidade com registros antigos
+                        tempoFormatado = this.formatarTempoAmigavel(h.tempoOperacao);
+                    }
+                    
+                    return `
+                        <tr style="border-bottom: 1px solid var(--cor-borda);">
+                            <td style="padding: 8px;">${dataStr} ${horaStr}</td>
+                            <td style="padding: 8px;">
+                                <span class="${acaoClass}" style="display: inline-flex; align-items: center; gap: 5px;">
+                                    <i class="fas ${acaoIcon}"></i> ${acaoTexto}
+                                </span>
+                            </td>
+                            <td style="padding: 8px;">${this.escapeHTML(h.operador)}</td>
+                            <td style="padding: 8px;">${h.turno || '-'}</td>
+                            <td style="padding: 8px;">${tempoFormatado}</td>
+                            <td style="padding: 8px;">${h.observacao || '-'}</td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+}
     
     exportarHistoricoAcionamentos(equipamentoId) {
         const equipamento = this.equipamentos.find(e => e.id === equipamentoId);
