@@ -1,7 +1,7 @@
 // ===========================================
 // SISTEMA DE RELATÓRIOS EM PDF
 // Gestão de Equipamentos - Usina
-// Versão 1.0.0
+// Versão 1.0.0 - CORRIGIDA
 // ===========================================
 
 class RelatoriosApp {
@@ -21,35 +21,50 @@ class RelatoriosApp {
             const dataAtual = new Date();
             const usuario = this.app.usuarioAtual || 'Sistema';
             
-            // Criar documento PDF
+            // Criar documento PDF - paisagem
             const doc = new this.jsPDF({
                 orientation: 'landscape',
                 unit: 'mm',
                 format: 'a4'
             });
             
+            let yPos = 20; // Controlador de posição vertical
+            
             // Cabeçalho do relatório
-            this.adicionarCabecalho(doc, 'RELATÓRIO GERAL DE EQUIPAMENTOS', dataAtual, usuario);
+            yPos = this.adicionarCabecalho(doc, 'RELATÓRIO GERAL DE EQUIPAMENTOS', dataAtual, usuario, yPos);
             
             // Estatísticas gerais
-            this.adicionarEstatisticasGerais(doc, equipamentos);
+            yPos = this.adicionarEstatisticasGerais(doc, equipamentos, yPos);
             
             // Tabela de equipamentos
-            doc.addPage();
-            this.adicionarTabelaEquipamentos(doc, equipamentos);
+            yPos = this.adicionarTabelaEquipamentos(doc, equipamentos, yPos + 10);
             
-            // Estatísticas de pendências por prioridade
-            doc.addPage();
-            this.adicionarGraficoPendencias(doc, equipamentos);
+            // Se não coube na página, adicionar nova página para o restante
+            if (yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            // Estatísticas de pendências
+            yPos = this.adicionarGraficoPendencias(doc, equipamentos, yPos + 10);
+            
+            // Se não coube, nova página
+            if (yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
             
             // Estatísticas de operação
-            this.adicionarEstatisticasOperacao(doc, equipamentos);
+            yPos = this.adicionarEstatisticasOperacao(doc, equipamentos, yPos + 10);
             
-            // Resumo de pendências ativas
-            doc.addPage();
-            this.adicionarResumoPendencias(doc, equipamentos);
+            // Resumo de pendências ativas - nova página se necessário
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+            this.adicionarResumoPendencias(doc, equipamentos, yPos + 10);
             
-            // Rodapé
+            // Rodapé em todas as páginas
             this.adicionarRodape(doc);
             
             // Salvar PDF
@@ -81,30 +96,38 @@ class RelatoriosApp {
             const dataAtual = new Date();
             const usuario = this.app.usuarioAtual || 'Sistema';
             
-            // Criar documento PDF (retrato para relatório individual)
+            // Criar documento PDF - retrato para relatório individual
             const doc = new this.jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
             
+            let yPos = 20;
+            
             // Cabeçalho
-            this.adicionarCabecalho(doc, `RELATÓRIO DO EQUIPAMENTO`, dataAtual, usuario);
+            yPos = this.adicionarCabecalho(doc, `RELATÓRIO DO EQUIPAMENTO`, dataAtual, usuario, yPos);
             
             // Informações do equipamento
-            this.adicionarInfoEquipamento(doc, equipamento);
+            yPos = this.adicionarInfoEquipamento(doc, equipamento, yPos + 10);
             
             // Estatísticas de operação
-            this.adicionarEstatisticasEquipamento(doc, equipamento);
+            yPos = this.adicionarEstatisticasEquipamento(doc, equipamento, yPos + 10);
             
             // Histórico de acionamentos
-            doc.addPage();
-            this.adicionarHistoricoAcionamentos(doc, equipamento);
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+            yPos = this.adicionarHistoricoAcionamentos(doc, equipamento, yPos + 10);
             
             // Pendências do equipamento
             if (equipamento.pendencias && equipamento.pendencias.length > 0) {
-                doc.addPage();
-                this.adicionarPendenciasEquipamento(doc, equipamento);
+                if (yPos > 200) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                this.adicionarPendenciasEquipamento(doc, equipamento, yPos + 10);
             }
             
             // Rodapé
@@ -163,14 +186,19 @@ class RelatoriosApp {
                 format: 'a4'
             });
             
-            this.adicionarCabecalho(doc, 'RELATÓRIO DE PENDÊNCIAS ATIVAS', dataAtual, usuario);
+            let yPos = 20;
+            
+            yPos = this.adicionarCabecalho(doc, 'RELATÓRIO DE PENDÊNCIAS ATIVAS', dataAtual, usuario, yPos);
             
             // Estatísticas de pendências
-            this.adicionarEstatisticasPendencias(doc, pendenciasAtivas);
+            yPos = this.adicionarEstatisticasPendencias(doc, pendenciasAtivas, yPos + 10);
             
             // Tabela de pendências
-            doc.addPage();
-            this.adicionarTabelaPendencias(doc, pendenciasAtivas);
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+            this.adicionarTabelaPendencias(doc, pendenciasAtivas, yPos + 10);
             
             this.adicionarRodape(doc);
             
@@ -188,27 +216,33 @@ class RelatoriosApp {
 
     // ================== MÉTODOS AUXILIARES ==================
 
-    adicionarCabecalho(doc, titulo, data, usuario) {
+    adicionarCabecalho(doc, titulo, data, usuario, y) {
         // Logo da empresa (texto)
         doc.setFontSize(22);
         doc.setTextColor(44, 62, 80); // #2c3e50
-        doc.text('USINA DE BENEFICIAMENTO', 20, 20);
+        doc.text('USINA DE BENEFICIAMENTO', 20, y);
+        y += 8;
         
         doc.setFontSize(16);
         doc.setTextColor(52, 152, 219); // #3498db
-        doc.text(titulo, 20, 30);
+        doc.text(titulo, 20, y);
+        y += 8;
         
         doc.setFontSize(10);
         doc.setTextColor(127, 140, 141); // #7f8c8d
-        doc.text(`Data: ${this.formatarDataCompleta(data)}`, 20, 38);
-        doc.text(`Gerado por: ${usuario}`, 20, 44);
-        doc.text(`Sistema: Gestão de Equipamentos v2.3.0`, 20, 50);
+        doc.text(`Data: ${this.formatarDataCompleta(data)}`, 20, y);
+        y += 5;
+        doc.text(`Gerado por: ${usuario}`, 20, y);
+        y += 5;
+        doc.text(`Sistema: Gestão de Equipamentos v2.4.0`, 20, y);
+        y += 8;
         
         // Linha separadora
         doc.setDrawColor(189, 195, 199); // #bdc3c7
-        doc.line(20, 55, 280, 55);
+        doc.line(20, y, 280, y);
+        y += 5;
         
-        doc.setY(60);
+        return y;
     }
 
     adicionarRodape(doc) {
@@ -225,7 +259,7 @@ class RelatoriosApp {
         }
     }
 
-    adicionarEstatisticasGerais(doc, equipamentos) {
+    adicionarEstatisticasGerais(doc, equipamentos, y) {
         const total = equipamentos.length;
         const aptos = equipamentos.filter(e => e.status === 'apto').length;
         const naoAptos = equipamentos.filter(e => e.status === 'nao-apto').length;
@@ -244,55 +278,52 @@ class RelatoriosApp {
         
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('ESTATÍSTICAS GERAIS', 20, 70);
+        doc.text('ESTATÍSTICAS GERAIS', 20, y);
+        y += 8;
         
         doc.setFontSize(11);
         
-        // Grid de estatísticas
         const stats = [
-            { label: 'Total de Equipamentos', value: total, color: [52, 152, 219] },
-            { label: 'Aptos a Operar', value: aptos, color: [46, 204, 113] },
-            { label: 'Não Aptos', value: naoAptos, color: [231, 76, 60] },
-            { label: 'Operantes', value: operantes, color: [46, 204, 113] },
-            { label: 'Pendências Ativas', value: totalPendencias, color: [243, 156, 18] },
-            { label: 'Pendências Críticas', value: criticas, color: [192, 57, 43] }
+            { label: 'Total de Equipamentos', value: total },
+            { label: 'Aptos a Operar', value: aptos },
+            { label: 'Não Aptos', value: naoAptos },
+            { label: 'Operantes', value: operantes },
+            { label: 'Pendências Ativas', value: totalPendencias },
+            { label: 'Pendências Críticas', value: criticas }
         ];
         
         let x = 20;
-        let y = 80;
-        let col = 0;
+        let colY = y;
         
         stats.forEach((stat, index) => {
-            doc.setFillColor(stat.color[0], stat.color[1], stat.color[2]);
-            doc.rect(x, y, 45, 25, 'F');
+            doc.setFillColor(52, 152, 219);
+            doc.rect(x, colY, 45, 20, 'F');
             
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.text(stat.value.toString(), x + 5, y + 15);
+            doc.setFontSize(16);
+            doc.text(stat.value.toString(), x + 5, colY + 12);
             
             doc.setFontSize(8);
-            doc.text(stat.label, x + 5, y + 22);
+            doc.text(stat.label, x + 5, colY + 17);
             
             x += 50;
-            col++;
             
-            if (col === 3) {
+            if ((index + 1) % 3 === 0) {
                 x = 20;
-                y += 30;
+                colY += 25;
             }
         });
         
-        doc.setY(y + 20);
+        return colY + 25;
     }
 
-    adicionarTabelaEquipamentos(doc, equipamentos) {
+    adicionarTabelaEquipamentos(doc, equipamentos, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('LISTA DE EQUIPAMENTOS', 20, 20);
+        doc.text('LISTA DE EQUIPAMENTOS', 20, y);
+        y += 5;
         
-        const headers = [
-            ['ID', 'Nome', 'Setor', 'Status', 'Operacional', 'Pendências', 'Tempo Operação']
-        ];
+        const headers = [['ID', 'Nome', 'Setor', 'Status', 'Operacional', 'Pendências', 'Tempo']];
         
         const data = equipamentos.map(e => {
             const tempo = this.app.calcularTempoOperacaoAtual(e);
@@ -304,7 +335,7 @@ class RelatoriosApp {
             const setorNome = window.APP_CONFIG?.setores[e.setor]?.nome || e.setor;
             
             return [
-                e.id,
+                e.id.toString(),
                 e.nome,
                 setorNome,
                 e.status === 'apto' ? 'Apto' : 'Não Apto',
@@ -317,38 +348,42 @@ class RelatoriosApp {
         doc.autoTable({
             head: headers,
             body: data,
-            startY: 25,
+            startY: y,
             theme: 'grid',
             headStyles: {
                 fillColor: [52, 152, 219],
                 textColor: 255,
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontSize: 9
             },
             columnStyles: {
                 0: { cellWidth: 15 },
                 1: { cellWidth: 50 },
-                2: { cellWidth: 40 },
+                2: { cellWidth: 45 },
                 3: { cellWidth: 25 },
                 4: { cellWidth: 30 },
                 5: { cellWidth: 25 },
-                6: { cellWidth: 35 }
+                6: { cellWidth: 30 }
             },
             styles: {
-                fontSize: 9,
-                cellPadding: 3
+                fontSize: 8,
+                cellPadding: 2
             },
             alternateRowStyles: {
                 fillColor: [245, 245, 245]
             }
         });
+        
+        return doc.lastAutoTable.finalY + 10;
     }
 
-    adicionarInfoEquipamento(doc, equipamento) {
+    adicionarInfoEquipamento(doc, equipamento, y) {
         const setorNome = window.APP_CONFIG?.setores[equipamento.setor]?.nome || equipamento.setor;
         
         doc.setFontSize(16);
         doc.setTextColor(52, 152, 219);
-        doc.text(equipamento.nome, 20, 70);
+        doc.text(equipamento.nome, 20, y);
+        y += 8;
         
         doc.setFontSize(11);
         doc.setTextColor(44, 62, 80);
@@ -363,17 +398,18 @@ class RelatoriosApp {
             ['Última Inspeção:', equipamento.ultimaInspecao ? this.app.formatarData(equipamento.ultimaInspecao) : 'Não registrada']
         ];
         
-        let y = 80;
         info.forEach(([label, value]) => {
             doc.setFont(undefined, 'bold');
             doc.text(label, 20, y);
             doc.setFont(undefined, 'normal');
             doc.text(value, 60, y);
-            y += 8;
+            y += 7;
         });
+        
+        return y;
     }
 
-    adicionarEstatisticasEquipamento(doc, equipamento) {
+    adicionarEstatisticasEquipamento(doc, equipamento, y) {
         const tempoTotal = this.app.calcularTempoOperacaoAtual(equipamento);
         const horas = Math.floor(tempoTotal / 60);
         const minutos = tempoTotal % 60;
@@ -388,7 +424,8 @@ class RelatoriosApp {
         
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('ESTATÍSTICAS DO EQUIPAMENTO', 20, 140);
+        doc.text('ESTATÍSTICAS DO EQUIPAMENTO', 20, y);
+        y += 8;
         
         doc.setFontSize(11);
         
@@ -401,30 +438,32 @@ class RelatoriosApp {
             ['Pendências Críticas:', criticas.toString()]
         ];
         
-        let y = 150;
         stats.forEach(([label, value]) => {
             doc.setFont(undefined, 'bold');
             doc.text(label, 20, y);
             doc.setFont(undefined, 'normal');
             doc.text(value, 90, y);
-            y += 8;
+            y += 7;
         });
+        
+        return y;
     }
 
-    adicionarHistoricoAcionamentos(doc, equipamento) {
+    adicionarHistoricoAcionamentos(doc, equipamento, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('HISTÓRICO DE ACIONAMENTOS', 20, 20);
+        doc.text('HISTÓRICO DE ACIONAMENTOS', 20, y);
+        y += 5;
         
         const historico = equipamento.historicoAcionamentos || [];
         
         if (historico.length === 0) {
             doc.setFontSize(11);
-            doc.text('Nenhum acionamento registrado.', 20, 30);
-            return;
+            doc.text('Nenhum acionamento registrado.', 20, y + 10);
+            return y + 15;
         }
         
-        const headers = [['Data/Hora', 'Ação', 'Operador', 'Turno', 'Tempo', 'Observação']];
+        const headers = [['Data/Hora', 'Ação', 'Operador', 'Tempo', 'Observação']];
         
         const data = historico.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map(h => {
             const data = new Date(h.timestamp);
@@ -437,7 +476,6 @@ class RelatoriosApp {
                 dataStr,
                 acao,
                 h.operador || '-',
-                h.turno || '-',
                 tempoFormatado,
                 h.observacao || '-'
             ];
@@ -446,31 +484,35 @@ class RelatoriosApp {
         doc.autoTable({
             head: headers,
             body: data,
-            startY: 25,
+            startY: y,
             theme: 'grid',
             headStyles: {
                 fillColor: [52, 152, 219],
                 textColor: 255,
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontSize: 9
             },
             styles: {
                 fontSize: 8,
                 cellPadding: 2
             }
         });
+        
+        return doc.lastAutoTable.finalY + 10;
     }
 
-    adicionarPendenciasEquipamento(doc, equipamento) {
+    adicionarPendenciasEquipamento(doc, equipamento, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('PENDÊNCIAS DO EQUIPAMENTO', 20, 20);
+        doc.text('PENDÊNCIAS DO EQUIPAMENTO', 20, y);
+        y += 5;
         
         const pendencias = equipamento.pendencias || [];
         
         if (pendencias.length === 0) {
             doc.setFontSize(11);
-            doc.text('Nenhuma pendência registrada.', 20, 30);
-            return;
+            doc.text('Nenhuma pendência registrada.', 20, y + 10);
+            return y + 15;
         }
         
         const headers = [['ID', 'Título', 'Prioridade', 'Status', 'Responsável', 'Data']];
@@ -480,7 +522,7 @@ class RelatoriosApp {
             const statusNome = window.APP_CONFIG?.statusPendencia[p.status]?.nome || p.status;
             
             return [
-                p.id,
+                p.id.toString(),
                 p.titulo,
                 prioridadeNome,
                 statusNome,
@@ -492,25 +534,28 @@ class RelatoriosApp {
         doc.autoTable({
             head: headers,
             body: data,
-            startY: 25,
+            startY: y,
             theme: 'grid',
             headStyles: {
                 fillColor: [52, 152, 219],
                 textColor: 255,
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontSize: 9
             },
             styles: {
-                fontSize: 9,
-                cellPadding: 3
+                fontSize: 8,
+                cellPadding: 2
             },
             columnStyles: {
                 0: { cellWidth: 15 },
-                1: { cellWidth: 60 }
+                1: { cellWidth: 50 }
             }
         });
+        
+        return doc.lastAutoTable.finalY + 10;
     }
 
-    adicionarEstatisticasPendencias(doc, pendencias) {
+    adicionarEstatisticasPendencias(doc, pendencias, y) {
         const total = pendencias.length;
         const criticas = pendencias.filter(p => p.prioridade === 'critica').length;
         const altas = pendencias.filter(p => p.prioridade === 'alta').length;
@@ -522,7 +567,8 @@ class RelatoriosApp {
         
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('ESTATÍSTICAS DE PENDÊNCIAS', 20, 70);
+        doc.text('ESTATÍSTICAS DE PENDÊNCIAS', 20, y);
+        y += 8;
         
         doc.setFontSize(11);
         
@@ -536,20 +582,22 @@ class RelatoriosApp {
             ['Em Andamento:', andamento.toString()]
         ];
         
-        let y = 80;
         stats.forEach(([label, value]) => {
             doc.setFont(undefined, 'bold');
             doc.text(label, 20, y);
             doc.setFont(undefined, 'normal');
             doc.text(value, 70, y);
-            y += 8;
+            y += 7;
         });
+        
+        return y;
     }
 
-    adicionarTabelaPendencias(doc, pendencias) {
+    adicionarTabelaPendencias(doc, pendencias, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('LISTA DE PENDÊNCIAS ATIVAS', 20, 20);
+        doc.text('LISTA DE PENDÊNCIAS ATIVAS', 20, y);
+        y += 5;
         
         const headers = [['ID', 'Equipamento', 'Título', 'Prioridade', 'Status', 'Responsável', 'Data']];
         
@@ -558,7 +606,7 @@ class RelatoriosApp {
             const statusNome = window.APP_CONFIG?.statusPendencia[p.status]?.nome || p.status;
             
             return [
-                p.id,
+                p.id.toString(),
                 p.equipamentoNome,
                 p.titulo,
                 prioridadeNome,
@@ -571,12 +619,13 @@ class RelatoriosApp {
         doc.autoTable({
             head: headers,
             body: data,
-            startY: 25,
+            startY: y,
             theme: 'grid',
             headStyles: {
                 fillColor: [52, 152, 219],
                 textColor: 255,
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontSize: 9
             },
             styles: {
                 fontSize: 8,
@@ -584,16 +633,19 @@ class RelatoriosApp {
             },
             columnStyles: {
                 0: { cellWidth: 15 },
-                1: { cellWidth: 40 },
-                2: { cellWidth: 60 }
+                1: { cellWidth: 45 },
+                2: { cellWidth: 50 }
             }
         });
+        
+        return doc.lastAutoTable.finalY + 10;
     }
 
-    adicionarGraficoPendencias(doc, equipamentos) {
+    adicionarGraficoPendencias(doc, equipamentos, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('PENDÊNCIAS POR PRIORIDADE', 20, 20);
+        doc.text('PENDÊNCIAS POR PRIORIDADE', 20, y);
+        y += 5;
         
         const contadores = {
             critica: 0,
@@ -610,7 +662,6 @@ class RelatoriosApp {
             });
         });
         
-        // Criar uma representação visual simples
         const cores = {
             critica: [192, 57, 43],
             alta: [231, 76, 60],
@@ -620,13 +671,17 @@ class RelatoriosApp {
         
         const labels = ['Crítica', 'Alta', 'Média', 'Baixa'];
         const valores = [contadores.critica, contadores.alta, contadores.media, contadores.baixa];
-        const total = valores.reduce((a, b) => a + b, 0);
-        
-        let y = 30;
-        let x = 30;
-        const barWidth = 40;
-        const maxBarHeight = 80;
         const maxValor = Math.max(...valores, 1);
+        
+        let barY = y + 10;
+        let x = 30;
+        const barWidth = 35;
+        const maxBarHeight = 60;
+        
+        // Título do gráfico
+        doc.setFontSize(10);
+        doc.setTextColor(44, 62, 80);
+        doc.text('Distribuição de Pendências por Prioridade', 20, barY - 5);
         
         // Desenhar barras
         labels.forEach((label, i) => {
@@ -634,29 +689,26 @@ class RelatoriosApp {
             
             // Barra
             doc.setFillColor(cores[label.toLowerCase()][0], cores[label.toLowerCase()][1], cores[label.toLowerCase()][2]);
-            doc.rect(x + (i * 50), y + (maxBarHeight - altura), barWidth, altura, 'F');
+            doc.rect(x + (i * 45), barY + (maxBarHeight - altura), barWidth, altura, 'F');
             
             // Valor
             doc.setFontSize(10);
             doc.setTextColor(44, 62, 80);
-            doc.text(valores[i].toString(), x + (i * 50) + 15, y + maxBarHeight - altura - 3);
+            doc.text(valores[i].toString(), x + (i * 45) + 12, barY + maxBarHeight - altura - 3);
             
             // Label
             doc.setFontSize(9);
-            doc.text(label, x + (i * 50) + 10, y + maxBarHeight + 10);
-            
-            // Percentual
-            const percentual = total > 0 ? ((valores[i] / total) * 100).toFixed(1) : '0';
-            doc.text(`${percentual}%`, x + (i * 50) + 12, y + maxBarHeight + 20);
+            doc.text(label, x + (i * 45) + 8, barY + maxBarHeight + 8);
         });
         
-        doc.setY(y + maxBarHeight + 40);
+        return barY + maxBarHeight + 15;
     }
 
-    adicionarEstatisticasOperacao(doc, equipamentos) {
+    adicionarEstatisticasOperacao(doc, equipamentos, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('ESTATÍSTICAS DE OPERAÇÃO', 20, doc.previousAutoTable?.finalY + 20 || 150);
+        doc.text('ESTATÍSTICAS DE OPERAÇÃO', 20, y);
+        y += 8;
         
         const operantes = equipamentos.filter(e => e.emLinha?.ativo).length;
         const inoperantes = equipamentos.length - operantes;
@@ -673,21 +725,24 @@ class RelatoriosApp {
             ['Acionamentos Hoje:', acionamentosHoje.toString()]
         ];
         
-        let y = (doc.previousAutoTable?.finalY + 30) || 160;
+        doc.setFontSize(11);
         
         stats.forEach(([label, value]) => {
             doc.setFont(undefined, 'bold');
             doc.text(label, 20, y);
             doc.setFont(undefined, 'normal');
             doc.text(value, 80, y);
-            y += 8;
+            y += 7;
         });
+        
+        return y;
     }
 
-    adicionarResumoPendencias(doc, equipamentos) {
+    adicionarResumoPendencias(doc, equipamentos, y) {
         doc.setFontSize(14);
         doc.setTextColor(44, 62, 80);
-        doc.text('RESUMO DE PENDÊNCIAS POR EQUIPAMENTO', 20, 20);
+        doc.text('RESUMO DE PENDÊNCIAS POR EQUIPAMENTO', 20, y);
+        y += 5;
         
         const dados = [];
         
@@ -707,8 +762,8 @@ class RelatoriosApp {
         
         if (dados.length === 0) {
             doc.setFontSize(11);
-            doc.text('Nenhuma pendência ativa no momento.', 20, 30);
-            return;
+            doc.text('Nenhuma pendência ativa no momento.', 20, y + 10);
+            return y + 15;
         }
         
         const headers = [['Equipamento', 'Total Pendências', 'Críticas']];
@@ -716,18 +771,21 @@ class RelatoriosApp {
         doc.autoTable({
             head: headers,
             body: dados,
-            startY: 25,
+            startY: y,
             theme: 'grid',
             headStyles: {
                 fillColor: [52, 152, 219],
                 textColor: 255,
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontSize: 9
             },
             styles: {
-                fontSize: 10,
-                cellPadding: 4
+                fontSize: 9,
+                cellPadding: 3
             }
         });
+        
+        return doc.lastAutoTable.finalY + 10;
     }
 
     contarAcionamentosHoje(equipamentos) {
