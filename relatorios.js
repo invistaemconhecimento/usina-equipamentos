@@ -7,7 +7,8 @@
 class RelatoriosApp {
     constructor(app) {
         this.app = app;
-        this.jsPDF = window.jspdf?.jsPDF || window.jspdf;
+        // CORREÇÃO: Acesso correto à biblioteca jsPDF
+        this.jsPDF = window.jspdf?.jsPDF;
     }
 
     /**
@@ -21,8 +22,9 @@ class RelatoriosApp {
             const dataAtual = new Date();
             const usuario = this.app.usuarioAtual || 'Sistema';
             
-            // Criar documento PDF - paisagem
-            const doc = new this.jsPDF({
+            // CORREÇÃO: Inicialização correta do jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
                 orientation: 'landscape',
                 unit: 'mm',
                 format: 'a4'
@@ -39,16 +41,16 @@ class RelatoriosApp {
             // Tabela de equipamentos
             yPos = this.adicionarTabelaEquipamentos(doc, equipamentos, yPos + 10);
             
-            // Se não coube na página, adicionar nova página para o restante
+            // Verificar se precisa de nova página
             if (yPos > 250) {
                 doc.addPage();
                 yPos = 20;
             }
             
-            // Estatísticas de pendências
+            // Estatísticas de pendências (gráfico)
             yPos = this.adicionarGraficoPendencias(doc, equipamentos, yPos + 10);
             
-            // Se não coube, nova página
+            // Verificar se precisa de nova página
             if (yPos > 250) {
                 doc.addPage();
                 yPos = 20;
@@ -57,7 +59,7 @@ class RelatoriosApp {
             // Estatísticas de operação
             yPos = this.adicionarEstatisticasOperacao(doc, equipamentos, yPos + 10);
             
-            // Resumo de pendências ativas - nova página se necessário
+            // Resumo de pendências ativas
             if (yPos > 200) {
                 doc.addPage();
                 yPos = 20;
@@ -96,8 +98,9 @@ class RelatoriosApp {
             const dataAtual = new Date();
             const usuario = this.app.usuarioAtual || 'Sistema';
             
-            // Criar documento PDF - retrato para relatório individual
-            const doc = new this.jsPDF({
+            // CORREÇÃO: Inicialização correta do jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
@@ -180,7 +183,9 @@ class RelatoriosApp {
                 return prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade];
             });
             
-            const doc = new this.jsPDF({
+            // CORREÇÃO: Inicialização correta do jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
                 orientation: 'landscape',
                 unit: 'mm',
                 format: 'a4'
