@@ -56,7 +56,7 @@ class EquipamentosApp {
             await this.carregarDados();
             this.garantirIdsUnicos();
             this.initControleLinha();
-            this.initRelatorios(); // NOVO: Inicializar sistema de relatórios
+            this.initRelatorios();
             this.renderizarEquipamentos();
             this.atualizarEstatisticas();
             this.atualizarStatusSincronizacao(true);
@@ -138,15 +138,17 @@ class EquipamentosApp {
      * CORRIGIDO: Não incrementa mais, apenas atualiza a interface
      */
     atualizarTempoOperacao() {
-        let atualizacoes = false;
+        // Verifica se há equipamentos operantes para atualizar
+        let temOperantes = false;
         
         this.equipamentos.forEach(equip => {
-            if (equip.emLinha?.ativo && equip.emLinha.inicioOperacaoAtual) {
-                atualizacoes = true;
+            if (equip.emLinha?.ativo) {
+                temOperantes = true;
             }
         });
         
-        if (atualizacoes) {
+        // Se houver equipamentos operantes, atualiza os cards
+        if (temOperantes) {
             this.atualizarCardsEquipamentos();
         }
     }
@@ -172,24 +174,26 @@ class EquipamentosApp {
     }
     
     /**
-     * NOVO: Calcula o tempo total correto de operação
+     * NOVO: Calcula o tempo APENAS da sessão atual (não acumulado)
      */
     calcularTempoOperacaoAtual(equipamento) {
-        if (!equipamento.emLinha) return 0;
-        
-        if (!equipamento.emLinha.ativo) {
-            return equipamento.emLinha.tempoTotalOperacao || 0;
+        // Se não estiver operante, retorna 0
+        if (!equipamento.emLinha?.ativo) {
+            return 0;
         }
         
+        // Se está operante mas não tem inicioOperacaoAtual, usa o ultimoAcionamento como fallback
         if (equipamento.emLinha.ativo && equipamento.emLinha.inicioOperacaoAtual) {
             const inicio = new Date(equipamento.emLinha.inicioOperacaoAtual).getTime();
             const agora = new Date().getTime();
             const minutosSessaoAtual = Math.floor((agora - inicio) / (1000 * 60));
             
-            return (equipamento.emLinha.tempoTotalOperacao || 0) + minutosSessaoAtual;
+            // Retorna APENAS o tempo da sessão atual, sem somar com o histórico
+            return minutosSessaoAtual;
         }
         
-        return equipamento.emLinha.tempoTotalOperacao || 0;
+        // Se não conseguir calcular, retorna 0
+        return 0;
     }
     
     /**
@@ -272,7 +276,8 @@ class EquipamentosApp {
                 ultimoAcionamento: null,
                 ultimoDesligamento: null,
                 tempoTotalOperacao: 0,
-                operadorAtual: null
+                operadorAtual: null,
+                inicioOperacaoAtual: null
             };
         }
         
@@ -283,6 +288,7 @@ class EquipamentosApp {
         equipamento.emLinha.ativo = novoEstado;
         
         if (novoEstado) {
+            // LIGANDO O EQUIPAMENTO
             equipamento.emLinha.ultimoAcionamento = timestamp;
             equipamento.emLinha.operadorAtual = this.usuarioAtual;
             equipamento.emLinha.inicioOperacaoAtual = timestamp;
@@ -303,15 +309,14 @@ class EquipamentosApp {
             this.mostrarMensagem(`✅ ${equipamento.nome} agora está OPERANTE`, 'success');
             
         } else {
+            // DESLIGANDO O EQUIPAMENTO
             let tempoOperacaoSessao = 0;
             
             if (equipamento.emLinha.inicioOperacaoAtual) {
                 const inicio = new Date(equipamento.emLinha.inicioOperacaoAtual).getTime();
                 const fim = new Date(timestamp).getTime();
                 tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
-            }
-            
-            if (tempoOperacaoSessao <= 0 && equipamento.emLinha.ultimoAcionamento) {
+            } else if (equipamento.emLinha.ultimoAcionamento) {
                 const inicio = new Date(equipamento.emLinha.ultimoAcionamento).getTime();
                 const fim = new Date(timestamp).getTime();
                 tempoOperacaoSessao = Math.floor((fim - inicio) / (1000 * 60));
@@ -321,7 +326,7 @@ class EquipamentosApp {
                 tempoOperacaoSessao = 1;
             }
             
-            equipamento.emLinha.tempoTotalOperacao += tempoOperacaoSessao;
+            equipamento.emLinha.tempoTotalOperacao = (equipamento.emLinha.tempoTotalOperacao || 0) + tempoOperacaoSessao;
             equipamento.emLinha.ultimoDesligamento = timestamp;
             equipamento.emLinha.operadorAtual = null;
             
@@ -1481,7 +1486,8 @@ class EquipamentosApp {
                             ultimoAcionamento: null,
                             ultimoDesligamento: null,
                             tempoTotalOperacao: 0,
-                            operadorAtual: null
+                            operadorAtual: null,
+                            inicioOperacaoAtual: null
                         };
                     }
                     
@@ -1523,7 +1529,8 @@ class EquipamentosApp {
                                 ultimoAcionamento: null,
                                 ultimoDesligamento: null,
                                 tempoTotalOperacao: 0,
-                                operadorAtual: null
+                                operadorAtual: null,
+                                inicioOperacaoAtual: null
                             };
                         }
                         
@@ -1571,7 +1578,8 @@ class EquipamentosApp {
                             ultimoAcionamento: null,
                             ultimoDesligamento: null,
                             tempoTotalOperacao: 0,
-                            operadorAtual: null
+                            operadorAtual: null,
+                            inicioOperacaoAtual: null
                         };
                     }
                     
@@ -2273,7 +2281,8 @@ class EquipamentosApp {
                 ultimoAcionamento: null,
                 ultimoDesligamento: null,
                 tempoTotalOperacao: 0,
-                operadorAtual: null
+                operadorAtual: null,
+                inicioOperacaoAtual: null
             },
             historicoAcionamentos: []
         };
@@ -2298,7 +2307,8 @@ class EquipamentosApp {
                     ultimoAcionamento: null,
                     ultimoDesligamento: null,
                     tempoTotalOperacao: 0,
-                    operadorAtual: null
+                    operadorAtual: null,
+                    inicioOperacaoAtual: null
                 };
                 
                 if (equipamento.emLinha.ativo && !equipamento.emLinha.inicioOperacaoAtual) {
@@ -2639,7 +2649,7 @@ class EquipamentosApp {
         document.getElementById('detalhes-em-linha').textContent = operante ? 'OPERANTE' : 'INOPERANTE';
         document.getElementById('detalhes-tempo-operacao').textContent = operante ? 
             `${horasOperacao}h ${minutosOperacao}min (desde ${this.formatarHora(equipamento.emLinha.ultimoAcionamento)})` : 
-            `${horasOperacao}h ${minutosOperacao}min (total histórico)`;
+            'INOPERANTE (0min)';
         document.getElementById('detalhes-total-acionamentos').textContent = totalAcionamentos;
         
         this.renderizarPendenciasDetalhes(equipamento.pendencias || []);
