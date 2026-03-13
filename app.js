@@ -439,7 +439,7 @@ const tempoTotalHistoricoMinutos = tempoTotalHistorico % 60;
                         </div>
                         <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
                             <i class="fas fa-clock" style="color: #f39c12; font-size: 20px;"></i>
-                            <div style="font-size: 24px; font-weight: bold;">${tempoTotalHoras}h ${tempoTotalMinutos}min</div>
+                            <div style="font-size: 24px; font-weight: bold;">${tempoTotalHistoricoHoras}h ${tempoTotalHistoricoMinutos}min</div>
                             <div style="font-size: 12px;">Tempo Total</div>
                         </div>
                         <div class="stat-card" style="background: var(--cor-fundo-secundario); padding: 15px; border-radius: 5px; text-align: center;">
